@@ -1588,32 +1588,7 @@ const Trainer = () => {
             }
 
 
-            if (
-                !formData.email.trim()
-            ) {
 
-                alert(
-                    "Please enter Email"
-                );
-
-                return;
-
-            }
-
-
-            if (
-                !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-                    formData.email.trim()
-                )
-            ) {
-
-                alert(
-                    "Please enter valid Email"
-                );
-
-                return;
-
-            }
 
 
             if (
@@ -3744,21 +3719,7 @@ const Trainer = () => {
                                 </Form.Group>
                             </div>
 
-                            {/* 13. Email */}
-                            <div className="col-md-6">
-                                <Form.Group>
-                                    <Form.Label className="fw-semibold">
-                                        Email (ईमेल)
-                                    </Form.Label>
-                                    <Form.Control
-                                        type="email"
-                                        name="email"
-                                        value={formData.email}
-                                        onChange={handleChange}
-                                        placeholder="ईमेल पत्ता प्रविष्ट करा"
-                                    />
-                                </Form.Group>
-                            </div>
+
 
                             {/* 14. User ID */}
                             <div className="col-md-6">

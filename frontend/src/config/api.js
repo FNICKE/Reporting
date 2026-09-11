@@ -1,17 +1,7 @@
-
-const isLocalhost =
-  typeof window !== "undefined" &&
-  (window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1");
-
 export const BACKEND_ROOT_URL =
-  import.meta.env.VITE_BACKEND_URL ||
-  (isLocalhost
-    ? "https://reportbackend.sainikshetkari.org"
-    : "https://reportbackend.sainikshetkari.org");
+  import.meta.env.VITE_BACKEND_URL || "http://localhost:5000";
 
 export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ||
-  `${BACKEND_ROOT_URL}/api`;
+  import.meta.env.VITE_API_BASE_URL || `${BACKEND_ROOT_URL}/api`;
 
 export default API_BASE_URL;

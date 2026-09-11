@@ -567,8 +567,6 @@ const createTrainer = async (
 
             !user_id ||
 
-            !email ||
-
             !password
 
         ) {

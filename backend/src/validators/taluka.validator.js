@@ -39,9 +39,8 @@ const talukaValidator = [
 
     // EMAIL
     body("email")
+        .optional({ checkFalsy: true })
         .trim()
-        .notEmpty()
-        .withMessage("Email is required")
         .isEmail()
         .withMessage("Please enter a valid email"),
 

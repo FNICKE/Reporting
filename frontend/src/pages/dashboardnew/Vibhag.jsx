@@ -1392,29 +1392,7 @@ const Vibhag = () => {
 
         }
 
-        if (!email) {
 
-            alert(
-                "Please enter Email"
-            );
-
-            return;
-
-        }
-
-        if (
-            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-                email
-            )
-        ) {
-
-            alert(
-                "Please enter valid Email"
-            );
-
-            return;
-
-        }
 
         if (
             !editingId &&
@@ -3021,18 +2999,7 @@ const Vibhag = () => {
                                 </Form.Select>
                             </div>
 
-                            {/* EMAIL */}
-                            <div className="col-md-6">
-                                <Form.Label className="fw-semibold">Email (ईमेल)</Form.Label>
-                                <Form.Control
-                                    type="email"
-                                    name="email"
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    placeholder="ईमेल पत्ता प्रविष्ट करा"
-                                    disabled={formLoading}
-                                />
-                            </div>
+
 
                             {/* USER ID */}
                             <div className="col-md-6">

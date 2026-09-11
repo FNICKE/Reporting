@@ -1094,34 +1094,7 @@ const Taluka = () => {
     }
 
 
-    if (
-      !safeString(
-        formData.email
-      ).trim()
-    ) {
 
-      alert(
-        "Please enter Email"
-      );
-
-      return;
-    }
-
-
-    if (
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-        safeString(
-          formData.email
-        ).trim()
-      )
-    ) {
-
-      alert(
-        "Please enter valid Email"
-      );
-
-      return;
-    }
 
 
     if (
@@ -2939,34 +2912,7 @@ const Taluka = () => {
               </div>
 
 
-              {/* EMAIL */}
 
-              <div
-                className="col-md-6"
-              >
-
-                <Form.Group>
-
-                  <Form.Label className="fw-semibold">Email (ईमेल)</Form.Label>
-
-                  <Form.Control
-                    type="email"
-                    name="email"
-                    value={
-                      formData.email
-                    }
-                    onChange={
-                      handleChange
-                    }
-                    placeholder="Enter Email"
-                    disabled={
-                      loading
-                    }
-                  />
-
-                </Form.Group>
-
-              </div>
 
 
               {/* USER ID */}

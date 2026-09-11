@@ -41,6 +41,75 @@
       password: "",
     };
 
+    const MAHARASHTRA_DISTRICTS = [
+      "Ahmednagar",
+      "Akola",
+      "Amravati",
+      "Chhatrapati Sambhajinagar",
+      "Beed",
+      "Bhandara",
+      "Buldhana",
+      "Chandrapur",
+      "Dhule",
+      "Gadchiroli",
+      "Gondia",
+      "Hingoli",
+      "Jalgaon",
+      "Jalna",
+      "Kolhapur",
+      "Latur",
+      "Mumbai City",
+      "Mumbai Suburban",
+      "Nagpur",
+      "Nanded",
+      "Nandurbar",
+      "Nashik",
+      "Dharashiv",
+      "Palghar",
+      "Parbhani",
+      "Pune",
+      "Raigad",
+      "Ratnagiri",
+      "Sangli",
+      "Satara",
+      "Sindhudurg",
+      "Solapur",
+      "Thane",
+      "Wardha",
+      "Washim",
+      "Yavatmal",
+    ];
+
+    const DESIGNATION_OPTIONS = [
+      "District Head (जिल्हा प्रमुख)",
+      "District Officer (जिल्हा अधिकारी)",
+      "District Coordinator (जिल्हा समन्वयक)",
+      "Business Development Officer (BDO)",
+      "District In-Charge (जिल्हा प्रभारी)",
+      "Trainer (प्रशिक्षक)",
+      "Center Head (केंद्र प्रमुख)",
+    ];
+
+    const BANK_OPTIONS = [
+      "State Bank of India",
+      "Bank of Maharashtra",
+      "HDFC Bank",
+      "ICICI Bank",
+      "Bank of Baroda",
+      "Axis Bank",
+      "Punjab National Bank",
+      "Canara Bank",
+      "Union Bank of India",
+      "Kotak Mahindra Bank",
+      "IDBI Bank",
+      "Central Bank of India",
+      "Indian Bank",
+      "IndusInd Bank",
+      "Yes Bank",
+      "Maharashtra Gramin Bank",
+      "Vidarbha Konkan Gramin Bank",
+    ];
+
 
     /* =========================================================
       COMPONENT
@@ -652,7 +721,6 @@
           ["designation", "Designation"],
           ["districtName", "District"],
           ["districtCode", "District ID"],
-          ["taluka", "Taluka"],
           ["joiningDate", "Joining Date"],
           ["accountNumber", "Account Number"],
           ["ifscCode", "IFSC Code"],
@@ -667,32 +735,7 @@
         }
 
 
-        if (
-          !formData.email.trim()
-        ) {
 
-          alert(
-            "Please enter Email"
-          );
-
-          return;
-
-        }
-
-
-        if (
-          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-            formData.email.trim()
-          )
-        ) {
-
-          alert(
-            "Please enter valid Email"
-          );
-
-          return;
-
-        }
 
 
         if (
@@ -1778,16 +1821,22 @@
                   <div className="col-md-6">
                     <Form.Group>
                       <Form.Label className="fw-semibold">
-                        Designation (पद)
+                        Designation (पद) <span className="text-danger">*</span>
                       </Form.Label>
                       <Form.Control
                         type="text"
+                        list="designationList"
                         name="designation"
                         value={formData.designation}
                         onChange={handleChange}
-                        placeholder="पद प्रविष्ट करा"
+                        placeholder="Select or type Designation (पद निवडा किंवा टाईप करा)"
                         disabled={loading}
                       />
+                      <datalist id="designationList">
+                        {DESIGNATION_OPTIONS.map((opt) => (
+                          <option key={opt} value={opt} />
+                        ))}
+                      </datalist>
                     </Form.Group>
                   </div>
 
@@ -1795,16 +1844,22 @@
                   <div className="col-md-6">
                     <Form.Group>
                       <Form.Label className="fw-semibold">
-                        District (जिल्हा)
+                        District (जिल्हा) <span className="text-danger">*</span>
                       </Form.Label>
                       <Form.Control
                         type="text"
+                        list="districtList"
                         name="districtName"
                         value={formData.districtName}
                         onChange={handleChange}
-                        placeholder="जिल्हा प्रविष्ट करा"
+                        placeholder="Select or type District (जिल्हा निवडा किंवा टाईप करा)"
                         disabled={loading}
                       />
+                      <datalist id="districtList">
+                        {MAHARASHTRA_DISTRICTS.map((dist) => (
+                          <option key={dist} value={dist} />
+                        ))}
+                      </datalist>
                     </Form.Group>
                   </div>
 
@@ -1812,7 +1867,7 @@
                   <div className="col-md-6">
                     <Form.Group>
                       <Form.Label className="fw-semibold">
-                        District ID (जिल्हा क्रमांक)
+                        District ID (जिल्हा क्रमांक) <span className="text-danger">*</span>
                       </Form.Label>
                       <Form.Control
                         type="text"
@@ -1825,18 +1880,18 @@
                     </Form.Group>
                   </div>
 
-                  {/* TALUKA */}
+                  {/* TALUKA (OPTIONAL) */}
                   <div className="col-md-6">
                     <Form.Group>
                       <Form.Label className="fw-semibold">
-                        Taluka (तालुका)
+                        Taluka (तालुका) <span className="text-muted fw-normal">(Optional / पर्यायी)</span>
                       </Form.Label>
                       <Form.Control
                         type="text"
                         name="taluka"
                         value={formData.taluka}
                         onChange={handleChange}
-                        placeholder="तालुका प्रविष्ट करा"
+                        placeholder="तालुका प्रविष्ट करा (पर्यायी)"
                         disabled={loading}
                       />
                     </Form.Group>
@@ -1846,7 +1901,7 @@
                   <div className="col-md-6">
                     <Form.Group>
                       <Form.Label className="fw-semibold">
-                        Joining Date (रुजू तारीख)
+                        Joining Date (रुजू तारीख) <span className="text-danger">*</span>
                       </Form.Label>
                       <Form.Control
                         type="date"
@@ -1862,7 +1917,7 @@
                   <div className="col-md-6">
                     <Form.Group>
                       <Form.Label className="fw-semibold">
-                        Account No. (खाते क्रमांक)
+                        Account No. (खाते क्रमांक) <span className="text-danger">*</span>
                       </Form.Label>
                       <Form.Control
                         type="text"
@@ -1879,7 +1934,7 @@
                   <div className="col-md-6">
                     <Form.Group>
                       <Form.Label className="fw-semibold">
-                        IFSC Code (आयएफएससी कोड)
+                        IFSC Code (आयएफएससी कोड) <span className="text-danger">*</span>
                       </Form.Label>
                       <Form.Control
                         type="text"
@@ -1896,16 +1951,22 @@
                   <div className="col-md-6">
                     <Form.Group>
                       <Form.Label className="fw-semibold">
-                        Bank Name (बँकेचे नाव)
+                        Bank Name (बँकेचे नाव) <span className="text-danger">*</span>
                       </Form.Label>
                       <Form.Control
                         type="text"
+                        list="bankList"
                         name="bankName"
                         value={formData.bankName}
                         onChange={handleChange}
-                        placeholder="बँकेचे नाव प्रविष्ट करा"
+                        placeholder="Select or type Bank (बँकेचे नाव निवडा किंवा टाईप करा)"
                         disabled={loading}
                       />
+                      <datalist id="bankList">
+                        {BANK_OPTIONS.map((bank) => (
+                          <option key={bank} value={bank} />
+                        ))}
+                      </datalist>
                     </Form.Group>
                   </div>
 
@@ -1927,22 +1988,7 @@
                     </Form.Group>
                   </div>
 
-                  {/* EMAIL */}
-                  <div className="col-md-6">
-                    <Form.Group>
-                      <Form.Label className="fw-semibold">
-                        Email (ईमेल)
-                      </Form.Label>
-                      <Form.Control
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="ईमेल पत्ता प्रविष्ट करा"
-                        disabled={loading}
-                      />
-                    </Form.Group>
-                  </div>
+
 
                   {/* USER ID */}
                   <div className="col-md-6">

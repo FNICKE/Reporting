@@ -191,7 +191,6 @@ const createDistrict = async (req, res) => {
             ["designation", designation],
             ["district_name", district_name],
             ["district_code", district_code],
-            ["taluka", taluka],
             ["joining_date", joining_date],
             ["account_number", account_number],
             ["ifsc_code", ifsc_code],
@@ -251,22 +250,6 @@ const createDistrict = async (req, res) => {
                 success: false,
                 message:
                     "User ID is required",
-            });
-        }
-
-
-        // ========================================
-        // EMAIL
-        // ========================================
-
-        if (
-            !email ||
-            !String(email).trim()
-        ) {
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Email is required",
             });
         }
 
@@ -343,25 +326,26 @@ const createDistrict = async (req, res) => {
         // CHECK DUPLICATE EMAIL
         // ========================================
 
-        const [emailExists] =
-            await db.query(
-                `
-                SELECT id
-                FROM districts
-                WHERE email = ?
-                `,
-                [
-                    String(email).trim(),
-                ]
-            );
+        if (email && String(email).trim()) {
+            const [emailExists] =
+                await db.query(
+                    `
+                    SELECT id
+                    FROM districts
+                    WHERE email = ?
+                    `,
+                    [
+                        String(email).trim(),
+                    ]
+                );
 
-
-        if (emailExists.length > 0) {
-            return res.status(409).json({
-                success: false,
-                message:
-                    "Email already exists",
-            });
+            if (emailExists.length > 0) {
+                return res.status(409).json({
+                    success: false,
+                    message:
+                        "Email already exists",
+                });
+            }
         }
 
 
@@ -415,9 +399,7 @@ const createDistrict = async (req, res) => {
                         district_code
                     ).trim(),
 
-                    String(
-                        taluka
-                    ).trim(),
+                    taluka ? String(taluka).trim() : null,
 
                     joining_date,
 
@@ -439,9 +421,7 @@ const createDistrict = async (req, res) => {
                         user_id
                     ).trim(),
 
-                    String(
-                        email
-                    ).trim(),
+                    email ? String(email).trim() : null,
 
                     String(
                         password
@@ -598,7 +578,6 @@ const updateDistrict = async (
             ["designation", designation],
             ["district_name", district_name],
             ["district_code", district_code],
-            ["taluka", taluka],
             ["joining_date", joining_date],
             ["account_number", account_number],
             ["ifsc_code", ifsc_code],
@@ -669,24 +648,6 @@ const updateDistrict = async (
 
 
         // ========================================
-        // EMAIL
-        // ========================================
-
-        if (
-            !email ||
-            !String(email).trim()
-        ) {
-
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Email is required",
-            });
-
-        }
-
-
-        // ========================================
         // CHECK DUPLICATE NAME
         // ========================================
 
@@ -750,29 +711,28 @@ const updateDistrict = async (
         // CHECK DUPLICATE EMAIL
         // ========================================
 
-        const [duplicateEmail] =
-            await db.query(
-                `
-                SELECT id
-                FROM districts
-                WHERE email = ?
-                AND id != ?
-                `,
-                [
-                    String(email).trim(),
-                    id,
-                ]
-            );
+        if (email && String(email).trim()) {
+            const [duplicateEmail] =
+                await db.query(
+                    `
+                    SELECT id
+                    FROM districts
+                    WHERE email = ?
+                    AND id != ?
+                    `,
+                    [
+                        String(email).trim(),
+                        id,
+                    ]
+                );
 
-
-        if (duplicateEmail.length > 0) {
-
-            return res.status(409).json({
-                success: false,
-                message:
-                    "Email already exists",
-            });
-
+            if (duplicateEmail.length > 0) {
+                return res.status(409).json({
+                    success: false,
+                    message:
+                        "Email already exists",
+                });
+            }
         }
 
 
@@ -831,9 +791,7 @@ const updateDistrict = async (
                         district_code
                     ).trim(),
 
-                    String(
-                        taluka
-                    ).trim(),
+                    taluka ? String(taluka).trim() : null,
 
                     joining_date,
 
@@ -855,9 +813,7 @@ const updateDistrict = async (
                         user_id
                     ).trim(),
 
-                    String(
-                        email
-                    ).trim(),
+                    email ? String(email).trim() : null,
 
                     String(
                         password
@@ -918,9 +874,7 @@ const updateDistrict = async (
                         district_code
                     ).trim(),
 
-                    String(
-                        taluka
-                    ).trim(),
+                    taluka ? String(taluka).trim() : null,
 
                     joining_date,
 
@@ -942,9 +896,7 @@ const updateDistrict = async (
                         user_id
                     ).trim(),
 
-                    String(
-                        email
-                    ).trim(),
+                    email ? String(email).trim() : null,
 
                     id,
                 ]
