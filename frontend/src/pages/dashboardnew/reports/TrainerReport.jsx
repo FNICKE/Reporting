@@ -1233,13 +1233,6 @@ const TrainerReport = () => {
                     </Button>
 
                     <Button
-                        variant="dark"
-                        onClick={handleAdd}
-                    >
-                        + Add Report
-                    </Button>
-
-                    <Button
                         variant="outline-dark"
                         onClick={loadReports}
                         disabled={loading}
@@ -1264,10 +1257,6 @@ const TrainerReport = () => {
                 </div>
 
             </div>
-
-            {/* =================================================
-                ERROR
-            ================================================= */}
 
             {error && (
                 <Alert
@@ -1975,7 +1964,7 @@ const TrainerReport = () => {
 
                             {editingId
                                 ? "Edit Trainer Report"
-                                : "Add Trainer Report"}
+                                : "BDO Report format"}
 
                         </Modal.Title>
 

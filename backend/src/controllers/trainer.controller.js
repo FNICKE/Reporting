@@ -25,11 +25,16 @@ const getTrainers = async (req, res) => {
                 tr.vibhag_id,
                 v.vibhag AS vibhag_name,
 
-         tr.contact_number,
+          tr.contact_number,
 tr.user_id,
 tr.email,
 tr.password,
 tr.address,
+tr.designation,
+tr.joining_date,
+tr.account_number,
+tr.ifsc_code,
+tr.bank_name,
 tr.status,
                 tr.created_at,
                 tr.updated_at
@@ -118,6 +123,11 @@ tr.user_id,
 tr.email,
 tr.password,
 tr.address,
+tr.designation,
+tr.joining_date,
+tr.account_number,
+tr.ifsc_code,
+tr.bank_name,
 tr.status,
                 tr.created_at,
                 tr.updated_at
@@ -231,6 +241,11 @@ tr.user_id,
 tr.email,
 tr.password,
 tr.address,
+tr.designation,
+tr.joining_date,
+tr.account_number,
+tr.ifsc_code,
+tr.bank_name,
 tr.status,
                 tr.created_at,
                 tr.updated_at
@@ -329,6 +344,11 @@ tr.user_id,
 tr.email,
 tr.password,
 tr.address,
+tr.designation,
+tr.joining_date,
+tr.account_number,
+tr.ifsc_code,
+tr.bank_name,
 tr.status,      
                 tr.created_at,
                 tr.updated_at
@@ -427,6 +447,11 @@ const getTrainersByVibhag = async (
                 tr.user_id,
                 tr.email,
                 tr.address,
+                tr.designation,
+                tr.joining_date,
+                tr.account_number,
+                tr.ifsc_code,
+                tr.bank_name,
                 tr.status,
                 tr.created_at,
                 tr.updated_at
@@ -512,7 +537,12 @@ const createTrainer = async (
             user_id,
             email,
             password,
-            address
+            address,
+            designation,
+            joining_date,
+            account_number,
+            ifsc_code,
+            bank_name
 
         } = req.body;
 
@@ -776,11 +806,21 @@ const createTrainer = async (
                     email,
                     password,
                     address,
+                    designation,
+                    joining_date,
+                    account_number,
+                    ifsc_code,
+                    bank_name,
                     status
                 )
 
                 VALUES
                 (
+                    ?,
+                    ?,
+                    ?,
+                    ?,
+                    ?,
                     ?,
                     ?,
                     ?,
@@ -816,6 +856,16 @@ const createTrainer = async (
 
                 address || null,
 
+                designation || null,
+
+                joining_date || null,
+
+                account_number || null,
+
+                ifsc_code || null,
+
+                bank_name || null,
+
                 "active"
 
             ]);
@@ -846,6 +896,11 @@ const createTrainer = async (
                     tr.user_id,
                     tr.email,
                     tr.address,
+                    tr.designation,
+                    tr.joining_date,
+                    tr.account_number,
+                    tr.ifsc_code,
+                    tr.bank_name,
                     tr.status,
                     tr.created_at,
                     tr.updated_at
@@ -933,7 +988,12 @@ const updateTrainer = async (
             email,
             password,
             address,
-            status
+            status,
+            designation,
+            joining_date,
+            account_number,
+            ifsc_code,
+            bank_name
 
         } = req.body;
 
@@ -1229,6 +1289,16 @@ const updateTrainer = async (
 
                     address = ?,
 
+                    designation = ?,
+
+                    joining_date = ?,
+
+                    account_number = ?,
+
+                    ifsc_code = ?,
+
+                    bank_name = ?,
+
                     status = ?
 
                 WHERE id = ?
@@ -1254,6 +1324,16 @@ const updateTrainer = async (
                 password,
 
                 address || null,
+
+                designation || null,
+
+                joining_date || null,
+
+                account_number || null,
+
+                ifsc_code || null,
+
+                bank_name || null,
 
                 status || "active",
 
@@ -1291,6 +1371,16 @@ const updateTrainer = async (
 
                     address = ?,
 
+                    designation = ?,
+
+                    joining_date = ?,
+
+                    account_number = ?,
+
+                    ifsc_code = ?,
+
+                    bank_name = ?,
+
                     status = ?
 
                 WHERE id = ?
@@ -1314,6 +1404,16 @@ const updateTrainer = async (
                 email,
 
                 address || null,
+
+                designation || null,
+
+                joining_date || null,
+
+                account_number || null,
+
+                ifsc_code || null,
+
+                bank_name || null,
 
                 status || "active",
 
@@ -1349,6 +1449,11 @@ const updateTrainer = async (
                     tr.user_id,
                     tr.email,
                     tr.address,
+                    tr.designation,
+                    tr.joining_date,
+                    tr.account_number,
+                    tr.ifsc_code,
+                    tr.bank_name,
                     tr.status,
                     tr.created_at,
                     tr.updated_at

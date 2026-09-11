@@ -2,15 +2,57 @@ import React, { useState } from "react";
 import {
   NavLink,
   Outlet,
+  useNavigate,
 } from "react-router-dom";
+import Swal from "sweetalert2";
 
 const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const adminName = localStorage.getItem("logged_in_name") || "Admin";
+  const adminInitial = (adminName.trim().charAt(0) || "A").toUpperCase();
 
   const closeMobileSidebar = () => {
     if (window.innerWidth <= 768) {
       setSidebarOpen(false);
     }
+  };
+
+  const handleLogout = () => {
+    Swal.fire({
+      title: "Logout Confirmation",
+      text: "Are you sure you want to logout from Admin Dashboard?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#111827",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, Logout",
+      cancelButtonText: "Cancel",
+      reverseButtons: true,
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const keys = [
+          "admin_logged_in",
+          "logged_in_user",
+          "logged_in_user_id",
+          "logged_in_name",
+          "logged_in_role",
+          "logged_in_status",
+          "logged_in_district_id",
+          "logged_in_district_name",
+          "logged_in_taluka_id",
+          "logged_in_taluka_name",
+          "logged_in_vibhag_id",
+          "logged_in_vibhag_name",
+          "logged_in_trainer_id",
+          "logged_in_trainer_name",
+        ];
+        keys.forEach((key) => localStorage.removeItem(key));
+        localStorage.clear();
+        navigate("/login", { replace: true });
+      }
+    });
   };
 
   return (
@@ -133,7 +175,7 @@ const DashboardLayout = () => {
               </span>
 
               <span className="sidebar-text">
-                District
+                District Head
               </span>
 
             </NavLink>
@@ -156,7 +198,7 @@ const DashboardLayout = () => {
               </span>
 
               <span className="sidebar-text">
-                Taluka
+                Taluka Head
               </span>
 
             </NavLink>
@@ -179,7 +221,7 @@ const DashboardLayout = () => {
               </span>
 
               <span className="sidebar-text">
-                Vibhag
+                Vibhag Head
               </span>
 
             </NavLink>
@@ -318,24 +360,54 @@ const DashboardLayout = () => {
 
 
         {/* =================================================
-            SIDEBAR FOOTER
+            SIDEBAR FOOTER WITH LOGOUT BUTTON
         ================================================= */}
 
         <div className="sidebar-footer">
 
-          <div className="footer-avatar">
-            A
-          </div>
+          <div className="sidebar-footer-user">
 
-          <div>
-            <div className="footer-name">
-              Administrator
+            <div className="footer-avatar">
+              {adminInitial}
             </div>
 
-            <div className="footer-role">
-              Admin Management
+            <div className="footer-info">
+              <div className="footer-name">
+                {adminName}
+              </div>
+
+              <div className="footer-role">
+                Administrator
+              </div>
             </div>
+
           </div>
+
+          <button
+            type="button"
+            className="sidebar-logout-btn"
+            onClick={handleLogout}
+            title="Logout from Admin Panel"
+          >
+            <svg
+              className="sidebar-logout-icon"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            <span className="sidebar-logout-text">
+              Logout
+            </span>
+          </button>
 
         </div>
 
@@ -389,7 +461,7 @@ const DashboardLayout = () => {
 
 
           {/* =================================================
-              RIGHT SIDE
+              RIGHT SIDE (ADMIN PROFILE + NAVBAR LOGOUT)
           ================================================= */}
 
           <div className="navbar-right">
@@ -397,13 +469,13 @@ const DashboardLayout = () => {
             <div className="admin-profile">
 
               <div className="admin-avatar">
-                A
+                {adminInitial}
               </div>
 
               <div className="admin-info">
 
                 <div className="admin-name">
-                  Admin
+                  {adminName}
                 </div>
 
                 <div className="admin-role">
@@ -413,6 +485,36 @@ const DashboardLayout = () => {
               </div>
 
             </div>
+
+            <div className="navbar-divider" />
+
+            {/* NAVBAR LOGOUT BUTTON */}
+
+            <button
+              type="button"
+              className="navbar-logout-btn"
+              onClick={handleLogout}
+              title="Logout from Admin Panel"
+            >
+              <svg
+                className="navbar-logout-icon"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+              <span className="navbar-logout-text">
+                Logout
+              </span>
+            </button>
 
           </div>
 
@@ -756,28 +858,34 @@ const DashboardLayout = () => {
 
 
         /* =================================================
-           SIDEBAR FOOTER
+           SIDEBAR FOOTER & LOGOUT
         ================================================= */
 
         .sidebar-footer {
           display: flex;
-          align-items: center;
+          flex-direction: column;
+          gap: 12px;
 
-          gap: 10px;
-
-          padding: 15px 17px;
+          padding: 16px 16px;
 
           border-top:
             1px solid
             rgba(255,255,255,0.08);
 
           flex-shrink: 0;
+          background: rgba(0, 0, 0, 0.15);
+        }
+
+        .sidebar-footer-user {
+          display: flex;
+          align-items: center;
+          gap: 10px;
         }
 
 
         .footer-avatar {
-          width: 34px;
-          height: 34px;
+          width: 36px;
+          height: 36px;
 
           display: flex;
           align-items: center;
@@ -788,25 +896,69 @@ const DashboardLayout = () => {
           background: #ffffff;
           color: #111827;
 
-          font-size: 13px;
+          font-size: 14px;
           font-weight: 800;
+          flex-shrink: 0;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .footer-info {
+          min-width: 0;
+          flex: 1;
         }
 
 
         .footer-name {
-          color: #e2e8f0;
+          color: #f1f5f9;
 
-          font-size: 12px;
+          font-size: 13px;
           font-weight: 700;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
 
         .footer-role {
-          margin-top: 2px;
+          margin-top: 1px;
 
-          color: #64748b;
+          color: #94a3b8;
 
-          font-size: 10px;
+          font-size: 11px;
+          font-weight: 500;
+        }
+
+        .sidebar-logout-btn {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+
+          width: 100%;
+          height: 38px;
+
+          border-radius: 8px;
+          border: 1px solid rgba(239, 68, 68, 0.3);
+          background: rgba(239, 68, 68, 0.1);
+          color: #fca5a5;
+
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+
+          transition: all 0.2s ease;
+        }
+
+        .sidebar-logout-btn:hover {
+          background: #dc2626;
+          border-color: #dc2626;
+          color: #ffffff;
+          box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+          transform: translateY(-1px);
+        }
+
+        .sidebar-logout-icon {
+          flex-shrink: 0;
         }
 
 
@@ -915,12 +1067,13 @@ const DashboardLayout = () => {
 
 
         /* =================================================
-           ADMIN PROFILE
+           ADMIN PROFILE & NAVBAR LOGOUT
         ================================================= */
 
         .navbar-right {
           display: flex;
           align-items: center;
+          gap: 14px;
         }
 
 
@@ -954,17 +1107,55 @@ const DashboardLayout = () => {
         .admin-name {
           color: #111827;
 
-          font-size: 12px;
+          font-size: 13px;
           font-weight: 700;
         }
 
 
         .admin-role {
-          margin-top: 2px;
+          margin-top: 1px;
 
           color: #94a3b8;
 
-          font-size: 10px;
+          font-size: 11px;
+        }
+
+        .navbar-divider {
+          width: 1px;
+          height: 32px;
+          background: #e2e8f0;
+        }
+
+        .navbar-logout-btn {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+
+          padding: 8px 15px;
+          height: 38px;
+
+          border-radius: 9px;
+          border: 1px solid #fee2e2;
+          background: #fef2f2;
+          color: #dc2626;
+
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+
+          transition: all 0.2s ease;
+        }
+
+        .navbar-logout-btn:hover {
+          background: #dc2626;
+          border-color: #dc2626;
+          color: #ffffff;
+          box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+          transform: translateY(-1px);
+        }
+
+        .navbar-logout-icon {
+          flex-shrink: 0;
         }
 
 
@@ -1096,6 +1287,14 @@ const DashboardLayout = () => {
             font-size: 14px;
           }
 
+          .navbar-divider {
+            display: none;
+          }
+
+          .navbar-logout-btn {
+            padding: 7px 10px;
+          }
+
         }
 
 
@@ -1119,6 +1318,17 @@ const DashboardLayout = () => {
           .admin-avatar {
             width: 36px;
             height: 36px;
+          }
+
+          .navbar-logout-text {
+            display: none;
+          }
+
+          .navbar-logout-btn {
+            padding: 8px;
+            width: 36px;
+            height: 36px;
+            justify-content: center;
           }
 
         }

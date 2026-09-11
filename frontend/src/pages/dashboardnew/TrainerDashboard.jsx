@@ -2317,7 +2317,7 @@ const TrainerDashboard = () => {
                         className="px-4"
                         onClick={handleAddReport}
                     >
-                        + Add Report
+                        + Add Report (अहवाल जोडा)
                     </Button>
 
                     <Button
@@ -3111,11 +3111,9 @@ const TrainerDashboard = () => {
                     >
 
                         <Modal.Title className="fw-bold">
-
                             {editingId
-                                ? "Edit Trainer Report"
-                                : "Add Trainer Report"}
-
+                                ? "Edit Trainer Report (प्रशिक्षक अहवाल संपादित करा)"
+                                : "BDO Report format (गटविकास अधिकारी (BDO) अहवालाचा नमुना)"}
                         </Modal.Title>
 
                     </Modal.Header>
@@ -3123,10 +3121,8 @@ const TrainerDashboard = () => {
 
                     <Modal.Body
                         style={{
-                            maxHeight:
-                                "calc(100vh - 180px)",
-                            overflowY:
-                                "auto",
+                            maxHeight: "calc(100vh - 180px)",
+                            overflowY: "auto",
                         }}
                     >
 
@@ -3134,8 +3130,8 @@ const TrainerDashboard = () => {
                             BASIC INFORMATION
                         ================================================= */}
 
-                        <h5 className="fw-bold mb-3">
-                            Basic Information
+                        <h5 className="fw-bold border-bottom pb-2 mb-3">
+                            Basic Information (मूलभूत माहिती)
                         </h5>
 
 
@@ -3144,28 +3140,22 @@ const TrainerDashboard = () => {
 
                             {/* NAME */}
 
-                            <Col
-                                xs={12}
-                                md={6}
-                            >
+                            <Col xs={12} md={6}>
 
                                 <Form.Group>
 
-                                    <Form.Label>
-                                        Trainer Name *
+                                    <Form.Label className="fw-semibold">
+                                        Trainer Name (नाव) *
                                     </Form.Label>
 
                                     <Form.Control
                                         type="text"
                                         name="name"
-                                        value={
-                                            formData.name
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
+                                        value={formData.name}
+                                        onChange={handleChange}
                                         readOnly
                                         className="bg-light"
+                                        placeholder="नाव"
                                         required
                                     />
 
@@ -3176,28 +3166,22 @@ const TrainerDashboard = () => {
 
                             {/* DESIGNATION */}
 
-                            <Col
-                                xs={12}
-                                md={6}
-                            >
+                            <Col xs={12} md={6}>
 
                                 <Form.Group>
 
-                                    <Form.Label>
-                                        Designation *
+                                    <Form.Label className="fw-semibold">
+                                        Designation (पद) *
                                     </Form.Label>
 
                                     <Form.Control
                                         type="text"
                                         name="designation"
-                                        value={
-                                            formData.designation
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
+                                        value={formData.designation}
+                                        onChange={handleChange}
                                         readOnly
                                         className="bg-light"
+                                        placeholder="पद"
                                         required
                                     />
 
@@ -3208,28 +3192,22 @@ const TrainerDashboard = () => {
 
                             {/* TALUKA */}
 
-                            <Col
-                                xs={12}
-                                md={6}
-                            >
+                            <Col xs={12} md={6}>
 
                                 <Form.Group>
 
-                                    <Form.Label>
-                                        Taluka *
+                                    <Form.Label className="fw-semibold">
+                                        Taluka (तालुका) *
                                     </Form.Label>
 
                                     <Form.Control
                                         type="text"
                                         name="taluka"
-                                        value={
-                                            formData.taluka
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
+                                        value={formData.taluka}
+                                        onChange={handleChange}
                                         readOnly
                                         className="bg-light"
+                                        placeholder="तालुका"
                                         required
                                     />
 
@@ -3240,28 +3218,22 @@ const TrainerDashboard = () => {
 
                             {/* DISTRICT */}
 
-                            <Col
-                                xs={12}
-                                md={6}
-                            >
+                            <Col xs={12} md={6}>
 
                                 <Form.Group>
 
-                                    <Form.Label>
-                                        District *
+                                    <Form.Label className="fw-semibold">
+                                        District (जिल्हा) *
                                     </Form.Label>
 
                                     <Form.Control
                                         type="text"
                                         name="district"
-                                        value={
-                                            formData.district
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
+                                        value={formData.district}
+                                        onChange={handleChange}
                                         readOnly
                                         className="bg-light"
+                                        placeholder="जिल्हा"
                                         required
                                     />
 
@@ -3276,28 +3248,21 @@ const TrainerDashboard = () => {
 
                             {/* MOBILE */}
 
-                            <Col
-                                xs={12}
-                                md={6}
-                            >
+                            <Col xs={12} md={6}>
 
                                 <Form.Group>
 
-                                    <Form.Label>
-                                        Mobile Number *
+                                    <Form.Label className="fw-semibold">
+                                        Mobile Number (मोबाईल क्रमांक) *
                                     </Form.Label>
 
                                     <Form.Control
                                         type="tel"
                                         name="mobileNumber"
-                                        value={
-                                            formData.mobileNumber
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
+                                        value={formData.mobileNumber}
+                                        onChange={handleChange}
                                         maxLength="10"
-                                        placeholder="10 digit mobile number"
+                                        placeholder="१० अंकी मोबाईल क्रमांक"
                                         required
                                     />
 
@@ -3308,26 +3273,19 @@ const TrainerDashboard = () => {
 
                             {/* DATE */}
 
-                            <Col
-                                xs={12}
-                                md={6}
-                            >
+                            <Col xs={12} md={6}>
 
                                 <Form.Group>
 
-                                    <Form.Label>
-                                        Report Date *
+                                    <Form.Label className="fw-semibold">
+                                        Report Date (अहवालाची तारीख) *
                                     </Form.Label>
 
                                     <Form.Control
                                         type="date"
                                         name="reportDate"
-                                        value={
-                                            formData.reportDate
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
+                                        value={formData.reportDate}
+                                        onChange={handleChange}
                                         required
                                     />
 
@@ -3345,35 +3303,31 @@ const TrainerDashboard = () => {
                             CENTER HEADS
                         ================================================= */}
 
-                        <h5 className="fw-bold mb-3">
-                            Center Head Details
+                        <h5 className="fw-bold border-bottom pb-2 mb-3">
+                            Center Head Details (केंद्र प्रमुख तपशील)
                         </h5>
 
 
                         <Row className="g-3">
 
 
-                            <Col
-                                xs={12}
-                                md={4}
-                            >
+                            {/* AUTHORISED CENTER HEADS */}
+
+                            <Col xs={12} md={4}>
 
                                 <Form.Group>
 
-                                    <Form.Label>
-                                        Total Authorised Center Heads *
+                                    <Form.Label className="fw-semibold">
+                                        Total Authorised Center Heads (अधिकृत केंद्र प्रमुखांची एकूण संख्या) *
                                     </Form.Label>
 
                                     <Form.Control
                                         type="number"
                                         min="0"
                                         name="totalAuthorisedCenterHeads"
-                                        value={
-                                            formData.totalAuthorisedCenterHeads
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
+                                        value={formData.totalAuthorisedCenterHeads}
+                                        onChange={handleChange}
+                                        placeholder="अधिकृत केंद्र प्रमुखांची संख्या"
                                         required
                                     />
 
@@ -3382,27 +3336,23 @@ const TrainerDashboard = () => {
                             </Col>
 
 
-                            <Col
-                                xs={12}
-                                md={4}
-                            >
+                            {/* ACTIVE CENTER HEADS */}
+
+                            <Col xs={12} md={4}>
 
                                 <Form.Group>
 
-                                    <Form.Label>
-                                        Total Active Center Heads *
+                                    <Form.Label className="fw-semibold">
+                                        Total Active Center Heads (सक्रिय केंद्र प्रमुखांची एकूण संख्या) *
                                     </Form.Label>
 
                                     <Form.Control
                                         type="number"
                                         min="0"
                                         name="totalActiveCenterHeads"
-                                        value={
-                                            formData.totalActiveCenterHeads
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
+                                        value={formData.totalActiveCenterHeads}
+                                        onChange={handleChange}
+                                        placeholder="सक्रिय केंद्र प्रमुखांची संख्या"
                                         required
                                     />
 
@@ -3411,27 +3361,23 @@ const TrainerDashboard = () => {
                             </Col>
 
 
-                            <Col
-                                xs={12}
-                                md={4}
-                            >
+                            {/* SANITARY PADS BOX SOLD */}
+
+                            <Col xs={12} md={4}>
 
                                 <Form.Group>
 
-                                    <Form.Label>
-                                        Total Sanitary Pads Box Sold Today *
+                                    <Form.Label className="fw-semibold">
+                                        Total Sanitary Pads Box Sold Today (आज विकलेले एकूण सॅनिटरी पॅड बॉक्स) *
                                     </Form.Label>
 
                                     <Form.Control
                                         type="number"
                                         min="0"
                                         name="totalSanitaryPadBoxesSoldToday"
-                                        value={
-                                            formData.totalSanitaryPadBoxesSoldToday
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
+                                        value={formData.totalSanitaryPadBoxesSoldToday}
+                                        onChange={handleChange}
+                                        placeholder="पॅड बॉक्स संख्या"
                                         required
                                     />
 
@@ -3440,15 +3386,14 @@ const TrainerDashboard = () => {
                             </Col>
 
 
-                            <Col
-                                xs={12}
-                                md={6}
-                            >
+                            {/* SALES AMOUNT */}
+
+                            <Col xs={12} md={6}>
 
                                 <Form.Group>
 
-                                    <Form.Label>
-                                        Total Amount from Sanitary Pad Box Sales Today *
+                                    <Form.Label className="fw-semibold">
+                                        Total Amount from Sanitary Pad Box Sales Today (आजच्या सॅनिटरी पॅड बॉक्स विक्रीतून एकूण रक्कम) *
                                     </Form.Label>
 
                                     <Form.Control
@@ -3456,12 +3401,9 @@ const TrainerDashboard = () => {
                                         min="0"
                                         step="0.01"
                                         name="totalAmountFromSanitaryPadSalesToday"
-                                        value={
-                                            formData.totalAmountFromSanitaryPadSalesToday
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
+                                        value={formData.totalAmountFromSanitaryPadSalesToday}
+                                        onChange={handleChange}
+                                        placeholder="एकूण रक्कम"
                                         required
                                     />
 
@@ -3470,27 +3412,22 @@ const TrainerDashboard = () => {
                             </Col>
 
 
-                            <Col
-                                xs={12}
-                                md={6}
-                            >
+                            {/* UTR NUMBER */}
+
+                            <Col xs={12} md={6}>
 
                                 <Form.Group>
 
-                                    <Form.Label>
-                                        UTR Number *
+                                    <Form.Label className="fw-semibold">
+                                        UTR Number (युटीआर क्रमांक) *
                                     </Form.Label>
 
                                     <Form.Control
                                         type="text"
                                         name="utrNumber"
-                                        value={
-                                            formData.utrNumber
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
-                                        placeholder="Enter UTR Number"
+                                        value={formData.utrNumber}
+                                        onChange={handleChange}
+                                        placeholder="UTR क्रमांक प्रविष्ट करा"
                                         required
                                     />
 
@@ -3499,27 +3436,23 @@ const TrainerDashboard = () => {
                             </Col>
 
 
-                            <Col
-                                xs={12}
-                                md={4}
-                            >
+                            {/* VISITED CENTER HEADS COUNT */}
+
+                            <Col xs={12} md={4}>
 
                                 <Form.Group>
 
-                                    <Form.Label>
-                                        Total Center Heads Visited Today *
+                                    <Form.Label className="fw-semibold">
+                                        Total Center Heads Visited Today (आज भेट दिलेले एकूण केंद्र प्रमुख) *
                                     </Form.Label>
 
                                     <Form.Control
                                         type="number"
                                         min="0"
                                         name="totalCenterHeadsVisitedToday"
-                                        value={
-                                            formData.totalCenterHeadsVisitedToday
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
+                                        value={formData.totalCenterHeadsVisitedToday}
+                                        onChange={handleChange}
+                                        placeholder="भेट दिलेले केंद्र प्रमुख संख्या"
                                         required
                                     />
 
@@ -3528,25 +3461,23 @@ const TrainerDashboard = () => {
                             </Col>
 
 
+                            {/* VISITED CENTER HEADS NAMES */}
+
                             <Col xs={12}>
 
                                 <Form.Group>
 
-                                    <Form.Label>
-                                        Today's Visited Center Heads Names *
+                                    <Form.Label className="fw-semibold">
+                                        Today's Visited Center Heads Names (आज भेट दिलेल्या केंद्र प्रमुखांची नावे) *
                                     </Form.Label>
 
                                     <Form.Control
                                         as="textarea"
                                         rows={4}
                                         name="todayVisitedCenterHeadsNames"
-                                        value={
-                                            formData.todayVisitedCenterHeadsNames
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
-                                        placeholder="Enter names..."
+                                        value={formData.todayVisitedCenterHeadsNames}
+                                        onChange={handleChange}
+                                        placeholder="आज भेट दिलेल्या केंद्र प्रमुखांची नावे प्रविष्ट करा..."
                                         required
                                     />
 
@@ -3555,27 +3486,23 @@ const TrainerDashboard = () => {
                             </Col>
 
 
-                            <Col
-                                xs={12}
-                                md={6}
-                            >
+                            {/* TODAY'S NEW MEMBERS */}
+
+                            <Col xs={12} md={6}>
 
                                 <Form.Group>
 
-                                    <Form.Label>
-                                        Today's New Members *
+                                    <Form.Label className="fw-semibold">
+                                        Today's New Members (आज जोडलेले नवीन सदस्य) *
                                     </Form.Label>
 
                                     <Form.Control
                                         type="number"
                                         min="0"
                                         name="todaysNewMembers"
-                                        value={
-                                            formData.todaysNewMembers
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
+                                        value={formData.todaysNewMembers}
+                                        onChange={handleChange}
+                                        placeholder="नवीन सदस्य संख्या"
                                         required
                                     />
 
@@ -3584,25 +3511,23 @@ const TrainerDashboard = () => {
                             </Col>
 
 
+                            {/* ADDITIONAL REMARKS */}
+
                             <Col xs={12}>
 
                                 <Form.Group>
 
-                                    <Form.Label>
-                                        Additional Remarks
+                                    <Form.Label className="fw-semibold">
+                                        Additional Remarks (इतर माहिती / शेरा)
                                     </Form.Label>
 
                                     <Form.Control
                                         as="textarea"
                                         rows={4}
                                         name="additionalRemarks"
-                                        value={
-                                            formData.additionalRemarks
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
-                                        placeholder="Enter additional remarks"
+                                        value={formData.additionalRemarks}
+                                        onChange={handleChange}
+                                        placeholder="इतर माहिती / शेरा प्रविष्ट करा..."
                                     />
 
                                 </Form.Group>
@@ -3619,8 +3544,8 @@ const TrainerDashboard = () => {
                             PHOTOS
                         ================================================= */}
 
-                        <h5 className="fw-bold mb-3">
-                            Meeting Photos
+                        <h5 className="fw-bold border-bottom pb-2 mb-3">
+                            Meeting Photos (बैठकीचे फोटो)
                         </h5>
 
 
@@ -3629,34 +3554,21 @@ const TrainerDashboard = () => {
 
                             {/* PHOTO 1 */}
 
-                            <Col
-                                xs={12}
-                                md={6}
-                            >
+                            <Col xs={12} md={6}>
 
                                 <Form.Group>
 
                                     <Form.Label className="fw-semibold">
-                                        Meeting Photo 1
-                                        {!editingId &&
-                                            " *"}
+                                        Meeting Photo 1 (बैठक फोटो १)
+                                        {!editingId && " *"}
                                     </Form.Label>
-
 
                                     <Form.Control
                                         type="file"
                                         name="meetingPhoto1"
-                                        accept="
-                                            image/jpeg,
-                                            image/jpg,
-                                            image/png,
-                                            image/webp
-                                        "
-                                        onChange={
-                                            handleChange
-                                        }
+                                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                                        onChange={handleChange}
                                     />
-
 
                                     <Form.Text className="text-muted">
                                         JPG, JPEG, PNG or WEBP — Maximum 10MB
@@ -3665,60 +3577,47 @@ const TrainerDashboard = () => {
 
                                     {/* OLD */}
 
-                                    {editingId &&
-                                        oldPhoto1 &&
-                                        !formData.meetingPhoto1 && (
+                                    {editingId && oldPhoto1 && !formData.meetingPhoto1 && (
 
-                                            <div className="mt-3">
+                                        <div className="mt-3">
 
-                                                <small className="text-muted d-block mb-2">
-                                                    Current Photo 1
-                                                </small>
+                                            <small className="text-muted d-block fw-bold mb-2">
+                                                Current Photo 1 (सध्याचा फोटो १)
+                                            </small>
 
+                                            <img
+                                                src={getImageUrl(oldPhoto1)}
+                                                alt="Current Photo 1"
+                                                style={{
+                                                    width: 150,
+                                                    height: 100,
+                                                    objectFit: "cover",
+                                                    borderRadius: 8,
+                                                    border: "1px solid #ddd",
+                                                }}
+                                            />
 
-                                                <img
-                                                    src={
-                                                        getImageUrl(
-                                                            oldPhoto1
+                                            <div className="mt-2">
+
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline-dark"
+                                                    type="button"
+                                                    onClick={() =>
+                                                        handleViewImage(
+                                                            oldPhoto1,
+                                                            "Current Meeting Photo 1"
                                                         )
                                                     }
-                                                    alt="Current Photo 1"
-                                                    style={{
-                                                        width:
-                                                            150,
-                                                        height:
-                                                            100,
-                                                        objectFit:
-                                                            "cover",
-                                                        borderRadius:
-                                                            8,
-                                                        border:
-                                                            "1px solid #ddd",
-                                                    }}
-                                                />
-
-
-                                                <div className="mt-2">
-
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline-dark"
-                                                        type="button"
-                                                        onClick={() =>
-                                                            handleViewImage(
-                                                                oldPhoto1,
-                                                                "Current Meeting Photo 1"
-                                                            )
-                                                        }
-                                                    >
-                                                        View
-                                                    </Button>
-
-                                                </div>
+                                                >
+                                                    View
+                                                </Button>
 
                                             </div>
 
-                                        )}
+                                        </div>
+
+                                    )}
 
 
                                     {/* NEW */}
@@ -3727,29 +3626,19 @@ const TrainerDashboard = () => {
 
                                         <div className="mt-3">
 
-                                            <small className="text-success d-block mb-2">
-                                                New Photo 1
+                                            <small className="text-success d-block fw-bold mb-2">
+                                                New Photo 1 (नवीन फोटो १)
                                             </small>
 
-
                                             <img
-                                                src={
-                                                    URL.createObjectURL(
-                                                        formData.meetingPhoto1
-                                                    )
-                                                }
+                                                src={URL.createObjectURL(formData.meetingPhoto1)}
                                                 alt="New Photo 1"
                                                 style={{
-                                                    width:
-                                                        150,
-                                                    height:
-                                                        100,
-                                                    objectFit:
-                                                        "cover",
-                                                    borderRadius:
-                                                        8,
-                                                    border:
-                                                        "1px solid #ddd",
+                                                    width: 150,
+                                                    height: 100,
+                                                    objectFit: "cover",
+                                                    borderRadius: 8,
+                                                    border: "1px solid #ddd",
                                                 }}
                                             />
 
@@ -3773,34 +3662,21 @@ const TrainerDashboard = () => {
 
                             {/* PHOTO 2 */}
 
-                            <Col
-                                xs={12}
-                                md={6}
-                            >
+                            <Col xs={12} md={6}>
 
                                 <Form.Group>
 
                                     <Form.Label className="fw-semibold">
-                                        Meeting Photo 2
-                                        {!editingId &&
-                                            " *"}
+                                        Meeting Photo 2 (बैठक फोटो २)
+                                        {!editingId && " *"}
                                     </Form.Label>
-
 
                                     <Form.Control
                                         type="file"
                                         name="meetingPhoto2"
-                                        accept="
-                                            image/jpeg,
-                                            image/jpg,
-                                            image/png,
-                                            image/webp
-                                        "
-                                        onChange={
-                                            handleChange
-                                        }
+                                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                                        onChange={handleChange}
                                     />
-
 
                                     <Form.Text className="text-muted">
                                         JPG, JPEG, PNG or WEBP — Maximum 10MB
@@ -3809,60 +3685,47 @@ const TrainerDashboard = () => {
 
                                     {/* OLD */}
 
-                                    {editingId &&
-                                        oldPhoto2 &&
-                                        !formData.meetingPhoto2 && (
+                                    {editingId && oldPhoto2 && !formData.meetingPhoto2 && (
 
-                                            <div className="mt-3">
+                                        <div className="mt-3">
 
-                                                <small className="text-muted d-block mb-2">
-                                                    Current Photo 2
-                                                </small>
+                                            <small className="text-muted d-block fw-bold mb-2">
+                                                Current Photo 2 (सध्याचा फोटो २)
+                                            </small>
 
+                                            <img
+                                                src={getImageUrl(oldPhoto2)}
+                                                alt="Current Photo 2"
+                                                style={{
+                                                    width: 150,
+                                                    height: 100,
+                                                    objectFit: "cover",
+                                                    borderRadius: 8,
+                                                    border: "1px solid #ddd",
+                                                }}
+                                            />
 
-                                                <img
-                                                    src={
-                                                        getImageUrl(
-                                                            oldPhoto2
+                                            <div className="mt-2">
+
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline-dark"
+                                                    type="button"
+                                                    onClick={() =>
+                                                        handleViewImage(
+                                                            oldPhoto2,
+                                                            "Current Meeting Photo 2"
                                                         )
                                                     }
-                                                    alt="Current Photo 2"
-                                                    style={{
-                                                        width:
-                                                            150,
-                                                        height:
-                                                            100,
-                                                        objectFit:
-                                                            "cover",
-                                                        borderRadius:
-                                                            8,
-                                                        border:
-                                                            "1px solid #ddd",
-                                                    }}
-                                                />
-
-
-                                                <div className="mt-2">
-
-                                                    <Button
-                                                        size="sm"
-                                                        variant="outline-dark"
-                                                        type="button"
-                                                        onClick={() =>
-                                                            handleViewImage(
-                                                                oldPhoto2,
-                                                                "Current Meeting Photo 2"
-                                                            )
-                                                        }
-                                                    >
-                                                        View
-                                                    </Button>
-
-                                                </div>
+                                                >
+                                                    View
+                                                </Button>
 
                                             </div>
 
-                                        )}
+                                        </div>
+
+                                    )}
 
 
                                     {/* NEW */}
@@ -3871,29 +3734,19 @@ const TrainerDashboard = () => {
 
                                         <div className="mt-3">
 
-                                            <small className="text-success d-block mb-2">
-                                                New Photo 2
+                                            <small className="text-success d-block fw-bold mb-2">
+                                                New Photo 2 (नवीन फोटो २)
                                             </small>
 
-
                                             <img
-                                                src={
-                                                    URL.createObjectURL(
-                                                        formData.meetingPhoto2
-                                                    )
-                                                }
+                                                src={URL.createObjectURL(formData.meetingPhoto2)}
                                                 alt="New Photo 2"
                                                 style={{
-                                                    width:
-                                                        150,
-                                                    height:
-                                                        100,
-                                                    objectFit:
-                                                        "cover",
-                                                    borderRadius:
-                                                        8,
-                                                    border:
-                                                        "1px solid #ddd",
+                                                    width: 150,
+                                                    height: 100,
+                                                    objectFit: "cover",
+                                                    borderRadius: 8,
+                                                    border: "1px solid #ddd",
                                                 }}
                                             />
 
@@ -3926,35 +3779,26 @@ const TrainerDashboard = () => {
                     <Modal.Footer
                         className="bg-white border-top"
                         style={{
-                            position:
-                                "sticky",
-                            bottom:
-                                0,
-                            zIndex:
-                                30,
+                            position: "sticky",
+                            bottom: 0,
+                            zIndex: 30,
                         }}
                     >
 
                         <Button
                             variant="secondary"
                             type="button"
-                            onClick={
-                                handleClose
-                            }
-                            disabled={
-                                submitting
-                            }
+                            onClick={handleClose}
+                            disabled={submitting}
                         >
-                            Cancel
+                            Cancel (रद्द करा)
                         </Button>
 
 
                         <Button
                             variant="dark"
                             type="submit"
-                            disabled={
-                                submitting
-                            }
+                            disabled={submitting}
                         >
 
                             {submitting ? (
@@ -3974,8 +3818,8 @@ const TrainerDashboard = () => {
                             ) : (
 
                                 editingId
-                                    ? "Update Report"
-                                    : "+ Add Report"
+                                    ? "Update Report (अद्यतनित करा)"
+                                    : "Add Report (जोडा)"
 
                             )}
 

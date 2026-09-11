@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Alert, Button, Spinner } from "react-bootstrap";
+import { Alert, Button, Spinner, Modal } from "react-bootstrap";
 import * as XLSX from "xlsx";
 import { API_BASE_URL as ROOT_API_URL, BACKEND_ROOT_URL } from "../../../config/api";
 
@@ -8,7 +8,6 @@ import { API_BASE_URL as ROOT_API_URL, BACKEND_ROOT_URL } from "../../../config/
 // =========================================================
 
 const API_BASE_URL = `${ROOT_API_URL}/district-reports`;
-
 const API_ORIGIN = BACKEND_ROOT_URL;
 
 // =========================================================
@@ -19,34 +18,24 @@ const getImageUrl = (image) => {
   if (!image) return null;
 
   let value = String(image).trim();
-
   if (!value) return null;
 
   if (/^https?:\/\//i.test(value)) {
     return value;
   }
 
-  value = value
-    .replace(/\\/g, "/")
-    .replace(/^\/+/, "");
-
+  value = value.replace(/\\/g, "/").replace(/^\/+/, "");
   value = value.replace(/^api\//i, "");
 
   if (value.toLowerCase().startsWith("uploads/")) {
     return `${API_ORIGIN}/${value}`;
   }
 
-  if (
-    value
-      .toLowerCase()
-      .startsWith("district-reports/")
-  ) {
+  if (value.toLowerCase().startsWith("district-reports/")) {
     return `${API_ORIGIN}/uploads/${value}`;
   }
 
-  return `${API_ORIGIN}/uploads/district-reports/${encodeURIComponent(
-    value
-  )}`;
+  return `${API_ORIGIN}/uploads/district-reports/${encodeURIComponent(value)}`;
 };
 
 // =========================================================
@@ -55,319 +44,125 @@ const getImageUrl = (image) => {
 
 const formatDate = (date) => {
   if (!date) return "-";
-
-  const value = String(date);
-
+  const value = String(date).split("T")[0];
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     const [year, month, day] = value.split("-");
-
     return `${day}/${month}/${year}`;
   }
-
-  if (value.includes("T")) {
-    const datePart = value.split("T")[0];
-
-    if (/^\d{4}-\d{2}-\d{2}$/.test(datePart)) {
-      const [year, month, day] =
-        datePart.split("-");
-
-      return `${day}/${month}/${year}`;
-    }
-  }
-
   return value;
 };
 
 // =========================================================
-// GET VALUE
+// GET VALUE HELPER
 // =========================================================
 
-const getValue = (
-  report,
-  camelCase,
-  snakeCase,
-  defaultValue = "-"
-) => {
-  const value =
-    report?.[camelCase] ??
-    report?.[snakeCase];
-
-  if (
-    value === null ||
-    value === undefined ||
-    value === ""
-  ) {
+const getValue = (report, camelCase, snakeCase, defaultValue = "-") => {
+  const value = report?.[camelCase] ?? report?.[snakeCase];
+  if (value === null || value === undefined || value === "") {
     return defaultValue;
   }
-
   return value;
 };
 
-// =========================================================
-// GET REPORT DATE
-// =========================================================
-
 const getReportDateValue = (report) => {
-  const value = getValue(
-    report,
-    "reportDate",
-    "report_date",
-    ""
-  );
-
+  const value = getValue(report, "reportDate", "report_date", "");
   if (!value) return "";
-
   return String(value).split("T")[0];
 };
 
-// =========================================================
-// COMPONENT
-// =========================================================
-
 const DistrictReport = () => {
-
-  // =======================================================
-  // STATE
-  // =======================================================
-
   const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const [loading, setLoading] =
-    useState(true);
+  const [nameFilter, setNameFilter] = useState("");
+  const [talukaFilter, setTalukaFilter] = useState("");
+  const [districtFilter, setDistrictFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
 
-  const [error, setError] =
-    useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 20;
 
-  const [success, setSuccess] =
-    useState("");
+  const [selectedReport, setSelectedReport] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
-  // =======================================================
-  // FILTERS
-  // =======================================================
-
-  const [nameFilter, setNameFilter] =
-    useState("");
-
-  const [talukaFilter, setTalukaFilter] =
-    useState("");
-
-  const [districtFilter, setDistrictFilter] =
-    useState("");
-
-  const [dateFilter, setDateFilter] =
-    useState("");
-
-  // =======================================================
-  // PAGINATION
-  // =======================================================
-
-  const RECORDS_PER_PAGE = 20;
-
-  const [currentPage, setCurrentPage] =
-    useState(1);
-
-  // =======================================================
-  // LOAD REPORTS
-  // =======================================================
-
-  const loadReports = async () => {
+  const fetchReports = async () => {
     try {
-
       setLoading(true);
       setError("");
 
-      const response =
-        await fetch(API_BASE_URL);
+      const response = await fetch(API_BASE_URL, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+      });
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(
-          data.message ||
-          "Failed to load district reports"
-        );
+      if (!response.ok || data.success === false) {
+        throw new Error(data.message || "Failed to load District reports");
       }
 
-      const rows =
-        data.reports ||
-        data.data ||
-        [];
+      const rows = Array.isArray(data.reports)
+        ? data.reports
+        : Array.isArray(data.data)
+        ? data.data
+        : [];
 
-      setReports(
-        Array.isArray(rows)
-          ? rows
-          : []
-      );
-
+      setReports(rows);
     } catch (err) {
-
-      console.error(
-        "District reports error:",
-        err
-      );
-
-      setError(
-        err.message ||
-        "Unable to load district reports."
-      );
-
+      console.error("DISTRICT REPORT ERROR:", err);
+      setError(err.message || "Unable to load District reports.");
+      setReports([]);
     } finally {
-
       setLoading(false);
-
     }
   };
 
-  // =======================================================
-  // INITIAL LOAD
-  // =======================================================
-
   useEffect(() => {
-    loadReports();
+    fetchReports();
   }, []);
 
-  // =======================================================
-  // REFRESH
-  // =======================================================
-
   const handleRefresh = async () => {
-
     setError("");
     setSuccess("");
-
-    await loadReports();
-
+    await fetchReports();
     setCurrentPage(1);
-
-    setSuccess(
-      "Reports refreshed successfully."
-    );
+    setSuccess("District reports refreshed successfully.");
   };
 
-  // =======================================================
-  // FILTER REPORTS
-  // =======================================================
+  const filteredReports = reports.filter((report) => {
+    const name = String(getValue(report, "name", "name", "")).toLowerCase();
+    const taluka = String(getValue(report, "taluka", "taluka", "")).toLowerCase();
+    const district = String(getValue(report, "district", "district", "")).toLowerCase();
+    const reportDate = getReportDateValue(report);
 
-  const filteredReports =
-    reports.filter((report) => {
+    const matchesName = !nameFilter.trim() || name.includes(nameFilter.trim().toLowerCase());
+    const matchesTaluka = !talukaFilter.trim() || taluka.includes(talukaFilter.trim().toLowerCase());
+    const matchesDistrict = !districtFilter.trim() || district.includes(districtFilter.trim().toLowerCase());
+    const matchesDate = !dateFilter || reportDate === dateFilter;
 
-      // ===================================================
-      // NAME
-      // ===================================================
+    return matchesName && matchesTaluka && matchesDistrict && matchesDate;
+  });
 
-      const name =
-        String(
-          getValue(
-            report,
-            "name",
-            "name",
-            ""
-          )
-        ).toLowerCase();
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [nameFilter, talukaFilter, districtFilter, dateFilter]);
 
-      // ===================================================
-      // TALUKA
-      // ===================================================
-
-      const taluka =
-        String(
-          getValue(
-            report,
-            "taluka",
-            "taluka",
-            ""
-          )
-        ).toLowerCase();
-
-      // ===================================================
-      // DISTRICT
-      // ===================================================
-
-      const district =
-        String(
-          getValue(
-            report,
-            "district",
-            "district",
-            ""
-          )
-        ).toLowerCase();
-
-      // ===================================================
-      // REPORT DATE
-      // ===================================================
-
-      const reportDate =
-        getReportDateValue(report);
-
-      // ===================================================
-      // SEARCH VALUES
-      // ===================================================
-
-      const nameSearch =
-        nameFilter
-          .trim()
-          .toLowerCase();
-
-      const talukaSearch =
-        talukaFilter
-          .trim()
-          .toLowerCase();
-
-      const districtSearch =
-        districtFilter
-          .trim()
-          .toLowerCase();
-
-      // ===================================================
-      // MATCH
-      // ===================================================
-
-      const nameMatch =
-        !nameSearch ||
-        name.includes(nameSearch);
-
-      const talukaMatch =
-        !talukaSearch ||
-        taluka.includes(talukaSearch);
-
-      const districtMatch =
-        !districtSearch ||
-        district.includes(districtSearch);
-
-      const dateMatch =
-        !dateFilter ||
-        reportDate === dateFilter;
-
-      return (
-        nameMatch &&
-        talukaMatch &&
-        districtMatch &&
-        dateMatch
-      );
-    });
-
-  // =======================================================
-  // CLEAR FILTERS
-  // =======================================================
+  const totalRecords = filteredReports.length;
+  const totalPages = Math.ceil(totalRecords / recordsPerPage);
+  const startIndex = (currentPage - 1) * recordsPerPage;
+  const endIndex = startIndex + recordsPerPage;
+  const currentReports = filteredReports.slice(startIndex, endIndex);
 
   const clearFilters = () => {
-
     setNameFilter("");
     setTalukaFilter("");
     setDistrictFilter("");
     setDateFilter("");
-
     setCurrentPage(1);
-
-    setError("");
-    setSuccess("");
   };
-
-  // =======================================================
-  // FILTER ACTIVE
-  // =======================================================
 
   const isFilterActive =
     nameFilter.trim() !== "" ||
@@ -375,2242 +170,511 @@ const DistrictReport = () => {
     districtFilter.trim() !== "" ||
     dateFilter !== "";
 
-  // =======================================================
-  // RESET PAGE WHEN FILTER CHANGES
-  // =======================================================
+  const handleViewReport = (report) => {
+    setSelectedReport(report);
+    setShowDetailModal(true);
+  };
 
-  useEffect(() => {
-
-    setCurrentPage(1);
-
-  }, [
-    nameFilter,
-    talukaFilter,
-    districtFilter,
-    dateFilter
-  ]);
-
-  // =======================================================
-  // PAGINATION
-  // =======================================================
-
-  const totalRecords =
-    filteredReports.length;
-
-  const totalPages =
-    Math.ceil(
-      totalRecords /
-      RECORDS_PER_PAGE
-    );
-
-  const startIndex =
-    (currentPage - 1) *
-    RECORDS_PER_PAGE;
-
-  const endIndex =
-    startIndex +
-    RECORDS_PER_PAGE;
-
-  const currentReports =
-    filteredReports.slice(
-      startIndex,
-      endIndex
-    );
-
-  // =======================================================
-  // FIX CURRENT PAGE
-  // =======================================================
-
-  useEffect(() => {
-
-    if (
-      totalPages > 0 &&
-      currentPage > totalPages
-    ) {
-      setCurrentPage(totalPages);
-    }
-
-    if (
-      totalPages === 0 &&
-      currentPage !== 1
-    ) {
-      setCurrentPage(1);
-    }
-
-  }, [
-    totalPages,
-    currentPage
-  ]);
-
-  // =======================================================
-  // PAGE CHANGE
-  // =======================================================
-
-  const goToPage = (page) => {
-
-    if (
-      page < 1 ||
-      page > totalPages
-    ) {
+  const handleDownloadExcel = () => {
+    if (filteredReports.length === 0) {
+      setError("Download करण्यासाठी कोणताही report उपलब्ध नाही.");
       return;
     }
 
-    setCurrentPage(page);
+    setError("");
+    setSuccess("");
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    });
+    const headers = [
+      "SR",
+      "Name (नाव)",
+      "Designation ( पद)",
+      "Taluka (तालुका)",
+      "District (जिल्हा)",
+      "Mobile Number (मोबाईल क्रमांक)",
+      "Report Date (अहवालाची तारीख)",
+      "Total authourised center Head -10(अधिकृत केंद्र प्रमुखांची एकूण संख्या -10)",
+      "Total Active center Head (सक्रिय केंद्र प्रमुखांची एकूण संख्या)",
+      "Today Visited Centers (आज भेट दिलेली केंद्रे)",
+      "Visited Center Head Name (केंद्र प्रमुख यांची नावे )",
+      "New Members Added Today(आज नव्याने जोडलेले सदस्य )",
+      "Sanitary Pad box Sales (पॅड बॉक्स विक्री)",
+      "Today’s health ATM Machine details (एटीएम मशीन बुकिंग)",
+      "Birth (Baby Girls)  (जन्मलेल्या मुलींची संख्या)",
+      "Death Count  (मृत्यू संख्या)",
+      "Accident Count (अपघात संख्या)",
+      "UTR Number",
+      "Any Other Information(इतर माहिती)",
+      "Meeting Photo 1",
+      "Meeting Photo 2",
+      "Status",
+    ];
+
+    const rows = filteredReports.map((report, index) => [
+      index + 1,
+      getValue(report, "name", "name", ""),
+      getValue(report, "designation", "designation", ""),
+      getValue(report, "taluka", "taluka", ""),
+      getValue(report, "district", "district", ""),
+      getValue(report, "mobileNumber", "mobile_number", ""),
+      formatDate(getReportDateValue(report)),
+      getValue(report, "totalAuthorisedCenterHeads", "total_authorised_center_heads", "0"),
+      getValue(report, "totalActiveCenterHeads", "total_active_center_heads", "0"),
+      getValue(report, "todayVisitedCenters", "today_visited_centers", "0"),
+      getValue(report, "visitedCenterHeadName", "visited_center_head_name", ""),
+      getValue(report, "newMembersAddedToday", "new_members_added_today", "0"),
+      getValue(report, "sanitaryPadBoxSales", "sanitary_pad_box_sales", "0"),
+      getValue(report, "healthAtmMachineDetails", "health_atm_machine_details", ""),
+      getValue(report, "birthBabyGirls", "birth_baby_girls", "0"),
+      getValue(report, "deathCount", "death_count", "0"),
+      getValue(report, "accidentCount", "accident_count", "0"),
+      getValue(report, "utrNumber", "utr_number", ""),
+      getValue(report, "anyOtherInformation", "any_other_information", getValue(report, "additionalRemarks", "additional_remarks", "")),
+      getImageUrl(getValue(report, "meetingPhoto1", "meeting_photo_1", getValue(report, "machine1CampPhoto", "machine1_camp_photo", ""))) || "",
+      getImageUrl(getValue(report, "meetingPhoto2", "meeting_photo_2", getValue(report, "machine2CampPhoto", "machine2_camp_photo", ""))) || "",
+      getValue(report, "status", "status", "active"),
+    ]);
+
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "District Reports");
+    XLSX.writeFile(workbook, `District_Reports_${new Date().toISOString().split("T")[0]}.xlsx`);
+
+    setSuccess("District reports exported to Excel successfully.");
   };
-
-  // =======================================================
-  // PAGE NUMBERS
-  // =======================================================
-
-  const getPageNumbers = () => {
-
-    const pages = [];
-
-    if (totalPages <= 7) {
-
-      for (
-        let i = 1;
-        i <= totalPages;
-        i++
-      ) {
-        pages.push(i);
-      }
-
-      return pages;
-    }
-
-    pages.push(1);
-
-    if (currentPage > 4) {
-      pages.push("...");
-    }
-
-    const start =
-      Math.max(
-        2,
-        currentPage - 1
-      );
-
-    const end =
-      Math.min(
-        totalPages - 1,
-        currentPage + 1
-      );
-
-    for (
-      let i = start;
-      i <= end;
-      i++
-    ) {
-      pages.push(i);
-    }
-
-    if (
-      currentPage <
-      totalPages - 3
-    ) {
-      pages.push("...");
-    }
-
-    pages.push(totalPages);
-
-    return pages;
-  };
-
-  // =======================================================
-  // EXCEL DOWNLOAD
-  // =======================================================
-
-  const handleDownloadExcel = () => {
-
-    try {
-
-      setError("");
-      setSuccess("");
-
-      if (!filteredReports.length) {
-
-        setError(
-          "No reports available to download."
-        );
-
-        return;
-      }
-
-      const excelData =
-        filteredReports.map(
-          (report, index) => ({
-
-            SR:
-              index + 1,
-
-            Name:
-              getValue(
-                report,
-                "name",
-                "name"
-              ),
-
-            Designation:
-              getValue(
-                report,
-                "designation",
-                "designation"
-              ),
-
-            Taluka:
-              getValue(
-                report,
-                "taluka",
-                "taluka"
-              ),
-
-            District:
-              getValue(
-                report,
-                "district",
-                "district"
-              ),
-
-            "Mobile Number":
-              getValue(
-                report,
-                "mobileNumber",
-                "mobile_number"
-              ),
-
-            "Report Date":
-              formatDate(
-                getValue(
-                  report,
-                  "reportDate",
-                  "report_date",
-                  ""
-                )
-              ),
-
-            // =============================================
-            // CENTER HEAD DETAILS
-            // =============================================
-
-            "Total Authorised Center Head 300 to 500":
-              getValue(
-                report,
-                "totalAuthorisedCenterHeads300To500",
-                "total_authorised_center_heads_300_to_500",
-                "0"
-              ),
-
-            "Total Active Center Head":
-              getValue(
-                report,
-                "totalActiveCenterHeads",
-                "total_active_center_heads",
-                "0"
-              ),
-
-            // =============================================
-            // MACHINE 1
-            // =============================================
-
-            "Machine 1 Test Amount":
-              getValue(
-                report,
-                "machine1TestAmount",
-                "machine1_test_amount",
-                "0"
-              ),
-
-            "Machine 1 Medicine Amount":
-              getValue(
-                report,
-                "machine1MedicineAmount",
-                "machine1_medicine_amount",
-                "0"
-              ),
-
-            "Machine 1 Total Amount":
-              getValue(
-                report,
-                "machine1TotalAmount",
-                "machine1_total_amount",
-                "0"
-              ),
-
-            "Machine 1 Camp Name":
-              getValue(
-                report,
-                "machine1CampName",
-                "machine1_camp_name"
-              ),
-
-            // =============================================
-            // MACHINE 2
-            // =============================================
-
-            "Machine 2 Test Amount":
-              getValue(
-                report,
-                "machine2TestAmount",
-                "machine2_test_amount",
-                "0"
-              ),
-
-            "Machine 2 Medicine Amount":
-              getValue(
-                report,
-                "machine2MedicineAmount",
-                "machine2_medicine_amount",
-                "0"
-              ),
-
-            "Machine 2 Total Amount":
-              getValue(
-                report,
-                "machine2TotalAmount",
-                "machine2_total_amount",
-                "0"
-              ),
-
-            "Machine 2 Camp Name":
-              getValue(
-                report,
-                "machine2CampName",
-                "machine2_camp_name"
-              ),
-
-            // =============================================
-            // OTHER
-            // =============================================
-
-            "UTR Number":
-              getValue(
-                report,
-                "utrNumber",
-                "utr_number"
-              ),
-
-            "Additional Remarks":
-              getValue(
-                report,
-                "additionalRemarks",
-                "additional_remarks"
-              ),
-
-            // =============================================
-            // PHOTOS
-            // =============================================
-
-            "Machine 1 Camp Photo":
-              getImageUrl(
-                getValue(
-                  report,
-                  "machine1CampPhoto",
-                  "machine1_camp_photo",
-                  ""
-                )
-              ) || "",
-
-            "Machine 2 Camp Photo":
-              getImageUrl(
-                getValue(
-                  report,
-                  "machine2CampPhoto",
-                  "machine2_camp_photo",
-                  ""
-                )
-              ) || "",
-
-            // =============================================
-            // STATUS
-            // =============================================
-
-            Status:
-              getValue(
-                report,
-                "status",
-                "status",
-                "Active"
-              )
-
-          })
-        );
-
-      const worksheet =
-        XLSX.utils.json_to_sheet(
-          excelData
-        );
-
-      // ===============================================
-      // EXCEL COLUMN WIDTHS
-      // ===============================================
-
-      worksheet["!cols"] = [
-
-        { wch: 8 },
-
-        { wch: 25 },
-
-        { wch: 22 },
-
-        { wch: 20 },
-
-        { wch: 20 },
-
-        { wch: 18 },
-
-        { wch: 18 },
-
-        { wch: 38 },
-
-        { wch: 30 },
-
-        { wch: 25 },
-
-        { wch: 28 },
-
-        { wch: 25 },
-
-        { wch: 25 },
-
-        { wch: 28 },
-
-        { wch: 25 },
-
-        { wch: 25 },
-
-        { wch: 25 },
-
-        { wch: 35 },
-
-        { wch: 40 },
-
-        { wch: 35 },
-
-        { wch: 35 },
-
-        { wch: 18 }
-
-      ];
-
-      const workbook =
-        XLSX.utils.book_new();
-
-      XLSX.utils.book_append_sheet(
-        workbook,
-        worksheet,
-        "District Reports"
-      );
-
-      const today =
-        new Date()
-          .toISOString()
-          .split("T")[0];
-
-      XLSX.writeFile(
-        workbook,
-        `District_Reports_${today}.xlsx`
-      );
-
-      setSuccess(
-        `${filteredReports.length} report(s) downloaded successfully.`
-      );
-
-    } catch (err) {
-
-      console.error(
-        "Excel error:",
-        err
-      );
-
-      setError(
-        "Unable to download Excel file."
-      );
-    }
-  };
-
-  // =======================================================
-  // CSV DOWNLOAD
-  // =======================================================
-
-  const handleDownloadCSV = () => {
-
-    try {
-
-      setError("");
-      setSuccess("");
-
-      if (!filteredReports.length) {
-
-        setError(
-          "No reports available to download."
-        );
-
-        return;
-      }
-
-      // ===============================================
-      // CSV HEADERS
-      // ===============================================
-
-      const headers = [
-
-        "SR",
-
-        "Name",
-
-        "Designation",
-
-        "Taluka",
-
-        "District",
-
-        "Mobile Number",
-
-        "Report Date",
-
-        "Total Authorised Center Head 300 to 500",
-
-        "Total Active Center Head",
-
-        "Machine 1 Test Amount",
-
-        "Machine 1 Medicine Amount",
-
-        "Machine 1 Total Amount",
-
-        "Machine 1 Camp Name",
-
-        "Machine 2 Test Amount",
-
-        "Machine 2 Medicine Amount",
-
-        "Machine 2 Total Amount",
-
-        "Machine 2 Camp Name",
-
-        "UTR Number",
-
-        "Additional Remarks",
-
-        "Machine 1 Camp Photo",
-
-        "Machine 2 Camp Photo",
-
-        "Status"
-
-      ];
-
-      // ===============================================
-      // CSV DATA
-      // ===============================================
-
-      const rows =
-        filteredReports.map(
-          (report, index) => [
-
-            index + 1,
-
-            getValue(
-              report,
-              "name",
-              "name",
-              ""
-            ),
-
-            getValue(
-              report,
-              "designation",
-              "designation",
-              ""
-            ),
-
-            getValue(
-              report,
-              "taluka",
-              "taluka",
-              ""
-            ),
-
-            getValue(
-              report,
-              "district",
-              "district",
-              ""
-            ),
-
-            getValue(
-              report,
-              "mobileNumber",
-              "mobile_number",
-              ""
-            ),
-
-            formatDate(
-              getValue(
-                report,
-                "reportDate",
-                "report_date",
-                ""
-              )
-            ),
-
-            getValue(
-              report,
-              "totalAuthorisedCenterHeads300To500",
-              "total_authorised_center_heads_300_to_500",
-              "0"
-            ),
-
-            getValue(
-              report,
-              "totalActiveCenterHeads",
-              "total_active_center_heads",
-              "0"
-            ),
-
-            getValue(
-              report,
-              "machine1TestAmount",
-              "machine1_test_amount",
-              "0"
-            ),
-
-            getValue(
-              report,
-              "machine1MedicineAmount",
-              "machine1_medicine_amount",
-              "0"
-            ),
-
-            getValue(
-              report,
-              "machine1TotalAmount",
-              "machine1_total_amount",
-              "0"
-            ),
-
-            getValue(
-              report,
-              "machine1CampName",
-              "machine1_camp_name",
-              ""
-            ),
-
-            getValue(
-              report,
-              "machine2TestAmount",
-              "machine2_test_amount",
-              "0"
-            ),
-
-            getValue(
-              report,
-              "machine2MedicineAmount",
-              "machine2_medicine_amount",
-              "0"
-            ),
-
-            getValue(
-              report,
-              "machine2TotalAmount",
-              "machine2_total_amount",
-              "0"
-            ),
-
-            getValue(
-              report,
-              "machine2CampName",
-              "machine2_camp_name",
-              ""
-            ),
-
-            getValue(
-              report,
-              "utrNumber",
-              "utr_number",
-              ""
-            ),
-
-            getValue(
-              report,
-              "additionalRemarks",
-              "additional_remarks",
-              ""
-            ),
-
-            getImageUrl(
-              getValue(
-                report,
-                "machine1CampPhoto",
-                "machine1_camp_photo",
-                ""
-              )
-            ) || "",
-
-            getImageUrl(
-              getValue(
-                report,
-                "machine2CampPhoto",
-                "machine2_camp_photo",
-                ""
-              )
-            ) || "",
-
-            getValue(
-              report,
-              "status",
-              "status",
-              "Active"
-            )
-
-          ]
-        );
-
-      // ===============================================
-      // ESCAPE CSV VALUE
-      // ===============================================
-
-      const escapeCSV = (value) => {
-
-        const text =
-          String(value ?? "");
-
-        if (
-          text.includes(",") ||
-          text.includes('"') ||
-          text.includes("\n") ||
-          text.includes("\r")
-        ) {
-
-          return `"${text.replace(
-            /"/g,
-            '""'
-          )}"`;
-
-        }
-
-        return text;
-      };
-
-      // ===============================================
-      // CREATE CSV CONTENT
-      // ===============================================
-
-      const csvContent = [
-
-        headers
-          .map(escapeCSV)
-          .join(","),
-
-        ...rows.map(
-          (row) =>
-            row
-              .map(escapeCSV)
-              .join(",")
-        )
-
-      ].join("\r\n");
-
-      // ===============================================
-      // UTF-8 BOM
-      // ===============================================
-
-      const blob =
-        new Blob(
-          [
-            "\uFEFF" +
-            csvContent
-          ],
-          {
-            type:
-              "text/csv;charset=utf-8;"
-          }
-        );
-
-      // ===============================================
-      // CREATE DOWNLOAD URL
-      // ===============================================
-
-      const url =
-        URL.createObjectURL(blob);
-
-      const today =
-        new Date()
-          .toISOString()
-          .split("T")[0];
-
-      const link =
-        document.createElement("a");
-
-      link.href = url;
-
-      link.download =
-        `District_Reports_${today}.csv`;
-
-      document.body.appendChild(link);
-
-      link.click();
-
-      document.body.removeChild(link);
-
-      URL.revokeObjectURL(url);
-
-      setSuccess(
-        `${filteredReports.length} report(s) downloaded successfully.`
-      );
-
-    } catch (err) {
-
-      console.error(
-        "CSV download error:",
-        err
-      );
-
-      setError(
-        "Unable to download CSV file."
-      );
-    }
-  };
-
-  // =======================================================
-  // RETURN
-  // =======================================================
 
   return (
-
     <div className="district-report-page">
-
-      {/* =================================================
-          HEADER
-      ================================================= */}
-
-      <div
-        className="
-          d-flex
-          flex-column
-          flex-md-row
-          justify-content-between
-          align-items-start
-          align-items-md-center
-          gap-3
-          mb-4
-        "
-      >
-
+      {/* HEADER */}
+      <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
         <div>
-
-          <h3 className="fw-bold mb-1">
-            District Reports
-          </h3>
-
-          <p className="text-muted mb-0">
-            Manage and view all district reports
-          </p>
-
+          <h4 className="fw-bold mb-1">District Reports (जिल्हा अहवाल)</h4>
+          <p className="text-muted mb-0">View, search, and manage all district reports</p>
         </div>
 
-        <div className="d-flex gap-2 flex-wrap">
-
-          {/* =================================================
-              DOWNLOAD CSV
-          ================================================= */}
-
-
-
-          {/* =================================================
-              DOWNLOAD EXCEL
-          ================================================= */}
-
-          <Button
-            variant="dark"
-            onClick={
-              handleDownloadExcel
-            }
-            disabled={
-              loading ||
-              filteredReports.length === 0
-            }
-          >
-            ↓&nbsp; Download Excel
+        <div className="d-flex gap-2">
+          <Button variant="outline-dark" onClick={handleRefresh} disabled={loading}>
+            Refresh
           </Button>
 
-          {/* =================================================
-              REFRESH
-          ================================================= */}
-
-          <Button
-            variant="dark"
-            onClick={handleRefresh}
-            disabled={loading}
-          >
-
-            {loading ? (
-
-              <>
-                <Spinner
-                  animation="border"
-                  size="sm"
-                  className="me-2"
-                />
-
-                Loading...
-              </>
-
-            ) : (
-
-              <>↻&nbsp; Refresh</>
-
-            )}
-
+          <Button variant="success" onClick={handleDownloadExcel} disabled={loading || totalRecords === 0}>
+            Download Excel
           </Button>
-
         </div>
-
       </div>
 
-      {/* =================================================
-          ALERTS
-      ================================================= */}
-
       {error && (
-
-        <Alert
-          variant="danger"
-          dismissible
-          onClose={() =>
-            setError("")
-          }
-        >
+        <Alert variant="danger" dismissible onClose={() => setError("")} className="mb-4">
           {error}
         </Alert>
-
       )}
 
       {success && (
-
-        <Alert
-          variant="success"
-          dismissible
-          onClose={() =>
-            setSuccess("")
-          }
-        >
+        <Alert variant="success" dismissible onClose={() => setSuccess("")} className="mb-4">
           {success}
         </Alert>
-
       )}
 
-      {/* =================================================
-          TOTAL
-      ================================================= */}
-
-      <div className="card border-0 shadow-sm mb-3">
-
+      {/* TOTAL COUNTER */}
+      <div className="card border-0 shadow-sm mb-4">
         <div className="card-body p-3 p-md-4">
-
           <div className="d-flex align-items-center gap-3">
-
             <div
-              className="
-                bg-dark
-                text-white
-                rounded
-                d-flex
-                align-items-center
-                justify-content-center
-                fw-bold
-              "
-              style={{
-                width: "60px",
-                height: "60px",
-                fontSize: "20px"
-              }}
+              className="bg-dark text-white rounded d-flex align-items-center justify-content-center fw-bold"
+              style={{ width: "56px", height: "56px", fontSize: "20px" }}
             >
-
-              {loading
-                ? "..."
-                : filteredReports.length}
-
+              {loading ? "..." : totalRecords}
             </div>
 
             <div>
-
-              <small className="text-muted">
-
-                {isFilterActive
-                  ? "Filtered District Reports"
-                  : "Total District Reports"}
-
-              </small>
-
-              <h4 className="fw-bold mb-0">
-
-                {loading
-                  ? "..."
-                  : filteredReports.length}
-
-              </h4>
-
+              <small className="text-muted">Total Filtered District Reports</small>
+              <h4 className="fw-bold mb-0">{loading ? "Loading..." : `${totalRecords} Records`}</h4>
             </div>
-
           </div>
-
         </div>
-
       </div>
 
-      {/* =================================================
-          FILTERS
-      ================================================= */}
-
-      <div className="card border-0 shadow-sm mb-3">
-
+      {/* FILTER CARD */}
+      <div className="card border-0 shadow-sm mb-4">
         <div className="card-body p-3 p-md-4">
-
           <div className="row g-3">
-
-            {/* NAME */}
-
             <div className="col-12 col-md-6 col-xl-3">
-
-              <label className="form-label fw-semibold">
-                Name
-              </label>
-
+              <label className="form-label fw-semibold">Name (नाव)</label>
               <input
                 type="text"
                 className="form-control"
                 placeholder="Search Name..."
                 value={nameFilter}
-                onChange={(e) =>
-                  setNameFilter(
-                    e.target.value
-                  )
-                }
+                onChange={(e) => setNameFilter(e.target.value)}
               />
-
             </div>
 
-            {/* TALUKA */}
-
             <div className="col-12 col-md-6 col-xl-3">
-
-              <label className="form-label fw-semibold">
-                Taluka
-              </label>
-
+              <label className="form-label fw-semibold">Taluka (तालुका)</label>
               <input
                 type="text"
                 className="form-control"
                 placeholder="Search Taluka..."
                 value={talukaFilter}
-                onChange={(e) =>
-                  setTalukaFilter(
-                    e.target.value
-                  )
-                }
+                onChange={(e) => setTalukaFilter(e.target.value)}
               />
-
             </div>
 
-            {/* DISTRICT */}
-
             <div className="col-12 col-md-6 col-xl-3">
-
-              <label className="form-label fw-semibold">
-                District
-              </label>
-
+              <label className="form-label fw-semibold">District (जिल्हा)</label>
               <input
                 type="text"
                 className="form-control"
                 placeholder="Search District..."
                 value={districtFilter}
-                onChange={(e) =>
-                  setDistrictFilter(
-                    e.target.value
-                  )
-                }
+                onChange={(e) => setDistrictFilter(e.target.value)}
               />
-
             </div>
 
-            {/* DATE */}
-
             <div className="col-12 col-md-6 col-xl-3">
-
-              <label className="form-label fw-semibold">
-                Report Date
-              </label>
-
+              <label className="form-label fw-semibold">Report Date (अहवालाची तारीख)</label>
               <input
                 type="date"
                 className="form-control"
                 value={dateFilter}
-                onChange={(e) =>
-                  setDateFilter(
-                    e.target.value
-                  )
-                }
+                onChange={(e) => setDateFilter(e.target.value)}
               />
-
             </div>
 
-            {/* CLEAR */}
-
-            <div className="col-12">
-
-              <Button
-                variant="dark"
-                className="w-100"
-                onClick={clearFilters}
-                disabled={!isFilterActive}
-              >
-                Clear
-              </Button>
-
-            </div>
-
+            {isFilterActive && (
+              <div className="col-12">
+                <Button variant="outline-secondary" size="sm" onClick={clearFilters}>
+                  Clear Filters
+                </Button>
+              </div>
+            )}
           </div>
-
         </div>
-
       </div>
 
-      {/* =================================================
-          TABLE CARD
-      ================================================= */}
-
+      {/* TABLE CARD */}
       <div className="card border-0 shadow-sm">
-
-        {/* TABLE HEADER */}
-
-        <div
-          className="
-            card-header
-            bg-white
-            border-bottom
-            py-3
-            px-3
-            px-md-4
-          "
-        >
-
-          <div
-            className="
-              d-flex
-              justify-content-between
-              align-items-center
-              flex-wrap
-              gap-2
-            "
-          >
-
-            <h6 className="fw-bold mb-0">
-              District Report List
-            </h6>
-
-            <small className="text-muted">
-
-              Showing{" "}
-
-              <strong>
-
-                {loading
-                  ? "..."
-                  : totalRecords === 0
-                  ? 0
-                  : startIndex + 1}
-
-              </strong>
-
-              {" - "}
-
-              <strong>
-
-                {loading
-                  ? "..."
-                  : Math.min(
-                      endIndex,
-                      totalRecords
-                    )}
-
-              </strong>
-
-              {" "}of{" "}
-
-              <strong>
-
-                {loading
-                  ? "..."
-                  : totalRecords}
-
-              </strong>
-
-              {" "}reports
-
-            </small>
-
-          </div>
-
+        <div className="card-header bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center">
+          <h6 className="fw-bold mb-0">District Report List</h6>
+          <small className="text-muted">
+            Showing {totalRecords === 0 ? 0 : startIndex + 1} - {Math.min(endIndex, totalRecords)} of {totalRecords} reports
+          </small>
         </div>
 
-        {/* =================================================
-            TABLE
-        ================================================= */}
-
         <div className="card-body p-0">
-
-          <div className="district-report-table">
-
-            <table
-              className="
-                table
-                table-hover
-                table-bordered
-                align-middle
-                mb-0
-              "
-            >
-
-              <thead>
-
+          <div className="table-responsive">
+            <table className="table table-hover table-bordered align-middle mb-0" style={{ minWidth: "3200px" }}>
+              <thead className="table-light">
                 <tr>
-
-                  <th>SR</th>
-
-                  <th>Name</th>
-
-                  <th>Designation</th>
-
-                  <th>Taluka</th>
-
-                  <th>District</th>
-
-                  <th>Mobile Number</th>
-
-                  <th>Report Date</th>
-
-                  {/* CENTER HEADS */}
-
-                  <th>
-                    Total Authorised Center Head
-                    300 to 500
+                  <th className="text-center" style={{ width: "60px" }}>SR</th>
+                  <th style={{ minWidth: "180px" }}>Name (नाव)</th>
+                  <th style={{ minWidth: "150px" }}>Designation ( पद)</th>
+                  <th style={{ minWidth: "130px" }}>Taluka (तालुका)</th>
+                  <th style={{ minWidth: "130px" }}>District (जिल्हा)</th>
+                  <th style={{ minWidth: "150px" }}>Mobile Number (मोबाईल क्रमांक)</th>
+                  <th style={{ minWidth: "140px" }}>Report Date (अहवालाची तारीख)</th>
+                  <th className="text-center" style={{ minWidth: "220px" }}>
+                    Total authourised center Head -10(अधिकृत केंद्र प्रमुखांची एकूण संख्या -10)
                   </th>
-
-                  <th>
-                    Total Active Center Head
+                  <th className="text-center" style={{ minWidth: "180px" }}>
+                    Total Active center Head (सक्रिय केंद्र प्रमुखांची एकूण संख्या)
                   </th>
-
-                  {/* MACHINE 1 */}
-
-                  <th>
-                    Machine 1 Test Amount (₹)
+                  <th className="text-center" style={{ minWidth: "160px" }}>
+                    Today Visited Centers (आज भेट दिलेली केंद्रे)
                   </th>
-
-                  <th>
-                    Machine 1 Medicine Amount (₹)
+                  <th style={{ minWidth: "200px" }}>
+                    Visited Center Head Name (केंद्र प्रमुख यांची नावे )
                   </th>
-
-                  <th>
-                    Machine 1 Total Amount (₹)
+                  <th className="text-center" style={{ minWidth: "180px" }}>
+                    New Members Added Today(आज नव्याने जोडलेले सदस्य )
                   </th>
-
-                  <th>
-                    Machine 1 Camp Name
+                  <th className="text-center" style={{ minWidth: "160px" }}>
+                    Sanitary Pad box Sales (पॅड बॉक्स विक्री)
                   </th>
-
-                  {/* MACHINE 2 */}
-
-                  <th>
-                    Machine 2 Test Amount (₹)
+                  <th style={{ minWidth: "260px" }}>
+                    Today’s health ATM Machine details (एटीएम मशीन बुकिंग)
                   </th>
-
-                  <th>
-                    Machine 2 Medicine Amount (₹)
+                  <th className="text-center" style={{ minWidth: "150px" }}>
+                    Birth (Baby Girls)  (जन्मलेल्या मुलींची संख्या)
                   </th>
-
-                  <th>
-                    Machine 2 Total Amount (₹)
+                  <th className="text-center" style={{ minWidth: "130px" }}>
+                    Death Count  (मृत्यू संख्या)
                   </th>
-
-                  <th>
-                    Machine 2 Camp Name
+                  <th className="text-center" style={{ minWidth: "140px" }}>
+                    Accident Count (अपघात संख्या)
                   </th>
-
-                  {/* OTHER */}
-
-                  <th>UTR Number</th>
-
-                  <th>
-                    Additional Remarks
+                  <th style={{ minWidth: "160px" }}>UTR Number</th>
+                  <th style={{ minWidth: "260px" }}>
+                    Any Other Information(इतर माहिती)
                   </th>
-
-                  {/* PHOTOS */}
-
-                  <th>
-                    Machine 1 Camp Photo
+                  <th className="text-center" style={{ minWidth: "140px" }}>
+                    Meeting Photo 1 (बैठकीचे फोटो १)
                   </th>
-
-                  <th>
-                    Machine 2 Camp Photo
+                  <th className="text-center" style={{ minWidth: "140px" }}>
+                    Meeting Photo 2 (बैठकीचे फोटो २ )
                   </th>
-
-                  <th>Status</th>
-
+                  <th className="text-center" style={{ minWidth: "100px" }}>Status</th>
+                  <th className="text-center" style={{ minWidth: "100px" }}>Action</th>
                 </tr>
-
               </thead>
 
               <tbody>
-
-                {/* =================================================
-                    LOADING
-                ================================================= */}
-
-                {loading && (
-
+                {loading ? (
                   <tr>
-
-                    <td
-                      colSpan="22"
-                      className="
-                        text-center
-                        py-5
-                      "
-                    >
-
-                      <Spinner
-                        animation="border"
-                        size="sm"
-                        className="me-2"
-                      />
-
+                    <td colSpan="23" className="text-center py-5">
+                      <Spinner animation="border" size="sm" className="me-2" />
                       Loading district reports...
-
                     </td>
-
                   </tr>
+                ) : totalRecords === 0 ? (
+                  <tr>
+                    <td colSpan="23" className="text-center py-5 text-muted">
+                      No district reports found.
+                    </td>
+                  </tr>
+                ) : (
+                  currentReports.map((report, index) => {
+                    const photo1 = getImageUrl(
+                      getValue(report, "meetingPhoto1", "meeting_photo_1", getValue(report, "machine1CampPhoto", "machine1_camp_photo", ""))
+                    );
+                    const photo2 = getImageUrl(
+                      getValue(report, "meetingPhoto2", "meeting_photo_2", getValue(report, "machine2CampPhoto", "machine2_camp_photo", ""))
+                    );
 
-                )}
-
-                {/* =================================================
-                    EMPTY
-                ================================================= */}
-
-                {!loading &&
-                  totalRecords === 0 && (
-
-                    <tr>
-
-                      <td
-                        colSpan="22"
-                        className="
-                          text-center
-                          py-5
-                          text-muted
-                        "
-                      >
-
-                        <div className="fs-2">
-                          🔍
-                        </div>
-
-                        <div className="fw-semibold">
-                          No reports found
-                        </div>
-
-                        {isFilterActive && (
-
-                          <Button
-                            variant="dark"
-                            size="sm"
-                            className="mt-2"
-                            onClick={
-                              clearFilters
-                            }
-                          >
-                            Clear Filters
+                    return (
+                      <tr key={report.id || index}>
+                        <td className="text-center">{startIndex + index + 1}</td>
+                        <td className="fw-semibold">{getValue(report, "name", "name")}</td>
+                        <td>{getValue(report, "designation", "designation")}</td>
+                        <td>{getValue(report, "taluka", "taluka")}</td>
+                        <td>{getValue(report, "district", "district")}</td>
+                        <td>{getValue(report, "mobileNumber", "mobile_number")}</td>
+                        <td>{formatDate(getReportDateValue(report))}</td>
+                        <td className="text-center">
+                          {getValue(report, "totalAuthorisedCenterHeads", "total_authorised_center_heads", getValue(report, "totalAuthorisedCenterHeads300To500", "total_authorised_center_heads_300_to_500", "0"))}
+                        </td>
+                        <td className="text-center">
+                          {getValue(report, "totalActiveCenterHeads", "total_active_center_heads", "0")}
+                        </td>
+                        <td className="text-center">
+                          {getValue(report, "todayVisitedCenters", "today_visited_centers", "0")}
+                        </td>
+                        <td>{getValue(report, "visitedCenterHeadName", "visited_center_head_name")}</td>
+                        <td className="text-center">
+                          {getValue(report, "newMembersAddedToday", "new_members_added_today", "0")}
+                        </td>
+                        <td className="text-center">
+                          {getValue(report, "sanitaryPadBoxSales", "sanitary_pad_box_sales", "0")}
+                        </td>
+                        <td>{getValue(report, "healthAtmMachineDetails", "health_atm_machine_details")}</td>
+                        <td className="text-center">{getValue(report, "birthBabyGirls", "birth_baby_girls", "0")}</td>
+                        <td className="text-center">{getValue(report, "deathCount", "death_count", "0")}</td>
+                        <td className="text-center">{getValue(report, "accidentCount", "accident_count", "0")}</td>
+                        <td>{getValue(report, "utrNumber", "utr_number")}</td>
+                        <td>
+                          {getValue(report, "anyOtherInformation", "any_other_information", getValue(report, "additionalRemarks", "additional_remarks", "-"))}
+                        </td>
+                        <td className="text-center">
+                          {photo1 ? (
+                            <a href={photo1} target="_blank" rel="noreferrer">
+                              <img
+                                src={photo1}
+                                alt="Photo 1"
+                                style={{ width: "50px", height: "50px", objectFit: "cover", borderRadius: "6px" }}
+                              />
+                            </a>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+                        <td className="text-center">
+                          {photo2 ? (
+                            <a href={photo2} target="_blank" rel="noreferrer">
+                              <img
+                                src={photo2}
+                                alt="Photo 2"
+                                style={{ width: "50px", height: "50px", objectFit: "cover", borderRadius: "6px" }}
+                              />
+                            </a>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+                        <td className="text-center">
+                          <span className="badge bg-success-subtle text-success">
+                            {getValue(report, "status", "status", "active")}
+                          </span>
+                        </td>
+                        <td className="text-center">
+                          <Button size="sm" variant="dark" onClick={() => handleViewReport(report)}>
+                            View
                           </Button>
-
-                        )}
-
-                      </td>
-
-                    </tr>
-
-                  )}
-
-                {/* =================================================
-                    DATA
-                ================================================= */}
-
-                {!loading &&
-                  currentReports.map(
-                    (report, index) => {
-
-                      const machine1Photo =
-                        getImageUrl(
-                          getValue(
-                            report,
-                            "machine1CampPhoto",
-                            "machine1_camp_photo",
-                            ""
-                          )
-                        );
-
-                      const machine2Photo =
-                        getImageUrl(
-                          getValue(
-                            report,
-                            "machine2CampPhoto",
-                            "machine2_camp_photo",
-                            ""
-                          )
-                        );
-
-                      return (
-
-                        <tr
-                          key={
-                            report.id ||
-                            index
-                          }
-                        >
-
-                          {/* SR */}
-
-                          <td className="text-center">
-                            {startIndex +
-                              index +
-                              1}
-                          </td>
-
-                          {/* NAME */}
-
-                          <td className="fw-semibold">
-
-                            {getValue(
-                              report,
-                              "name",
-                              "name"
-                            )}
-
-                          </td>
-
-                          {/* DESIGNATION */}
-
-                          <td>
-
-                            {getValue(
-                              report,
-                              "designation",
-                              "designation"
-                            )}
-
-                          </td>
-
-                          {/* TALUKA */}
-
-                          <td>
-
-                            {getValue(
-                              report,
-                              "taluka",
-                              "taluka"
-                            )}
-
-                          </td>
-
-                          {/* DISTRICT */}
-
-                          <td>
-
-                            {getValue(
-                              report,
-                              "district",
-                              "district"
-                            )}
-
-                          </td>
-
-                          {/* MOBILE */}
-
-                          <td>
-
-                            {getValue(
-                              report,
-                              "mobileNumber",
-                              "mobile_number"
-                            )}
-
-                          </td>
-
-                          {/* DATE */}
-
-                          <td>
-
-                            {formatDate(
-                              getValue(
-                                report,
-                                "reportDate",
-                                "report_date",
-                                ""
-                              )
-                            )}
-
-                          </td>
-
-                          {/* TOTAL AUTHORISED CENTER HEAD */}
-
-                          <td className="text-center fw-semibold">
-
-                            {getValue(
-                              report,
-                              "totalAuthorisedCenterHeads300To500",
-                              "total_authorised_center_heads_300_to_500",
-                              "0"
-                            )}
-
-                          </td>
-
-                          {/* TOTAL ACTIVE CENTER HEAD */}
-
-                          <td className="text-center fw-semibold">
-
-                            {getValue(
-                              report,
-                              "totalActiveCenterHeads",
-                              "total_active_center_heads",
-                              "0"
-                            )}
-
-                          </td>
-
-                          {/* MACHINE 1 TEST */}
-
-                          <td className="text-end fw-semibold">
-
-                            ₹{" "}
-
-                            {getValue(
-                              report,
-                              "machine1TestAmount",
-                              "machine1_test_amount",
-                              "0"
-                            )}
-
-                          </td>
-
-                          {/* MACHINE 1 MEDICINE */}
-
-                          <td className="text-end fw-semibold">
-
-                            ₹{" "}
-
-                            {getValue(
-                              report,
-                              "machine1MedicineAmount",
-                              "machine1_medicine_amount",
-                              "0"
-                            )}
-
-                          </td>
-
-                          {/* MACHINE 1 TOTAL */}
-
-                          <td className="text-end fw-bold">
-
-                            ₹{" "}
-
-                            {getValue(
-                              report,
-                              "machine1TotalAmount",
-                              "machine1_total_amount",
-                              "0"
-                            )}
-
-                          </td>
-
-                          {/* MACHINE 1 CAMP */}
-
-                          <td>
-
-                            {getValue(
-                              report,
-                              "machine1CampName",
-                              "machine1_camp_name"
-                            )}
-
-                          </td>
-
-                          {/* MACHINE 2 TEST */}
-
-                          <td className="text-end fw-semibold">
-
-                            ₹{" "}
-
-                            {getValue(
-                              report,
-                              "machine2TestAmount",
-                              "machine2_test_amount",
-                              "0"
-                            )}
-
-                          </td>
-
-                          {/* MACHINE 2 MEDICINE */}
-
-                          <td className="text-end fw-semibold">
-
-                            ₹{" "}
-
-                            {getValue(
-                              report,
-                              "machine2MedicineAmount",
-                              "machine2_medicine_amount",
-                              "0"
-                            )}
-
-                          </td>
-
-                          {/* MACHINE 2 TOTAL */}
-
-                          <td className="text-end fw-bold">
-
-                            ₹{" "}
-
-                            {getValue(
-                              report,
-                              "machine2TotalAmount",
-                              "machine2_total_amount",
-                              "0"
-                            )}
-
-                          </td>
-
-                          {/* MACHINE 2 CAMP */}
-
-                          <td>
-
-                            {getValue(
-                              report,
-                              "machine2CampName",
-                              "machine2_camp_name"
-                            )}
-
-                          </td>
-
-                          {/* UTR */}
-
-                          <td>
-
-                            {getValue(
-                              report,
-                              "utrNumber",
-                              "utr_number"
-                            )}
-
-                          </td>
-
-                          {/* ADDITIONAL REMARKS */}
-
-                          <td
-                            style={{
-                              whiteSpace:
-                                "normal",
-                              minWidth:
-                                "250px",
-                              maxWidth:
-                                "400px"
-                            }}
-                          >
-
-                            {getValue(
-                              report,
-                              "additionalRemarks",
-                              "additional_remarks"
-                            )}
-
-                          </td>
-
-                          {/* MACHINE 1 PHOTO */}
-
-                          <td className="text-center">
-
-                            {machine1Photo ? (
-
-                              <a
-                                href={
-                                  machine1Photo
-                                }
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-
-                                <img
-                                  src={
-                                    machine1Photo
-                                  }
-                                  alt="Machine 1 Camp"
-                                  loading="lazy"
-                                  className="report-photo"
-                                  onError={(e) => {
-
-                                    e.currentTarget.style.display =
-                                      "none";
-
-                                  }}
-                                />
-
-                              </a>
-
-                            ) : (
-
-                              "-"
-
-                            )}
-
-                          </td>
-
-                          {/* MACHINE 2 PHOTO */}
-
-                          <td className="text-center">
-
-                            {machine2Photo ? (
-
-                              <a
-                                href={
-                                  machine2Photo
-                                }
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-
-                                <img
-                                  src={
-                                    machine2Photo
-                                  }
-                                  alt="Machine 2 Camp"
-                                  loading="lazy"
-                                  className="report-photo"
-                                  onError={(e) => {
-
-                                    e.currentTarget.style.display =
-                                      "none";
-
-                                  }}
-                                />
-
-                              </a>
-
-                            ) : (
-
-                              "-"
-
-                            )}
-
-                          </td>
-
-                          {/* STATUS */}
-
-                          <td>
-
-                            <span
-                              className="
-                                badge
-                                bg-success-subtle
-                                text-success
-                              "
-                            >
-
-                              {getValue(
-                                report,
-                                "status",
-                                "status",
-                                "Active"
-                              )}
-
-                            </span>
-
-                          </td>
-
-                        </tr>
-
-                      );
-
-                    }
-                  )}
-
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
               </tbody>
-
             </table>
-
           </div>
-
         </div>
 
-        {/* =================================================
-            PAGINATION
-        ================================================= */}
-
-        {!loading &&
-          totalPages > 1 && (
-
-            <div
-              className="
-                card-footer
-                bg-white
-                border-top
-                py-3
-              "
+        {/* PAGINATION */}
+        {totalPages > 1 && (
+          <div className="card-footer bg-white py-3 d-flex justify-content-between align-items-center">
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
             >
-
-              <div
-                className="
-                  d-flex
-                  justify-content-between
-                  align-items-center
-                  flex-wrap
-                  gap-3
-                "
-              >
-
-                <small className="text-muted">
-
-                  Page{" "}
-
-                  <strong>
-                    {currentPage}
-                  </strong>
-
-                  {" "}of{" "}
-
-                  <strong>
-                    {totalPages}
-                  </strong>
-
-                </small>
-
-                <ul
-                  className="
-                    pagination
-                    pagination-sm
-                    mb-0
-                  "
-                >
-
-                  {/* PREVIOUS */}
-
-                  <li
-                    className={`
-                      page-item
-                      ${
-                        currentPage === 1
-                          ? "disabled"
-                          : ""
-                      }
-                    `}
-                  >
-
-                    <button
-                      className="page-link"
-                      onClick={() =>
-                        goToPage(
-                          currentPage - 1
-                        )
-                      }
-                      disabled={
-                        currentPage === 1
-                      }
-                    >
-                      Previous
-                    </button>
-
-                  </li>
-
-                  {/* PAGE NUMBERS */}
-
-                  {getPageNumbers().map(
-                    (page, index) => {
-
-                      if (
-                        page === "..."
-                      ) {
-
-                        return (
-
-                          <li
-                            key={
-                              `dots-${index}`
-                            }
-                            className="
-                              page-item
-                              disabled
-                            "
-                          >
-
-                            <span className="page-link">
-                              ...
-                            </span>
-
-                          </li>
-
-                        );
-
-                      }
-
-                      return (
-
-                        <li
-                          key={page}
-                          className={`
-                            page-item
-                            ${
-                              currentPage ===
-                              page
-                                ? "active"
-                                : ""
-                            }
-                          `}
-                        >
-
-                          <button
-                            className="page-link"
-                            onClick={() =>
-                              goToPage(page)
-                            }
-                          >
-                            {page}
-                          </button>
-
-                        </li>
-
-                      );
-
-                    }
-                  )}
-
-                  {/* NEXT */}
-
-                  <li
-                    className={`
-                      page-item
-                      ${
-                        currentPage ===
-                        totalPages
-                          ? "disabled"
-                          : ""
-                      }
-                    `}
-                  >
-
-                    <button
-                      className="page-link"
-                      onClick={() =>
-                        goToPage(
-                          currentPage + 1
-                        )
-                      }
-                      disabled={
-                        currentPage ===
-                        totalPages
-                      }
-                    >
-                      Next
-                    </button>
-
-                  </li>
-
-                </ul>
-
-              </div>
-
-            </div>
-
-          )}
-
+              Previous
+            </Button>
+            <span className="text-muted small">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Next
+            </Button>
+          </div>
+        )}
       </div>
 
-      {/* =================================================
-          CSS
-      ================================================= */}
-
-      <style>{`
-
-        /* ================================================
-           PAGE
-        ================================================ */
-
-        .district-report-page {
-          width: 100%;
-          max-width: 100%;
-          min-width: 0;
-        }
-
-        /* ================================================
-           TABLE SCROLL
-        ================================================ */
-
-        .district-report-table {
-          width: 100%;
-          max-width: 100%;
-
-          overflow-x: auto;
-          overflow-y: auto;
-
-          max-height:
-            calc(100vh - 360px);
-
-          -webkit-overflow-scrolling:
-            touch;
-        }
-
-        /* ================================================
-           TABLE WIDTH
-        ================================================ */
-
-        .district-report-table table {
-
-          width: max-content;
-
-          min-width:
-            3500px;
-
-          margin: 0;
-
-          table-layout:
-            auto;
-        }
-
-        /* ================================================
-           TABLE CELLS
-        ================================================ */
-
-        .district-report-table th,
-        .district-report-table td {
-
-          white-space:
-            nowrap;
-
-          font-size:
-            13px;
-
-          padding:
-            10px 14px;
-
-          vertical-align:
-            middle;
-        }
-
-        /* ================================================
-           HEADER
-        ================================================ */
-
-        .district-report-table thead th {
-
-          position:
-            sticky;
-
-          top:
-            0;
-
-          z-index:
-            10;
-
-          background:
-            #f8f9fa;
-
-          font-weight:
-            700;
-
-          border-bottom:
-            2px solid #dee2e6;
-        }
-
-        /* ================================================
-           ROW
-        ================================================ */
-
-        .district-report-table tbody tr {
-
-          min-height:
-            75px;
-        }
-
-        /* ================================================
-           PHOTOS
-        ================================================ */
-
-        .report-photo {
-
-          width:
-            65px;
-
-          height:
-            65px;
-
-          object-fit:
-            cover;
-
-          border-radius:
-            7px;
-
-          border:
-            1px solid #dee2e6;
-
-          display:
-            block;
-
-          margin:
-            auto;
-        }
-
-        /* ================================================
-           HORIZONTAL SCROLLBAR
-        ================================================ */
-
-        .district-report-table::-webkit-scrollbar {
-
-          width:
-            10px;
-
-          height:
-            13px;
-        }
-
-        .district-report-table::-webkit-scrollbar-track {
-
-          background:
-            #f1f3f5;
-        }
-
-        .district-report-table::-webkit-scrollbar-thumb {
-
-          background:
-            #6c757d;
-
-          border-radius:
-            10px;
-        }
-
-        .district-report-table::-webkit-scrollbar-thumb:hover {
-
-          background:
-            #343a40;
-        }
-
-        /* ================================================
-           PAGINATION
-        ================================================ */
-
-        .pagination {
-
-          gap:
-            3px;
-        }
-
-        .pagination .page-link {
-
-          min-width:
-            35px;
-
-          height:
-            35px;
-
-          display:
-            flex;
-
-          align-items:
-            center;
-
-          justify-content:
-            center;
-
-          font-size:
-            12px;
-
-          color:
-            #212529;
-
-          border-radius:
-            5px !important;
-        }
-
-        .pagination .page-item.active .page-link {
-
-          background:
-            #212529;
-
-          border-color:
-            #212529;
-
-          color:
-            #fff;
-        }
-
-        .pagination .page-link:hover {
-
-          background:
-            #e9ecef;
-
-          color:
-            #212529;
-        }
-
-        /* ================================================
-           MOBILE
-        ================================================ */
-
-        @media (max-width: 767px) {
-
-          .district-report-table {
-
-            max-height:
-              calc(100vh - 420px);
-          }
-
-          .district-report-table table {
-
-            min-width:
-              3500px;
-          }
-
-          .district-report-table th,
-          .district-report-table td {
-
-            font-size:
-              12px;
-
-            padding:
-              8px 10px;
-          }
-
-          .report-photo {
-
-            width:
-              55px;
-
-            height:
-              55px;
-          }
-
-        }
-
-      `}</style>
-
+      {/* DETAIL MODAL WITH MARATHI LABELS */}
+      <Modal show={showDetailModal} onHide={() => setShowDetailModal(false)} size="lg" centered>
+        <Modal.Header closeButton>
+          <Modal.Title className="fw-bold">District Report Details (तपशील)</Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ maxHeight: "75vh", overflowY: "auto" }}>
+          {selectedReport && (
+            <div className="row g-3">
+              <div className="col-md-6">
+                <strong>Name (नाव):</strong>
+                <div>{getValue(selectedReport, "name", "name")}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>Designation ( पद):</strong>
+                <div>{getValue(selectedReport, "designation", "designation")}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>Taluka (तालुका):</strong>
+                <div>{getValue(selectedReport, "taluka", "taluka")}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>District (जिल्हा):</strong>
+                <div>{getValue(selectedReport, "district", "district")}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>Mobile Number (मोबाईल क्रमांक):</strong>
+                <div>{getValue(selectedReport, "mobileNumber", "mobile_number")}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>Report Date (अहवालाची तारीख):</strong>
+                <div>{formatDate(getReportDateValue(selectedReport))}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>Total authourised center Head -10(अधिकृत केंद्र प्रमुखांची एकूण संख्या -10):</strong>
+                <div>{getValue(selectedReport, "totalAuthorisedCenterHeads", "total_authorised_center_heads", "0")}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>Total Active center Head (सक्रिय केंद्र प्रमुखांची एकूण संख्या):</strong>
+                <div>{getValue(selectedReport, "totalActiveCenterHeads", "total_active_center_heads", "0")}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>Today Visited Centers (आज भेट दिलेली केंद्रे):</strong>
+                <div>{getValue(selectedReport, "todayVisitedCenters", "today_visited_centers", "0")}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>Visited Center Head Name (केंद्र प्रमुख यांची नावे ):</strong>
+                <div>{getValue(selectedReport, "visitedCenterHeadName", "visited_center_head_name")}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>New Members Added Today(आज नव्याने जोडलेले सदस्य ):</strong>
+                <div>{getValue(selectedReport, "newMembersAddedToday", "new_members_added_today", "0")}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>Sanitary Pad box Sales (पॅड बॉक्स विक्री):</strong>
+                <div>{getValue(selectedReport, "sanitaryPadBoxSales", "sanitary_pad_box_sales", "0")}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>Today’s health ATM Machine details (एटीएम मशीन बुकिंग):</strong>
+                <div>{getValue(selectedReport, "healthAtmMachineDetails", "health_atm_machine_details")}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>Birth (Baby Girls)  (जन्मलेल्या मुलींची संख्या):</strong>
+                <div>{getValue(selectedReport, "birthBabyGirls", "birth_baby_girls", "0")}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>Death Count  (मृत्यू संख्या):</strong>
+                <div>{getValue(selectedReport, "deathCount", "death_count", "0")}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>Accident Count (अपघात संख्या):</strong>
+                <div>{getValue(selectedReport, "accidentCount", "accident_count", "0")}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>UTR Number:</strong>
+                <div>{getValue(selectedReport, "utrNumber", "utr_number")}</div>
+              </div>
+              <div className="col-12">
+                <strong>Any Other Information(इतर माहिती):</strong>
+                <div>{getValue(selectedReport, "anyOtherInformation", "any_other_information", getValue(selectedReport, "additionalRemarks", "additional_remarks", "-"))}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>Meeting Photo 1 (बैठकीचे फोटो १):</strong>
+                <div>
+                  {getImageUrl(getValue(selectedReport, "meetingPhoto1", "meeting_photo_1", getValue(selectedReport, "machine1CampPhoto", "machine1_camp_photo", ""))) ? (
+                    <a
+                      href={getImageUrl(getValue(selectedReport, "meetingPhoto1", "meeting_photo_1", getValue(selectedReport, "machine1CampPhoto", "machine1_camp_photo", "")))}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <img
+                        src={getImageUrl(getValue(selectedReport, "meetingPhoto1", "meeting_photo_1", getValue(selectedReport, "machine1CampPhoto", "machine1_camp_photo", "")))}
+                        alt="Photo 1"
+                        style={{ maxWidth: "100%", maxHeight: "200px", objectFit: "cover", borderRadius: "8px" }}
+                      />
+                    </a>
+                  ) : (
+                    "No photo uploaded"
+                  )}
+                </div>
+              </div>
+              <div className="col-md-6">
+                <strong>Meeting Photo 2 (बैठकीचे फोटो २ ):</strong>
+                <div>
+                  {getImageUrl(getValue(selectedReport, "meetingPhoto2", "meeting_photo_2", getValue(selectedReport, "machine2CampPhoto", "machine2_camp_photo", ""))) ? (
+                    <a
+                      href={getImageUrl(getValue(selectedReport, "meetingPhoto2", "meeting_photo_2", getValue(selectedReport, "machine2CampPhoto", "machine2_camp_photo", "")))}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <img
+                        src={getImageUrl(getValue(selectedReport, "meetingPhoto2", "meeting_photo_2", getValue(selectedReport, "machine2CampPhoto", "machine2_camp_photo", "")))}
+                        alt="Photo 2"
+                        style={{ maxWidth: "100%", maxHeight: "200px", objectFit: "cover", borderRadius: "8px" }}
+                      />
+                    </a>
+                  ) : (
+                    "No photo uploaded"
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDetailModal(false)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };
-
-// =========================================================
-// EXPORT
-// =========================================================
 
 export default DistrictReport;

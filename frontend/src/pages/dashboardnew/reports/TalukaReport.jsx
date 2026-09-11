@@ -1210,15 +1210,6 @@ const emptyForm = {
                             ↓ Download Excel
                         </Button>
 
-                        {/* ADD */}
-
-                        <Button
-                            variant="dark"
-                            onClick={handleAdd}
-                        >
-                            + Add Report
-                        </Button>
-
                         {/* REFRESH */}
 
                         <Button

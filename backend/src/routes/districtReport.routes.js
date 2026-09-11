@@ -48,6 +48,14 @@ router.post(
     "/",
     districtUpload.fields([
         {
+            name: "meeting_photo_1",
+            maxCount: 1,
+        },
+        {
+            name: "meeting_photo_2",
+            maxCount: 1,
+        },
+        {
             name: "machine1_camp_photo",
             maxCount: 1,
         },
@@ -66,6 +74,14 @@ router.post(
 router.put(
     "/:id",
     districtUpload.fields([
+        {
+            name: "meeting_photo_1",
+            maxCount: 1,
+        },
+        {
+            name: "meeting_photo_2",
+            maxCount: 1,
+        },
         {
             name: "machine1_camp_photo",
             maxCount: 1,

@@ -2512,22 +2512,10 @@ const Taluka = () => {
           }
         >
 
-          <Modal.Header
-            closeButton
-          >
-
-            <Modal.Title
-              className="fw-bold"
-            >
-
-              {
-                editingId
-                  ? "Edit Taluka"
-                  : "Add Taluka"
-              }
-
+          <Modal.Header closeButton>
+            <Modal.Title className="fw-bold">
+              {editingId ? "Edit Taluka (तालुका संपादित करा)" : "Add Taluka (तालुका जोडा)"}
             </Modal.Title>
-
           </Modal.Header>
 
 
@@ -2553,9 +2541,7 @@ const Taluka = () => {
 
                 <Form.Group>
 
-                  <Form.Label>
-                    Full Name
-                  </Form.Label>
+                  <Form.Label className="fw-semibold">Full Name (पूर्ण नाव)</Form.Label>
 
                   <Form.Control
                     type="text"
@@ -2585,9 +2571,7 @@ const Taluka = () => {
 
                 <Form.Group>
 
-                  <Form.Label>
-                    Mobile Number
-                  </Form.Label>
+                  <Form.Label className="fw-semibold">Mobile Number (मोबाईल क्रमांक)</Form.Label>
 
                   <Form.Control
                     type="text"
@@ -2618,9 +2602,7 @@ const Taluka = () => {
 
                 <Form.Group>
 
-                  <Form.Label>
-                    Report Date
-                  </Form.Label>
+                  <Form.Label className="fw-semibold">Report Date (अहवालाची तारीख)</Form.Label>
 
                   <Form.Control
                     type="date"
@@ -2649,9 +2631,7 @@ const Taluka = () => {
 
                 <Form.Group>
 
-                  <Form.Label>
-                    Designation
-                  </Form.Label>
+                  <Form.Label className="fw-semibold">Designation (पद)</Form.Label>
 
                   <Form.Control
                     type="text"
@@ -2683,9 +2663,7 @@ const Taluka = () => {
 
                 <Form.Group>
 
-                  <Form.Label>
-                    District
-                  </Form.Label>
+                  <Form.Label className="fw-semibold">District (जिल्हा)</Form.Label>
 
                   <Form.Select
                     name="districtId"
@@ -2758,9 +2736,7 @@ const Taluka = () => {
 
                 <Form.Group>
 
-                  <Form.Label>
-                    District ID
-                  </Form.Label>
+                  <Form.Label className="fw-semibold">District ID (जिल्हा क्रमांक)</Form.Label>
 
                   <Form.Control
                     type="text"
@@ -2789,9 +2765,7 @@ const Taluka = () => {
 
                 <Form.Group>
 
-                  <Form.Label>
-                    Taluka
-                  </Form.Label>
+                  <Form.Label className="fw-semibold">Taluka (तालुका)</Form.Label>
 
                   <Form.Control
                     type="text"
@@ -2821,9 +2795,7 @@ const Taluka = () => {
 
                 <Form.Group>
 
-                  <Form.Label>
-                    Joining Date
-                  </Form.Label>
+                  <Form.Label className="fw-semibold">Joining Date (रुजू तारीख)</Form.Label>
 
                   <Form.Control
                     type="date"
@@ -2852,9 +2824,7 @@ const Taluka = () => {
 
                 <Form.Group>
 
-                  <Form.Label>
-                    Account No.
-                  </Form.Label>
+                  <Form.Label className="fw-semibold">Account No. (खाते क्रमांक)</Form.Label>
 
                   <Form.Control
                     type="text"
@@ -2884,9 +2854,7 @@ const Taluka = () => {
 
                 <Form.Group>
 
-                  <Form.Label>
-                    IFSC Code
-                  </Form.Label>
+                  <Form.Label className="fw-semibold">IFSC Code (आयएफएससी कोड)</Form.Label>
 
                   <Form.Control
                     type="text"
@@ -2916,9 +2884,7 @@ const Taluka = () => {
 
                 <Form.Group>
 
-                  <Form.Label>
-                    Bank Name
-                  </Form.Label>
+                  <Form.Label className="fw-semibold">Bank Name (बँकेचे नाव)</Form.Label>
 
                   <Form.Control
                     type="text"
@@ -2948,9 +2914,7 @@ const Taluka = () => {
 
                 <Form.Group>
 
-                  <Form.Label>
-                    Status
-                  </Form.Label>
+                  <Form.Label className="fw-semibold">Status (स्थिती)</Form.Label>
 
                   <Form.Select
                     name="status"
@@ -2965,13 +2929,8 @@ const Taluka = () => {
                     }
                   >
 
-                    <option value="active">
-                      Active
-                    </option>
-
-                    <option value="inactive">
-                      Inactive
-                    </option>
+                    <option value="active">Active (सक्रिय)</option>
+                    <option value="inactive">Inactive (निष्क्रिय)</option>
 
                   </Form.Select>
 
@@ -2988,9 +2947,7 @@ const Taluka = () => {
 
                 <Form.Group>
 
-                  <Form.Label>
-                    Email
-                  </Form.Label>
+                  <Form.Label className="fw-semibold">Email (ईमेल)</Form.Label>
 
                   <Form.Control
                     type="email"
@@ -3020,9 +2977,7 @@ const Taluka = () => {
 
                 <Form.Group>
 
-                  <Form.Label>
-                    User ID
-                  </Form.Label>
+                  <Form.Label className="fw-semibold">User ID (वापरकर्ता आयडी)</Form.Label>
 
                   <Form.Control
                     type="text"
@@ -3053,9 +3008,7 @@ const Taluka = () => {
 
                 <Form.Group>
 
-                  <Form.Label>
-                    Password
-                  </Form.Label>
+                  <Form.Label className="fw-semibold">Password (पासवर्ड)</Form.Label>
 
                   <Form.Control
                     type="text"
@@ -3107,26 +3060,11 @@ const Taluka = () => {
                 loading
               }
             >
-              Cancel
+              Cancel (रद्द करा)
             </Button>
 
-
-            <Button
-              variant="dark"
-              type="submit"
-              disabled={
-                loading
-              }
-            >
-
-              {
-                loading
-                  ? "Please wait..."
-                  : editingId
-                  ? "Update Taluka"
-                  : "Add Taluka"
-              }
-
+            <Button variant="dark" type="submit" disabled={loading}>
+              {loading ? "Please wait..." : editingId ? "Update Taluka (अद्यतनित करा)" : "Add Taluka (जोडा)"}
             </Button>
 
           </Modal.Footer>

@@ -1,7 +1,3 @@
-// =====================================================
-// API CONFIGURATION
-// Auto-detects Localhost vs Production backend
-// =====================================================
 
 const isLocalhost =
   typeof window !== "undefined" &&
@@ -11,7 +7,7 @@ const isLocalhost =
 export const BACKEND_ROOT_URL =
   import.meta.env.VITE_BACKEND_URL ||
   (isLocalhost
-    ? "http://localhost:5000"
+    ? "https://reportbackend.sainikshetkari.org"
     : "https://reportbackend.sainikshetkari.org");
 
 export const API_BASE_URL =

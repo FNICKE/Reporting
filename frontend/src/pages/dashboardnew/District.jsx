@@ -1714,305 +1714,302 @@
               onSubmit={handleSubmit}
             >
 
-              <Modal.Header
-                closeButton
-              >
-
-                <Modal.Title
-                  className="fw-bold"
-                >
-
-                  {editingId
-                    ? "Edit District"
-                    : "Add District"}
-
+              <Modal.Header closeButton>
+                <Modal.Title className="fw-bold">
+                  {editingId ? "Edit District (जिल्हा संपादित करा)" : "Add District (जिल्हा जोडा)"}
                 </Modal.Title>
-
               </Modal.Header>
 
-
-              <Modal.Body
-                style={{
-                  maxHeight: "65vh",
-                  overflowY: "auto",
-                }}
-              >
-
-                <div
-                  className="row g-3"
-                >
+              <Modal.Body style={{ maxHeight: "65vh", overflowY: "auto" }}>
+                <div className="row g-3">
 
                   {/* NAME */}
-
-                  <div
-                    className="col-md-6"
-                  >
-
+                  <div className="col-md-6">
                     <Form.Group>
-
-                      <Form.Label>
-                        Full Name
+                      <Form.Label className="fw-semibold">
+                        Full Name (पूर्ण नाव) <span className="text-danger">*</span>
                       </Form.Label>
-
                       <Form.Control
                         type="text"
                         name="name"
-                        value={
-                          formData.name
-                        }
-                        onChange={
-                          handleChange
-                        }
-                        placeholder="Enter full name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        placeholder="पूर्ण नाव प्रविष्ट करा"
                         disabled={loading}
                       />
-
                     </Form.Group>
-
                   </div>
 
-
                   {/* CONTACT */}
-
-                  <div
-                    className="col-md-6"
-                  >
-
+                  <div className="col-md-6">
                     <Form.Group>
-
-                      <Form.Label>
-                        Mobile Number
+                      <Form.Label className="fw-semibold">
+                        Mobile Number (मोबाईल क्रमांक)
                       </Form.Label>
-
                       <Form.Control
                         type="text"
                         name="contactNumber"
-                        value={
-                          formData.contactNumber
-                        }
-                        onChange={
-                          handleChange
-                        }
-                        placeholder="Enter 10 digit mobile number"
+                        value={formData.contactNumber}
+                        onChange={handleChange}
+                        placeholder="१० अंकी मोबाईल क्रमांक"
                         maxLength="10"
                         disabled={loading}
                       />
-
-                    </Form.Group>
-
-                  </div>
-
-
-                  {/* EMAIL */}
-
-                  <div className="col-md-6">
-                    <Form.Group>
-                      <Form.Label>Report Date</Form.Label>
-                      <Form.Control type="date" name="reportDate" value={formData.reportDate} onChange={handleChange} disabled={loading} />
                     </Form.Group>
                   </div>
 
+                  {/* REPORT DATE */}
                   <div className="col-md-6">
                     <Form.Group>
-                      <Form.Label>Designation</Form.Label>
-                      <Form.Control type="text" name="designation" value={formData.designation} onChange={handleChange} placeholder="Enter designation" disabled={loading} />
+                      <Form.Label className="fw-semibold">
+                        Report Date (अहवालाची तारीख)
+                      </Form.Label>
+                      <Form.Control
+                        type="date"
+                        name="reportDate"
+                        value={formData.reportDate}
+                        onChange={handleChange}
+                        disabled={loading}
+                      />
                     </Form.Group>
                   </div>
 
+                  {/* DESIGNATION */}
                   <div className="col-md-6">
                     <Form.Group>
-                      <Form.Label>District</Form.Label>
-                      <Form.Control type="text" name="districtName" value={formData.districtName} onChange={handleChange} placeholder="Enter district" disabled={loading} />
+                      <Form.Label className="fw-semibold">
+                        Designation (पद)
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="designation"
+                        value={formData.designation}
+                        onChange={handleChange}
+                        placeholder="पद प्रविष्ट करा"
+                        disabled={loading}
+                      />
                     </Form.Group>
                   </div>
 
+                  {/* DISTRICT */}
                   <div className="col-md-6">
                     <Form.Group>
-                      <Form.Label>District ID</Form.Label>
-                      <Form.Control type="text" name="districtCode" value={formData.districtCode} onChange={handleChange} placeholder="Enter district ID" disabled={loading} />
+                      <Form.Label className="fw-semibold">
+                        District (जिल्हा)
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="districtName"
+                        value={formData.districtName}
+                        onChange={handleChange}
+                        placeholder="जिल्हा प्रविष्ट करा"
+                        disabled={loading}
+                      />
                     </Form.Group>
                   </div>
 
+                  {/* DISTRICT ID */}
                   <div className="col-md-6">
                     <Form.Group>
-                      <Form.Label>Taluka</Form.Label>
-                      <Form.Control type="text" name="taluka" value={formData.taluka} onChange={handleChange} placeholder="Enter taluka" disabled={loading} />
+                      <Form.Label className="fw-semibold">
+                        District ID (जिल्हा क्रमांक)
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="districtCode"
+                        value={formData.districtCode}
+                        onChange={handleChange}
+                        placeholder="जिल्हा क्रमांक प्रविष्ट करा"
+                        disabled={loading}
+                      />
                     </Form.Group>
                   </div>
 
+                  {/* TALUKA */}
                   <div className="col-md-6">
                     <Form.Group>
-                      <Form.Label>Joining Date</Form.Label>
-                      <Form.Control type="date" name="joiningDate" value={formData.joiningDate} onChange={handleChange} disabled={loading} />
+                      <Form.Label className="fw-semibold">
+                        Taluka (तालुका)
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="taluka"
+                        value={formData.taluka}
+                        onChange={handleChange}
+                        placeholder="तालुका प्रविष्ट करा"
+                        disabled={loading}
+                      />
                     </Form.Group>
                   </div>
 
+                  {/* JOINING DATE */}
                   <div className="col-md-6">
                     <Form.Group>
-                      <Form.Label>Account No.</Form.Label>
-                      <Form.Control type="text" name="accountNumber" value={formData.accountNumber} onChange={handleChange} placeholder="Enter account number" disabled={loading} />
+                      <Form.Label className="fw-semibold">
+                        Joining Date (रुजू तारीख)
+                      </Form.Label>
+                      <Form.Control
+                        type="date"
+                        name="joiningDate"
+                        value={formData.joiningDate}
+                        onChange={handleChange}
+                        disabled={loading}
+                      />
                     </Form.Group>
                   </div>
 
+                  {/* ACCOUNT NUMBER */}
                   <div className="col-md-6">
                     <Form.Group>
-                      <Form.Label>IFSC Code</Form.Label>
-                      <Form.Control type="text" name="ifscCode" value={formData.ifscCode} onChange={handleChange} placeholder="Enter IFSC code" disabled={loading} />
+                      <Form.Label className="fw-semibold">
+                        Account No. (खाते क्रमांक)
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="accountNumber"
+                        value={formData.accountNumber}
+                        onChange={handleChange}
+                        placeholder="बँक खाते क्रमांक"
+                        disabled={loading}
+                      />
                     </Form.Group>
                   </div>
 
+                  {/* IFSC */}
                   <div className="col-md-6">
                     <Form.Group>
-                      <Form.Label>Bank Name</Form.Label>
-                      <Form.Control type="text" name="bankName" value={formData.bankName} onChange={handleChange} placeholder="Enter bank name" disabled={loading} />
+                      <Form.Label className="fw-semibold">
+                        IFSC Code (आयएफएससी कोड)
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="ifscCode"
+                        value={formData.ifscCode}
+                        onChange={handleChange}
+                        placeholder="IFSC कोड प्रविष्ट करा"
+                        disabled={loading}
+                      />
                     </Form.Group>
                   </div>
 
+                  {/* BANK NAME */}
                   <div className="col-md-6">
                     <Form.Group>
-                      <Form.Label>Status</Form.Label>
-                      <Form.Select name="status" value={formData.status} onChange={handleChange} disabled={loading}>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
+                      <Form.Label className="fw-semibold">
+                        Bank Name (बँकेचे नाव)
+                      </Form.Label>
+                      <Form.Control
+                        type="text"
+                        name="bankName"
+                        value={formData.bankName}
+                        onChange={handleChange}
+                        placeholder="बँकेचे नाव प्रविष्ट करा"
+                        disabled={loading}
+                      />
+                    </Form.Group>
+                  </div>
+
+                  {/* STATUS */}
+                  <div className="col-md-6">
+                    <Form.Group>
+                      <Form.Label className="fw-semibold">
+                        Status (स्थिती)
+                      </Form.Label>
+                      <Form.Select
+                        name="status"
+                        value={formData.status}
+                        onChange={handleChange}
+                        disabled={loading}
+                      >
+                        <option value="active">Active (सक्रिय)</option>
+                        <option value="inactive">Inactive (निष्क्रिय)</option>
                       </Form.Select>
                     </Form.Group>
                   </div>
 
-                  <div
-                    className="col-md-6"
-                  >
-
+                  {/* EMAIL */}
+                  <div className="col-md-6">
                     <Form.Group>
-
-                      <Form.Label>
-                        Email
+                      <Form.Label className="fw-semibold">
+                        Email (ईमेल)
                       </Form.Label>
-
                       <Form.Control
                         type="email"
                         name="email"
-                        value={
-                          formData.email
-                        }
-                        onChange={
-                          handleChange
-                        }
-                        placeholder="Enter Email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        placeholder="ईमेल पत्ता प्रविष्ट करा"
                         disabled={loading}
                       />
-
                     </Form.Group>
-
                   </div>
 
-
                   {/* USER ID */}
-
-                  <div
-                    className="col-md-6"
-                  >
-
+                  <div className="col-md-6">
                     <Form.Group>
-
-                      <Form.Label>
-                        User ID
+                      <Form.Label className="fw-semibold">
+                        User ID (वापरकर्ता आयडी)
                       </Form.Label>
-
                       <Form.Control
                         type="text"
                         name="userId"
-                        value={
-                          formData.userId
-                        }
-                        onChange={
-                          handleChange
-                        }
-                        placeholder="Enter User ID"
+                        value={formData.userId}
+                        onChange={handleChange}
+                        placeholder="वापरकर्ता आयडी प्रविष्ट करा"
                         autoComplete="username"
                         disabled={loading}
                       />
-
                     </Form.Group>
-
                   </div>
 
-
                   {/* PASSWORD */}
-
-                  <div
-                    className="col-md-6"
-                  >
-
+                  <div className="col-md-6">
                     <Form.Group>
-
-                      <Form.Label>
-                        Password
+                      <Form.Label className="fw-semibold">
+                        Password (पासवर्ड)
                       </Form.Label>
-
                       <Form.Control
                         type="text"
                         name="password"
-                        value={
-                          formData.password
-                        }
-                        onChange={
-                          handleChange
-                        }
-                        placeholder="Enter Password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        placeholder="पासवर्ड प्रविष्ट करा"
                         autoComplete="new-password"
                         disabled={loading}
                       />
-
                       {editingId && (
-
-                        <Form.Text
-                          className="text-muted"
-                        >
-                          Password बदलायचा नसेल तर
-                          existing password तसाच राहील.
+                        <Form.Text className="text-muted">
+                          Password बदलायचा नसेल तर existing password तसाच राहील.
                         </Form.Text>
-
                       )}
-
                     </Form.Group>
-
                   </div>
 
                 </div>
-
               </Modal.Body>
 
-
-              {/* =================================================
-                  FOOTER
-              ================================================= */}
-
+              {/* FOOTER */}
               <Modal.Footer>
-
                 <Button
                   variant="secondary"
                   type="button"
                   onClick={handleClose}
                   disabled={loading}
                 >
-                  Cancel
+                  Cancel (रद्द करा)
                 </Button>
-
 
                 <Button
                   variant="dark"
                   type="submit"
                   disabled={loading}
                 >
-
                   {loading
                     ? "Please wait..."
                     : editingId
-                    ? "Update District"
-                    : "Add District"}
-
+                    ? "Update District (अद्यतनित करा)"
+                    : "Add District (जोडा)"}
                 </Button>
-
               </Modal.Footer>
 
             </Form>

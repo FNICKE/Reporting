@@ -3373,7 +3373,7 @@ const VibhagDashboard = () => {
                                     handleOpenAddReport
                                 }
                             >
-                                + Add Report
+                                + Add Report (अहवाल जोडा)
                             </Button>
 
                         </div>
@@ -4602,20 +4602,10 @@ const VibhagDashboard = () => {
                             "
                         >
 
-                            <Modal.Title
-                                className="
-                                    fw-bold
-                                "
-                            >
-
-                                {
-                                    editingId
-
-                                        ? "Edit Vibhag Report"
-
-                                        : "Add Vibhag Report"
-                                }
-
+                            <Modal.Title className="fw-bold">
+                                {editingId
+                                    ? "Edit Vibhag Report (विभाग अहवाल संपादित करा)"
+                                    : "Add Vibhag Report (विभाग अहवाल जोडा)"}
                             </Modal.Title>
 
                         </Modal.Header>
@@ -4623,61 +4613,36 @@ const VibhagDashboard = () => {
 
                         {/* BODY */}
 
-                        <Modal.Body
-                            className="
-                                vibhag-modal-body
-                            "
-                        >
+                        <Modal.Body className="vibhag-modal-body">
 
 
                             {/* =================================================
                                 BASIC INFORMATION
                             ================================================= */}
 
-                            <h5
-                                className="
-                                    fw-bold
-                                    border-bottom
-                                    pb-2
-                                    mb-4
-                                "
-                            >
-                                Basic Information
+                            <h5 className="fw-bold border-bottom pb-2 mb-4">
+                                Basic Information (मूलभूत माहिती)
                             </h5>
 
 
-                            <div
-                                className="
-                                    row
-                                    g-3
-                                "
-                            >
+                            <div className="row g-3">
 
 
                                 {/* NAME */}
 
-                                <div
-                                    className="
-                                        col-12
-                                        col-md-6
-                                    "
-                                >
+                                <div className="col-12 col-md-6">
 
                                     <Form.Group>
 
-                                        <Form.Label>
-                                            Name *
+                                        <Form.Label className="fw-semibold">
+                                            Name (नाव) *
                                         </Form.Label>
-
 
                                         <Form.Control
                                             name="name"
-                                            value={
-                                                formData.name
-                                            }
-                                            onChange={
-                                                handleChange
-                                            }
+                                            value={formData.name}
+                                            onChange={handleChange}
+                                            placeholder="नाव प्रविष्ट करा"
                                             required
                                         />
 
@@ -4688,28 +4653,19 @@ const VibhagDashboard = () => {
 
                                 {/* DESIGNATION */}
 
-                                <div
-                                    className="
-                                        col-12
-                                        col-md-6
-                                    "
-                                >
+                                <div className="col-12 col-md-6">
 
                                     <Form.Group>
 
-                                        <Form.Label>
-                                            Designation *
+                                        <Form.Label className="fw-semibold">
+                                            Designation (पद) *
                                         </Form.Label>
-
 
                                         <Form.Control
                                             name="designation"
-                                            value={
-                                                formData.designation
-                                            }
-                                            onChange={
-                                                handleChange
-                                            }
+                                            value={formData.designation}
+                                            onChange={handleChange}
+                                            placeholder="पद प्रविष्ट करा"
                                             required
                                         />
 
@@ -4720,32 +4676,21 @@ const VibhagDashboard = () => {
 
                                 {/* TALUKA */}
 
-                                <div
-                                    className="
-                                        col-12
-                                        col-md-6
-                                    "
-                                >
+                                <div className="col-12 col-md-6">
 
                                     <Form.Group>
 
-                                        <Form.Label>
-                                            Taluka *
+                                        <Form.Label className="fw-semibold">
+                                            Taluka (तालुका) *
                                         </Form.Label>
-
 
                                         <Form.Control
                                             name="taluka"
-                                            value={
-                                                formData.taluka
-                                            }
-                                            onChange={
-                                                handleChange
-                                            }
+                                            value={formData.taluka}
+                                            onChange={handleChange}
                                             readOnly
-                                            className="
-                                                bg-light
-                                            "
+                                            className="bg-light"
+                                            placeholder="तालुका"
                                             required
                                         />
 
@@ -4756,32 +4701,21 @@ const VibhagDashboard = () => {
 
                                 {/* DISTRICT */}
 
-                                <div
-                                    className="
-                                        col-12
-                                        col-md-6
-                                    "
-                                >
+                                <div className="col-12 col-md-6">
 
                                     <Form.Group>
 
-                                        <Form.Label>
-                                            District *
+                                        <Form.Label className="fw-semibold">
+                                            District (जिल्हा) *
                                         </Form.Label>
-
 
                                         <Form.Control
                                             name="district"
-                                            value={
-                                                formData.district
-                                            }
-                                            onChange={
-                                                handleChange
-                                            }
+                                            value={formData.district}
+                                            onChange={handleChange}
                                             readOnly
-                                            className="
-                                                bg-light
-                                            "
+                                            className="bg-light"
+                                            placeholder="जिल्हा"
                                             required
                                         />
 
@@ -4792,31 +4726,22 @@ const VibhagDashboard = () => {
 
                                 {/* MOBILE */}
 
-                                <div
-                                    className="
-                                        col-12
-                                        col-md-6
-                                    "
-                                >
+                                <div className="col-12 col-md-6">
 
                                     <Form.Group>
 
-                                        <Form.Label>
-                                            Mobile Number *
+                                        <Form.Label className="fw-semibold">
+                                            Mobile Number (मोबाईल क्रमांक) *
                                         </Form.Label>
-
 
                                         <Form.Control
                                             type="tel"
                                             name="mobileNumber"
-                                            value={
-                                                formData.mobileNumber
-                                            }
-                                            onChange={
-                                                handleChange
-                                            }
+                                            value={formData.mobileNumber}
+                                            onChange={handleChange}
                                             maxLength="10"
                                             inputMode="numeric"
+                                            placeholder="१० अंकी मोबाईल क्रमांक"
                                             required
                                         />
 
@@ -4827,29 +4752,19 @@ const VibhagDashboard = () => {
 
                                 {/* REPORT DATE */}
 
-                                <div
-                                    className="
-                                        col-12
-                                        col-md-6
-                                    "
-                                >
+                                <div className="col-12 col-md-6">
 
                                     <Form.Group>
 
-                                        <Form.Label>
-                                            Report Date *
+                                        <Form.Label className="fw-semibold">
+                                            Report Date (अहवालाची तारीख) *
                                         </Form.Label>
-
 
                                         <Form.Control
                                             type="date"
                                             name="reportDate"
-                                            value={
-                                                formData.reportDate
-                                            }
-                                            onChange={
-                                                handleChange
-                                            }
+                                            value={formData.reportDate}
+                                            onChange={handleChange}
                                             required
                                         />
 
@@ -4860,65 +4775,38 @@ const VibhagDashboard = () => {
                             </div>
 
 
-                            <hr
-                                className="
-                                    my-4
-                                "
-                            />
+                            <hr className="my-4" />
 
 
                             {/* =================================================
                                 REPORT DETAILS
                             ================================================= */}
 
-                            <h5
-                                className="
-                                    fw-bold
-                                    border-bottom
-                                    pb-2
-                                    mb-4
-                                "
-                            >
-                                Report Details
+                            <h5 className="fw-bold border-bottom pb-2 mb-4">
+                                Report Details (अहवाल तपशील)
                             </h5>
 
 
-                            <div
-                                className="
-                                    row
-                                    g-3
-                                "
-                            >
+                            <div className="row g-3">
 
 
-                                {/* =================================================
-                                    AUTHORISED CENTER HEAD
-                                ================================================= */}
+                                {/* AUTHORISED CENTER HEAD */}
 
-                                <div
-                                    className="
-                                        col-12
-                                        col-md-6
-                                    "
-                                >
+                                <div className="col-12 col-md-6">
 
                                     <Form.Group>
 
-                                        <Form.Label>
-                                            Total Authorised Center Head *
+                                        <Form.Label className="fw-semibold">
+                                            Total Authorised Center Head (अधिकृत केंद्र प्रमुखांची एकूण संख्या) *
                                         </Form.Label>
-
 
                                         <Form.Control
                                             type="number"
                                             min="0"
                                             name="totalAuthorisedCenterHeads"
-                                            value={
-                                                formData.totalAuthorisedCenterHeads
-                                            }
-                                            onChange={
-                                                handleChange
-                                            }
+                                            value={formData.totalAuthorisedCenterHeads}
+                                            onChange={handleChange}
+                                            placeholder="अधिकृत केंद्र प्रमुखांची संख्या"
                                             required
                                         />
 
@@ -4927,34 +4815,23 @@ const VibhagDashboard = () => {
                                 </div>
 
 
-                                {/* =================================================
-                                    ACTIVE CENTER HEAD
-                                ================================================= */}
+                                {/* ACTIVE CENTER HEAD */}
 
-                                <div
-                                    className="
-                                        col-12
-                                        col-md-6
-                                    "
-                                >
+                                <div className="col-12 col-md-6">
 
                                     <Form.Group>
 
-                                        <Form.Label>
-                                            Total Active Center Head *
+                                        <Form.Label className="fw-semibold">
+                                            Total Active Center Head (सक्रिय केंद्र प्रमुखांची एकूण संख्या) *
                                         </Form.Label>
-
 
                                         <Form.Control
                                             type="number"
                                             min="0"
                                             name="totalActiveCenterHeads"
-                                            value={
-                                                formData.totalActiveCenterHeads
-                                            }
-                                            onChange={
-                                                handleChange
-                                            }
+                                            value={formData.totalActiveCenterHeads}
+                                            onChange={handleChange}
+                                            placeholder="सक्रिय केंद्र प्रमुखांची संख्या"
                                             required
                                         />
 
@@ -4963,34 +4840,23 @@ const VibhagDashboard = () => {
                                 </div>
 
 
-                                {/* =================================================
-                                    TODAY VISITED CENTER HEADS
-                                ================================================= */}
+                                {/* TODAY VISITED CENTER HEADS */}
 
-                                <div
-                                    className="
-                                        col-12
-                                    "
-                                >
+                                <div className="col-12">
 
                                     <Form.Group>
 
-                                        <Form.Label>
-                                            Today's Visited Center Heads Name *
+                                        <Form.Label className="fw-semibold">
+                                            Today's Visited Center Heads Name (आज भेट दिलेल्या केंद्र प्रमुखांची नावे) *
                                         </Form.Label>
-
 
                                         <Form.Control
                                             as="textarea"
                                             rows="4"
                                             name="namesOfCenterHeadsVisitedToday"
-                                            value={
-                                                formData.namesOfCenterHeadsVisitedToday
-                                            }
-                                            onChange={
-                                                handleChange
-                                            }
-                                            placeholder="Enter today's visited center heads names..."
+                                            value={formData.namesOfCenterHeadsVisitedToday}
+                                            onChange={handleChange}
+                                            placeholder="आज भेट दिलेल्या केंद्र प्रमुखांची नावे प्रविष्ट करा..."
                                             required
                                         />
 
@@ -4999,34 +4865,23 @@ const VibhagDashboard = () => {
                                 </div>
 
 
-                                {/* =================================================
-                                    SANITARY PADS BOX SOLD
-                                ================================================= */}
+                                {/* SANITARY PADS BOX SOLD */}
 
-                                <div
-                                    className="
-                                        col-12
-                                        col-md-6
-                                    "
-                                >
+                                <div className="col-12 col-md-6">
 
                                     <Form.Group>
 
-                                        <Form.Label>
-                                            Total Sanitary Pads Box Sold Today *
+                                        <Form.Label className="fw-semibold">
+                                            Total Sanitary Pads Box Sold Today (आज विकलेले एकूण सॅनिटरी पॅड बॉक्स) *
                                         </Form.Label>
-
 
                                         <Form.Control
                                             type="number"
                                             min="0"
                                             name="totalSanitaryPadsBoxSoldToday"
-                                            value={
-                                                formData.totalSanitaryPadsBoxSoldToday
-                                            }
-                                            onChange={
-                                                handleChange
-                                            }
+                                            value={formData.totalSanitaryPadsBoxSoldToday}
+                                            onChange={handleChange}
+                                            placeholder="पॅड बॉक्स संख्या"
                                             required
                                         />
 
@@ -5035,35 +4890,24 @@ const VibhagDashboard = () => {
                                 </div>
 
 
-                                {/* =================================================
-                                    SALES AMOUNT
-                                ================================================= */}
+                                {/* SALES AMOUNT */}
 
-                                <div
-                                    className="
-                                        col-12
-                                        col-md-6
-                                    "
-                                >
+                                <div className="col-12 col-md-6">
 
                                     <Form.Group>
 
-                                        <Form.Label>
-                                            Total Amount From Sanitary Pad Box Sales Today *
+                                        <Form.Label className="fw-semibold">
+                                            Total Amount From Sanitary Pad Box Sales Today (आजच्या सॅनिटरी पॅड बॉक्स विक्रीतून एकूण रक्कम) *
                                         </Form.Label>
-
 
                                         <Form.Control
                                             type="number"
                                             min="0"
                                             step="0.01"
                                             name="totalAmountFromSanitaryPadBoxSalesToday"
-                                            value={
-                                                formData.totalAmountFromSanitaryPadBoxSalesToday
-                                            }
-                                            onChange={
-                                                handleChange
-                                            }
+                                            value={formData.totalAmountFromSanitaryPadBoxSalesToday}
+                                            onChange={handleChange}
+                                            placeholder="एकूण रक्कम"
                                             required
                                         />
 
@@ -5072,32 +4916,21 @@ const VibhagDashboard = () => {
                                 </div>
 
 
-                                {/* =================================================
-                                    UTR
-                                ================================================= */}
+                                {/* UTR */}
 
-                                <div
-                                    className="
-                                        col-12
-                                        col-md-6
-                                    "
-                                >
+                                <div className="col-12 col-md-6">
 
                                     <Form.Group>
 
-                                        <Form.Label>
-                                            UTR Number *
+                                        <Form.Label className="fw-semibold">
+                                            UTR Number (युटीआर क्रमांक) *
                                         </Form.Label>
-
 
                                         <Form.Control
                                             name="utrNumber"
-                                            value={
-                                                formData.utrNumber
-                                            }
-                                            onChange={
-                                                handleChange
-                                            }
+                                            value={formData.utrNumber}
+                                            onChange={handleChange}
+                                            placeholder="UTR क्रमांक प्रविष्ट करा"
                                             required
                                         />
 
@@ -5106,34 +4939,23 @@ const VibhagDashboard = () => {
                                 </div>
 
 
-                                {/* =================================================
-                                    ADDITIONAL REMARKS
-                                ================================================= */}
+                                {/* ADDITIONAL REMARKS */}
 
-                                <div
-                                    className="
-                                        col-12
-                                    "
-                                >
+                                <div className="col-12">
 
                                     <Form.Group>
 
-                                        <Form.Label>
-                                            Additional Remarks *
+                                        <Form.Label className="fw-semibold">
+                                            Additional Remarks (इतर माहिती / शेरा) *
                                         </Form.Label>
-
 
                                         <Form.Control
                                             as="textarea"
                                             rows="4"
                                             name="additionalRemarks"
-                                            value={
-                                                formData.additionalRemarks
-                                            }
-                                            onChange={
-                                                handleChange
-                                            }
-                                            placeholder="Enter other information..."
+                                            value={formData.additionalRemarks}
+                                            onChange={handleChange}
+                                            placeholder="इतर माहिती / शेरा प्रविष्ट करा..."
                                             required
                                         />
 
@@ -5144,156 +4966,72 @@ const VibhagDashboard = () => {
                             </div>
 
 
-                            <hr
-                                className="
-                                    my-4
-                                "
-                            />
+                            <hr className="my-4" />
 
 
                             {/* =================================================
                                 MEETING PHOTOS
                             ================================================= */}
 
-                            <h5
-                                className="
-                                    fw-bold
-                                    border-bottom
-                                    pb-2
-                                    mb-4
-                                "
-                            >
-                                Meeting Photos
+                            <h5 className="fw-bold border-bottom pb-2 mb-4">
+                                Meeting Photos (बैठकीचे फोटो)
                             </h5>
 
 
-                            <div
-                                className="
-                                    row
-                                    g-4
-                                "
-                            >
+                            <div className="row g-4">
 
 
                                 {/* PHOTO 1 */}
 
-                                <div
-                                    className="
-                                        col-12
-                                        col-md-6
-                                    "
-                                >
+                                <div className="col-12 col-md-6">
 
                                     <Form.Group>
 
-                                        <Form.Label>
-                                            Meeting Photo 1
+                                        <Form.Label className="fw-semibold">
+                                            Meeting Photo 1 (बैठक फोटो १)
                                         </Form.Label>
-
 
                                         <Form.Control
                                             type="file"
                                             name="meetingPhoto1"
-                                            accept="
-                                                image/jpeg,
-                                                image/jpg,
-                                                image/png,
-                                                image/webp
-                                            "
-                                            onChange={
-                                                handleChange
-                                            }
+                                            accept="image/jpeg,image/jpg,image/png,image/webp"
+                                            onChange={handleChange}
                                         />
 
-
                                         {oldPhoto1 && (
-
-                                            <div
-                                                className="
-                                                    mt-3
-                                                "
-                                            >
-
-                                                <small
-                                                    className="
-                                                        d-block
-                                                        fw-bold
-                                                        mb-2
-                                                    "
-                                                >
-                                                    Current Photo 1
+                                            <div className="mt-3">
+                                                <small className="d-block fw-bold mb-2">
+                                                    Current Photo 1 (सध्याचा फोटो १)
                                                 </small>
-
-
                                                 <img
-                                                    src={
-                                                        oldPhoto1
-                                                    }
+                                                    src={oldPhoto1}
                                                     alt="Current Meeting Photo 1"
-                                                    className="
-                                                        img-thumbnail
-                                                    "
+                                                    className="img-thumbnail"
                                                     style={{
-                                                        width:
-                                                            "180px",
-
-                                                        height:
-                                                            "130px",
-
-                                                        objectFit:
-                                                            "cover",
+                                                        width: "180px",
+                                                        height: "130px",
+                                                        objectFit: "cover",
                                                     }}
                                                 />
-
                                             </div>
-
                                         )}
 
-
                                         {formData.meetingPhoto1 && (
-
-                                            <div
-                                                className="
-                                                    mt-3
-                                                "
-                                            >
-
-                                                <small
-                                                    className="
-                                                        d-block
-                                                        fw-bold
-                                                        text-success
-                                                        mb-2
-                                                    "
-                                                >
-                                                    New Photo 1
+                                            <div className="mt-3">
+                                                <small className="d-block fw-bold text-success mb-2">
+                                                    New Photo 1 (नवीन फोटो १)
                                                 </small>
-
-
                                                 <img
-                                                    src={
-                                                        URL.createObjectURL(
-                                                            formData.meetingPhoto1
-                                                        )
-                                                    }
+                                                    src={URL.createObjectURL(formData.meetingPhoto1)}
                                                     alt="New Meeting Photo 1"
-                                                    className="
-                                                        img-thumbnail
-                                                    "
+                                                    className="img-thumbnail"
                                                     style={{
-                                                        width:
-                                                            "180px",
-
-                                                        height:
-                                                            "130px",
-
-                                                        objectFit:
-                                                            "cover",
+                                                        width: "180px",
+                                                        height: "130px",
+                                                        objectFit: "cover",
                                                     }}
                                                 />
-
                                             </div>
-
                                         )}
 
                                     </Form.Group>
@@ -5303,123 +5041,55 @@ const VibhagDashboard = () => {
 
                                 {/* PHOTO 2 */}
 
-                                <div
-                                    className="
-                                        col-12
-                                        col-md-6
-                                    "
-                                >
+                                <div className="col-12 col-md-6">
 
                                     <Form.Group>
 
-                                        <Form.Label>
-                                            Meeting Photo 2
+                                        <Form.Label className="fw-semibold">
+                                            Meeting Photo 2 (बैठक फोटो २)
                                         </Form.Label>
-
 
                                         <Form.Control
                                             type="file"
                                             name="meetingPhoto2"
-                                            accept="
-                                                image/jpeg,
-                                                image/jpg,
-                                                image/png,
-                                                image/webp
-                                            "
-                                            onChange={
-                                                handleChange
-                                            }
+                                            accept="image/jpeg,image/jpg,image/png,image/webp"
+                                            onChange={handleChange}
                                         />
 
-
                                         {oldPhoto2 && (
-
-                                            <div
-                                                className="
-                                                    mt-3
-                                                "
-                                            >
-
-                                                <small
-                                                    className="
-                                                        d-block
-                                                        fw-bold
-                                                        mb-2
-                                                    "
-                                                >
-                                                    Current Photo 2
+                                            <div className="mt-3">
+                                                <small className="d-block fw-bold mb-2">
+                                                    Current Photo 2 (सध्याचा फोटो २)
                                                 </small>
-
-
                                                 <img
-                                                    src={
-                                                        oldPhoto2
-                                                    }
+                                                    src={oldPhoto2}
                                                     alt="Current Meeting Photo 2"
-                                                    className="
-                                                        img-thumbnail
-                                                    "
+                                                    className="img-thumbnail"
                                                     style={{
-                                                        width:
-                                                            "180px",
-
-                                                        height:
-                                                            "130px",
-
-                                                        objectFit:
-                                                            "cover",
+                                                        width: "180px",
+                                                        height: "130px",
+                                                        objectFit: "cover",
                                                     }}
                                                 />
-
                                             </div>
-
                                         )}
 
-
                                         {formData.meetingPhoto2 && (
-
-                                            <div
-                                                className="
-                                                    mt-3
-                                                "
-                                            >
-
-                                                <small
-                                                    className="
-                                                        d-block
-                                                        fw-bold
-                                                        text-success
-                                                        mb-2
-                                                    "
-                                                >
-                                                    New Photo 2
+                                            <div className="mt-3">
+                                                <small className="d-block fw-bold text-success mb-2">
+                                                    New Photo 2 (नवीन फोटो २)
                                                 </small>
-
-
                                                 <img
-                                                    src={
-                                                        URL.createObjectURL(
-                                                            formData.meetingPhoto2
-                                                        )
-                                                    }
+                                                    src={URL.createObjectURL(formData.meetingPhoto2)}
                                                     alt="New Meeting Photo 2"
-                                                    className="
-                                                        img-thumbnail
-                                                    "
+                                                    className="img-thumbnail"
                                                     style={{
-                                                        width:
-                                                            "180px",
-
-                                                        height:
-                                                            "130px",
-
-                                                        objectFit:
-                                                            "cover",
+                                                        width: "180px",
+                                                        height: "130px",
+                                                        objectFit: "cover",
                                                     }}
                                                 />
-
                                             </div>
-
                                         )}
 
                                     </Form.Group>
@@ -5435,55 +5105,36 @@ const VibhagDashboard = () => {
                             FOOTER
                         ================================================= */}
 
-                        <Modal.Footer
-                            className="
-                                flex-shrink-0
-                            "
-                        >
+                        <Modal.Footer className="flex-shrink-0">
 
                             <Button
                                 type="button"
                                 variant="secondary"
-                                onClick={
-                                    handleClose
-                                }
-                                disabled={
-                                    submitting
-                                }
+                                onClick={handleClose}
+                                disabled={submitting}
                             >
-                                Cancel
+                                Cancel (रद्द करा)
                             </Button>
-
 
                             <Button
                                 type="submit"
                                 variant="dark"
-                                disabled={
-                                    submitting
-                                }
+                                disabled={submitting}
                             >
 
                                 {submitting ? (
-
                                     <>
                                         <Spinner
                                             animation="border"
                                             size="sm"
                                             className="me-2"
                                         />
-
                                         Saving...
-
                                     </>
-
                                 ) : (
-
                                     editingId
-
-                                        ? "Update Report"
-
-                                        : "Add Report"
-
+                                        ? "Update Report (अद्यतनित करा)"
+                                        : "Add Report (जोडा)"
                                 )}
 
                             </Button>

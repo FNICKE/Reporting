@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Button, Form, Modal, Alert, Spinner } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 import { API_BASE_URL as ROOT_API_URL, BACKEND_ROOT_URL } from "../../config/api";
 
 const API_BASE_URL = `${ROOT_API_URL}/district-reports`;
-
 const API_ORIGIN = BACKEND_ROOT_URL;
 
 const FILE_PREVIEW_URLS = new WeakMap();
@@ -14,23 +14,22 @@ const EMPTY_FORM = {
   designation: "",
   taluka: "",
   district: "",
-  mobileNumber: "",
-  reportDate: "",
-  totalCenterHeads: "",
-  totalAuthorisedCenterHeads: "",
-  totalActiveCenterHeads: "",
-  additionalRemarks: "",
-  machine1TestAmount: "",
-  machine1MedicineAmount: "",
-  machine1TotalAmount: "",
-  machine1CampName: "",
-  machine2TestAmount: "",
-  machine2MedicineAmount: "",
-  machine2TotalAmount: "",
-  machine2CampName: "",
-  utrNumber: "",
-  machine1CampPhoto: null,
-  machine2CampPhoto: null,
+  mobile_number: "",
+  report_date: "",
+  total_authorised_center_heads: "",
+  total_active_center_heads: "",
+  today_visited_centers: "",
+  visited_center_head_name: "",
+  new_members_added_today: "",
+  sanitary_pad_box_sales: "",
+  health_atm_machine_details: "",
+  birth_baby_girls: "",
+  death_count: "",
+  accident_count: "",
+  utr_number: "",
+  any_other_information: "",
+  meeting_photo_1: null,
+  meeting_photo_2: null,
 };
 
 const getTodayForInput = () => {
@@ -40,8 +39,9 @@ const getTodayForInput = () => {
 
 const formatDateForTable = (date) => {
   if (!date) return "-";
-  if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    const [y, m, d] = date.split("-");
+  const str = String(date).split("T")[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    const [y, m, d] = str.split("-");
     return `${d}/${m}/${y}`;
   }
   return date;
@@ -49,89 +49,49 @@ const formatDateForTable = (date) => {
 
 const formatDateForInput = (date) => {
   if (!date) return "";
-  if (/^\d{4}-\d{2}-\d{2}$/.test(date)) return date;
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(date)) {
-    const [d, m, y] = date.split("/");
+  const str = String(date).split("T")[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
+    const [d, m, y] = str.split("/");
     return `${y}-${m}-${d}`;
   }
   return "";
 };
 
-const fileName = (value) => {
-  if (!value) return "";
-
-  if (typeof value === "string") {
-    return value.split("/").pop().split("\\").pop();
-  }
-
-  return value.name || "";
-};
-
 const getImageUrl = (image) => {
   if (!image) return null;
 
-  // Local File selected in Add/Edit form
   if (image instanceof File) {
     const cached = FILE_PREVIEW_URLS.get(image);
-
     if (cached) return cached;
-
     const url = URL.createObjectURL(image);
     FILE_PREVIEW_URLS.set(image, url);
-
     return url;
   }
 
   let value = String(image).trim();
-
   if (!value) return null;
 
-  // Already a complete URL
   if (/^https?:\/\//i.test(value)) {
     return value;
   }
 
-  // Normalize Windows / URL slashes
-  value = value
-    .replace(/\\/g, "/")
-    .replace(/^\/+/, "");
-
-  // Database may contain /api/uploads/...
+  value = value.replace(/\\/g, "/").replace(/^\/+/, "");
   value = value.replace(/^api\//i, "");
 
-  // uploads/district-reports/file.jpg
   if (value.toLowerCase().startsWith("uploads/")) {
     return `${API_ORIGIN}/${value}`;
   }
 
-  // district-reports/file.jpg
-  if (
-    value
-      .toLowerCase()
-      .startsWith("district-reports/")
-  ) {
+  if (value.toLowerCase().startsWith("district-reports/")) {
     return `${API_ORIGIN}/uploads/${value}`;
   }
 
-  // Filename only
-  return `${API_ORIGIN}/uploads/district-reports/${encodeURIComponent(
-    value
-  )}`;
+  return `${API_ORIGIN}/uploads/district-reports/${encodeURIComponent(value)}`;
 };
 
 const DistrictDashboard = () => {
   const navigate = useNavigate();
-
-  const revokePreviewUrl = (value) => {
-    if (!(value instanceof File)) return;
-
-    const url = FILE_PREVIEW_URLS.get(value);
-
-    if (url) {
-      URL.revokeObjectURL(url);
-      FILE_PREVIEW_URLS.delete(value);
-    }
-  };
 
   const [reports, setReports] = useState([]);
   const [showModal, setShowModal] = useState(false);
@@ -143,10 +103,6 @@ const DistrictDashboard = () => {
   const [success, setSuccess] = useState("");
   const [search, setSearch] = useState("");
 
-  // =====================================================
-  // FILTERS
-  // =====================================================
-
   const [filters, setFilters] = useState({
     name: "",
     taluka: "",
@@ -154,17 +110,17 @@ const DistrictDashboard = () => {
     report_date: "",
   });
 
-  // =====================================================
-  // CURRENT LOGGED-IN DISTRICT USER
-  // =====================================================
-  // Uses the EXISTING login session already used by the
-  // live application. No new localStorage key is created.
-  const getLoggedInDistrictUserId = () => {
-    const userId =
-      localStorage.getItem("logged_in_user_id") ||
-      "";
+  const loggedInDistrictName =
+    localStorage.getItem("logged_in_district_name") ||
+    localStorage.getItem("logged_in_name") ||
+    "District User";
 
-    return String(userId).trim();
+  const getDistrictUserId = () => {
+    return (
+      localStorage.getItem("logged_in_user_id") ||
+      localStorage.getItem("logged_in_district_id") ||
+      ""
+    );
   };
 
   const loadReports = async () => {
@@ -172,17 +128,12 @@ const DistrictDashboard = () => {
       setLoading(true);
       setError("");
 
-      const userId = getLoggedInDistrictUserId();
+      const userId = getDistrictUserId();
+      const url = userId
+        ? `${API_BASE_URL}?user_id=${encodeURIComponent(userId)}`
+        : API_BASE_URL;
 
-      if (!userId) {
-        throw new Error(
-          "District user ID not found. Please login again."
-        );
-      }
-
-      const response = await fetch(
-        `${API_BASE_URL}?user_id=${encodeURIComponent(userId)}`
-      );
+      const response = await fetch(url);
       const data = await response.json();
 
       if (!response.ok) {
@@ -208,16 +159,10 @@ const DistrictDashboard = () => {
 
     if (type === "file") {
       const newFile = files?.[0] || null;
-
-      setFormData((prev) => {
-        revokePreviewUrl(prev[name]);
-
-        return {
-          ...prev,
-          [name]: newFile,
-        };
-      });
-
+      setFormData((prev) => ({
+        ...prev,
+        [name]: newFile,
+      }));
       return;
     }
 
@@ -228,263 +173,280 @@ const DistrictDashboard = () => {
   };
 
   const handleAddReport = () => {
-    setError("");
-    setSuccess("");
     setEditingId(null);
     setFormData({
       ...EMPTY_FORM,
-      reportDate: getTodayForInput(),
+      report_date: getTodayForInput(),
+      name: localStorage.getItem("logged_in_name") || "",
+      district: localStorage.getItem("logged_in_district_name") || "",
     });
+    setError("");
+    setSuccess("");
     setShowModal(true);
   };
 
   const handleEdit = (report) => {
-    setError("");
-    setSuccess("");
     setEditingId(report.id);
-
     setFormData({
       name: report.name || "",
       designation: report.designation || "",
       taluka: report.taluka || "",
       district: report.district || "",
-      mobileNumber: report.mobileNumber ?? report.mobile_number ?? "",
-      reportDate: formatDateForInput(report.reportDate ?? report.report_date),
-      totalCenterHeads: report.totalCenterHeads ?? report.total_center_heads ?? "",
-      totalAuthorisedCenterHeads:
-        report.totalAuthorisedCenterHeads ??
+      mobile_number: report.mobile_number || report.mobileNumber || "",
+      report_date: formatDateForInput(report.report_date || report.reportDate),
+      total_authorised_center_heads:
         report.total_authorised_center_heads ??
+        report.total_authorised_center_heads_300_to_500 ??
+        report.totalAuthorisedCenterHeads ??
         "",
-      totalActiveCenterHeads:
-        report.totalActiveCenterHeads ??
+      total_active_center_heads:
         report.total_active_center_heads ??
+        report.totalActiveCenterHeads ??
         "",
-      additionalRemarks:
-        report.additionalRemarks ??
-        report.additional_remarks ??
+      today_visited_centers:
+        report.today_visited_centers ??
+        report.todayVisitedCenters ??
         "",
-      machine1TestAmount: report.machine1TestAmount ?? report.machine1_test_amount ?? "",
-      machine1MedicineAmount: report.machine1MedicineAmount ?? report.machine1_medicine_amount ?? "",
-      machine1TotalAmount: report.machine1TotalAmount ?? report.machine1_total_amount ?? "",
-      machine1CampName: report.machine1CampName ?? report.machine1_camp_name ?? "",
-      machine2TestAmount: report.machine2TestAmount ?? report.machine2_test_amount ?? "",
-      machine2MedicineAmount: report.machine2MedicineAmount ?? report.machine2_medicine_amount ?? "",
-      machine2TotalAmount: report.machine2TotalAmount ?? report.machine2_total_amount ?? "",
-      machine2CampName: report.machine2CampName ?? report.machine2_camp_name ?? "",
-      utrNumber: report.utrNumber ?? report.utr_number ?? "",
-      machine1CampPhoto: report.machine1CampPhoto ?? report.machine1_camp_photo ?? null,
-      machine2CampPhoto: report.machine2CampPhoto ?? report.machine2_camp_photo ?? null,
+      visited_center_head_name:
+        report.visited_center_head_name ??
+        report.visitedCenterHeadName ??
+        "",
+      new_members_added_today:
+        report.new_members_added_today ??
+        report.newMembersAddedToday ??
+        "",
+      sanitary_pad_box_sales:
+        report.sanitary_pad_box_sales ??
+        report.sanitaryPadBoxSales ??
+        "",
+      health_atm_machine_details:
+        report.health_atm_machine_details ??
+        report.healthAtmMachineDetails ??
+        "",
+      birth_baby_girls:
+        report.birth_baby_girls ??
+        report.birthBabyGirls ??
+        "",
+      death_count:
+        report.death_count ??
+        report.deathCount ??
+        "",
+      accident_count:
+        report.accident_count ??
+        report.accidentCount ??
+        "",
+      utr_number: report.utr_number || report.utrNumber || "",
+      any_other_information:
+        report.any_other_information ||
+        report.anyOtherInformation ||
+        report.additional_remarks ||
+        report.additionalRemarks ||
+        "",
+      meeting_photo_1:
+        report.meeting_photo_1 ||
+        report.machine1_camp_photo ||
+        null,
+      meeting_photo_2:
+        report.meeting_photo_2 ||
+        report.machine2_camp_photo ||
+        null,
     });
-
+    setError("");
+    setSuccess("");
     setShowModal(true);
   };
 
   const handleClose = () => {
-    if (saving) return;
-
-    revokePreviewUrl(formData.machine1CampPhoto);
-    revokePreviewUrl(formData.machine2CampPhoto);
-
     setShowModal(false);
     setEditingId(null);
     setFormData({ ...EMPTY_FORM });
   };
 
-  const buildBody = () => {
-    const body = new FormData();
-
-    // =====================================================
-    // TEXT FIELD NAMES MUST MATCH BACKEND / DATABASE NAMES
-    // =====================================================
-
-    const fields = {
-      name: formData.name,
-      designation: formData.designation,
-      taluka: formData.taluka,
-      district: formData.district,
-      mobile_number: formData.mobileNumber,
-      report_date: formData.reportDate,
-
-      total_center_heads: formData.totalCenterHeads,
-      total_authorised_center_heads:
-        formData.totalAuthorisedCenterHeads,
-      total_active_center_heads:
-        formData.totalActiveCenterHeads,
-      additional_remarks:
-        formData.additionalRemarks,
-
-      machine1_camp_name: formData.machine1CampName,
-      machine1_test_amount: formData.machine1TestAmount,
-      machine1_medicine_amount: formData.machine1MedicineAmount,
-      machine1_total_amount: formData.machine1TotalAmount,
-
-      machine2_camp_name: formData.machine2CampName,
-      machine2_test_amount: formData.machine2TestAmount,
-      machine2_medicine_amount: formData.machine2MedicineAmount,
-      machine2_total_amount: formData.machine2TotalAmount,
-
-      utr_number: formData.utrNumber,
-    };
-
-    Object.entries(fields).forEach(([key, value]) => {
-      body.append(key, value ?? "");
-    });
-
-    // =====================================================
-    // CURRENT LOGGED-IN DISTRICT USER ID
-    // =====================================================
-
-    const userId = getLoggedInDistrictUserId();
-
-    if (!userId) {
-      throw new Error(
-        "District user ID not found. Please login again."
-      );
-    }
-
-    body.append("user_id", userId);
-
-    // =====================================================
-    // IMPORTANT:
-    // MULTER ROUTE EXPECTS THESE EXACT FILE FIELD NAMES
-    // =====================================================
-
-    if (formData.machine1CampPhoto instanceof File) {
-      body.append(
-        "machine1_camp_photo",
-        formData.machine1CampPhoto
-      );
-    }
-
-    if (formData.machine2CampPhoto instanceof File) {
-      body.append(
-        "machine2_camp_photo",
-        formData.machine2CampPhoto
-      );
-    }
-
-    return body;
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
 
-    if (!formData.name.trim()) return setError("Please enter Name");
-    if (!formData.designation.trim()) return setError("Please enter Designation");
-    if (!formData.taluka.trim()) return setError("Please enter Taluka");
-    if (!formData.district.trim()) return setError("Please enter District");
-    if (!/^\d{10}$/.test(formData.mobileNumber.trim())) {
-      return setError("Mobile Number must be exactly 10 digits");
-    }
-    if (!formData.reportDate) return setError("Please select Report Date");
-
-    if (
-      editingId === null &&
-      !(formData.machine1CampPhoto instanceof File)
-    ) {
-      return setError("Please attach Machine 1 Camp Photo");
+    if (!formData.name.trim()) {
+      setError("नाव (Name) आवश्यक आहे.");
+      return;
     }
 
-    if (
-      editingId === null &&
-      !(formData.machine2CampPhoto instanceof File)
-    ) {
-      return setError("Please attach Machine 2 Camp Photo");
+    if (!formData.report_date) {
+      setError("अहवालाची तारीख (Report Date) आवश्यक आहे.");
+      return;
     }
 
     try {
       setSaving(true);
+      setError("");
 
-      const url = editingId !== null
+      const userId = getDistrictUserId();
+      const formPayload = new FormData();
+
+      if (userId) {
+        formPayload.append("user_id", userId);
+      }
+
+      formPayload.append("name", formData.name.trim());
+      formPayload.append("designation", formData.designation.trim());
+      formPayload.append("taluka", formData.taluka.trim());
+      formPayload.append("district", formData.district.trim());
+      formPayload.append("mobile_number", formData.mobile_number.trim());
+      formPayload.append("report_date", formData.report_date);
+
+      formPayload.append(
+        "total_authorised_center_heads",
+        formData.total_authorised_center_heads || "0"
+      );
+      formPayload.append(
+        "total_active_center_heads",
+        formData.total_active_center_heads || "0"
+      );
+      formPayload.append(
+        "today_visited_centers",
+        formData.today_visited_centers || "0"
+      );
+      formPayload.append(
+        "visited_center_head_name",
+        formData.visited_center_head_name || ""
+      );
+      formPayload.append(
+        "new_members_added_today",
+        formData.new_members_added_today || "0"
+      );
+      formPayload.append(
+        "sanitary_pad_box_sales",
+        formData.sanitary_pad_box_sales || "0"
+      );
+      formPayload.append(
+        "health_atm_machine_details",
+        formData.health_atm_machine_details || ""
+      );
+      formPayload.append(
+        "birth_baby_girls",
+        formData.birth_baby_girls || "0"
+      );
+      formPayload.append(
+        "death_count",
+        formData.death_count || "0"
+      );
+      formPayload.append(
+        "accident_count",
+        formData.accident_count || "0"
+      );
+      formPayload.append("utr_number", formData.utr_number || "");
+      formPayload.append(
+        "any_other_information",
+        formData.any_other_information || ""
+      );
+
+      // Photos
+      if (formData.meeting_photo_1 instanceof File) {
+        formPayload.append("meeting_photo_1", formData.meeting_photo_1);
+      }
+      if (formData.meeting_photo_2 instanceof File) {
+        formPayload.append("meeting_photo_2", formData.meeting_photo_2);
+      }
+
+      const url = editingId
         ? `${API_BASE_URL}/${editingId}`
         : API_BASE_URL;
 
+      const method = editingId ? "PUT" : "POST";
+
       const response = await fetch(url, {
-        method: editingId !== null ? "PUT" : "POST",
-        body: buildBody(),
+        method,
+        body: formPayload,
       });
 
-      const data = await response.json();
+      const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to save report");
+        throw new Error(result.message || "Failed to save district report");
       }
 
-      setShowModal(false);
-      setEditingId(null);
-      setFormData({ ...EMPTY_FORM });
       setSuccess(
-        editingId !== null
-          ? "Report updated successfully."
-          : "Report added successfully."
+        editingId
+          ? "District report updated successfully!"
+          : "District report added successfully!"
       );
 
+      handleClose();
       await loadReports();
     } catch (err) {
-      console.error("Report save error:", err);
-      setError(err.message || "Unable to save report.");
+      console.error("Save error:", err);
+      setError(err.message || "Failed to save district report.");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this report?")) return;
+    Swal.fire({
+      title: "Delete Confirmation",
+      text: "Are you sure you want to delete this district report?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, Delete",
+      cancelButtonText: "Cancel",
+    }).then(async (res) => {
+      if (res.isConfirmed) {
+        try {
+          const userId = getDistrictUserId();
+          const url = userId
+            ? `${API_BASE_URL}/${id}?user_id=${encodeURIComponent(userId)}`
+            : `${API_BASE_URL}/${id}`;
 
-    try {
-      setError("");
-      setSuccess("");
+          const response = await fetch(url, {
+            method: "DELETE",
+          });
 
-      const userId = getLoggedInDistrictUserId();
+          const data = await response.json();
 
-      if (!userId) {
-        throw new Error(
-          "District user ID not found. Please login again."
-        );
-      }
+          if (!response.ok) {
+            throw new Error(data.message || "Failed to delete report");
+          }
 
-      const response = await fetch(
-        `${API_BASE_URL}/${id}?user_id=${encodeURIComponent(userId)}`,
-        {
-          method: "DELETE",
+          setSuccess("District report deleted successfully!");
+          await loadReports();
+        } catch (err) {
+          console.error("Delete error:", err);
+          setError(err.message || "Failed to delete report.");
         }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to delete report");
       }
-
-      setSuccess("Report deleted successfully.");
-      await loadReports();
-    } catch (err) {
-      console.error("Report delete error:", err);
-      setError(err.message || "Unable to delete report.");
-    }
+    });
   };
 
-  // =====================================================
-  // SEARCH + FILTERS
-  // =====================================================
+  const handleLogout = () => {
+    Swal.fire({
+      title: "Logout Confirmation",
+      text: "Are you sure you want to logout?",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#111827",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Yes, Logout",
+      cancelButtonText: "Cancel",
+    }).then((res) => {
+      if (res.isConfirmed) {
+        localStorage.clear();
+        navigate("/login", { replace: true });
+      }
+    });
+  };
 
   const normalize = (value) =>
-    String(value ?? "")
-      .trim()
-      .toLowerCase();
+    value === null || value === undefined
+      ? ""
+      : String(value).trim().toLowerCase();
 
   const filteredReports = reports.filter((report) => {
-
     const globalKeyword = normalize(search);
-
     const nameKeyword = normalize(filters.name);
     const talukaKeyword = normalize(filters.taluka);
     const districtKeyword = normalize(filters.district);
-    const dateKeyword = String(
-      filters.report_date || ""
-    ).trim();
+    const dateKeyword = filters.report_date.trim();
 
     const matchesGlobal =
       !globalKeyword ||
@@ -493,68 +455,32 @@ const DistrictDashboard = () => {
         report?.designation,
         report?.taluka,
         report?.district,
-        report?.mobileNumber,
         report?.mobile_number,
-        report?.reportDate,
-        report?.report_date,
-        report?.utrNumber,
+        report?.mobileNumber,
         report?.utr_number,
-        report?.machine1CampName,
-        report?.machine1_camp_name,
-        report?.machine2CampName,
-        report?.machine2_camp_name,
-        report?.status,
-      ].some((value) =>
-        normalize(value).includes(globalKeyword)
-      );
+        report?.utrNumber,
+        report?.visited_center_head_name,
+        report?.health_atm_machine_details,
+      ].some((val) => normalize(val).includes(globalKeyword));
 
-    const matchesName =
-      !nameKeyword ||
-      normalize(report?.name).includes(nameKeyword);
+    const matchesName = !nameKeyword || normalize(report?.name).includes(nameKeyword);
+    const matchesTaluka = !talukaKeyword || normalize(report?.taluka).includes(talukaKeyword);
+    const matchesDistrict = !districtKeyword || normalize(report?.district).includes(districtKeyword);
 
-    const matchesTaluka =
-      !talukaKeyword ||
-      normalize(report?.taluka).includes(talukaKeyword);
+    const rawDate = report?.report_date ?? report?.reportDate ?? "";
+    const reportDate = String(rawDate).split("T")[0];
+    const matchesDate = !dateKeyword || reportDate === dateKeyword;
 
-    const matchesDistrict =
-      !districtKeyword ||
-      normalize(report?.district).includes(districtKeyword);
-
-    const rawDate =
-      report?.reportDate ??
-      report?.report_date ??
-      "";
-
-    const reportDate =
-      String(rawDate).split("T")[0];
-
-    const matchesDate =
-      !dateKeyword ||
-      reportDate === dateKeyword;
-
-    return (
-      matchesGlobal &&
-      matchesName &&
-      matchesTaluka &&
-      matchesDistrict &&
-      matchesDate
-    );
+    return matchesGlobal && matchesName && matchesTaluka && matchesDistrict && matchesDate;
   });
 
   const handleFilterChange = (e) => {
-
     const { name, value } = e.target;
-
-    setFilters((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
   const clearFilters = () => {
-
     setSearch("");
-
     setFilters({
       name: "",
       taluka: "",
@@ -563,319 +489,130 @@ const DistrictDashboard = () => {
     });
   };
 
-  // =====================================================
-  // EXCEL DOWNLOAD
-  // =====================================================
-
-  const escapeExcel = (value) => {
-
-    const stringValue =
-      value === null ||
-      value === undefined
-        ? ""
-        : String(value);
-
-    return stringValue
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  };
-
   const downloadExcel = () => {
-
     if (!filteredReports.length) {
-
-      setError(
-        "Download करण्यासाठी कोणताही report उपलब्ध नाही."
-      );
-
+      setError("Download करण्यासाठी कोणताही report उपलब्ध नाही.");
       return;
     }
 
     const headers = [
       "SR",
-      "Name",
-      "Designation",
-      "Taluka",
-      "District",
-      "Mobile Number",
-      "Report Date",
-      "Total Center Heads",
-      "Total Authorised Center Heads (300 to 500)",
-      "Total Active Center Heads",
-      "Additional Remarks",
-      "Machine 1 Test Amount (₹)",
-      "Machine 1 Medicine Amount (₹)",
-      "Machine 1 Total Amount (₹)",
-      "Machine 1 Camp Name",
-      "Machine 2 Test Amount (₹)",
-      "Machine 2 Medicine Amount (₹)",
-      "Machine 2 Total Amount (₹)",
-      "Machine 2 Camp Name",
+      "Name (नाव)",
+      "Designation (पद)",
+      "Taluka (तालुका)",
+      "District (जिल्हा)",
+      "Mobile Number (मोबाईल क्रमांक)",
+      "Report Date (अहवालाची तारीख)",
+      "Total Authorised Center Head -10",
+      "Total Active Center Head",
+      "Today Visited Centers (आज भेट दिलेली केंद्रे)",
+      "Visited Center Head Name (केंद्र प्रमुख यांची नावे)",
+      "New Members Added Today (आज नव्याने जोडलेले सदस्य)",
+      "Sanitary Pad Box Sales (पॅड बॉक्स विक्री)",
+      "Today's Health ATM Machine Details",
+      "Birth (Baby Girls)",
+      "Death Count",
+      "Accident Count",
       "UTR Number",
-      "Machine 1 Camp Photo",
-      "Machine 2 Camp Photo",
+      "Any Other Information (इतर माहिती)",
       "Status",
     ];
 
-    const rows = filteredReports.map(
-      (report, index) => [
+    const rows = filteredReports.map((r, idx) => [
+      idx + 1,
+      r.name || "-",
+      r.designation || "-",
+      r.taluka || "-",
+      r.district || "-",
+      r.mobile_number || r.mobileNumber || "-",
+      formatDateForTable(r.report_date || r.reportDate),
+      r.total_authorised_center_heads ?? r.total_authorised_center_heads_300_to_500 ?? "0",
+      r.total_active_center_heads ?? "0",
+      r.today_visited_centers ?? "0",
+      r.visited_center_head_name || "-",
+      r.new_members_added_today ?? "0",
+      r.sanitary_pad_box_sales ?? "0",
+      r.health_atm_machine_details || "-",
+      r.birth_baby_girls ?? "0",
+      r.death_count ?? "0",
+      r.accident_count ?? "0",
+      r.utr_number || r.utrNumber || "-",
+      r.any_other_information || r.additional_remarks || "-",
+      r.status || "active",
+    ]);
 
-        index + 1,
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) =>
+        row
+          .map((v) => `"${String(v).replace(/"/g, '""').replace(/\r?\n/g, " ")}"`)
+          .join(",")
+      ),
+    ].join("\r\n");
 
-        report?.name || "",
-
-        report?.designation || "",
-
-        report?.taluka || "",
-
-        report?.district || "",
-
-        report?.mobileNumber ??
-        report?.mobile_number ??
-        "",
-
-        formatDateForTable(
-          report?.reportDate ??
-          report?.report_date
-        ),
-
-        report?.totalCenterHeads ??
-        report?.total_center_heads ??
-        0,
-
-        report?.totalAuthorisedCenterHeads ??
-        report?.total_authorised_center_heads ??
-        0,
-
-        report?.totalActiveCenterHeads ??
-        report?.total_active_center_heads ??
-        0,
-
-        report?.additionalRemarks ??
-        report?.additional_remarks ??
-        "",
-
-        report?.machine1TestAmount ??
-        report?.machine1_test_amount ??
-        0,
-
-        report?.machine1MedicineAmount ??
-        report?.machine1_medicine_amount ??
-        0,
-
-        report?.machine1TotalAmount ??
-        report?.machine1_total_amount ??
-        0,
-
-        report?.machine1CampName ??
-        report?.machine1_camp_name ??
-        "",
-
-        report?.machine2TestAmount ??
-        report?.machine2_test_amount ??
-        0,
-
-        report?.machine2MedicineAmount ??
-        report?.machine2_medicine_amount ??
-        0,
-
-        report?.machine2TotalAmount ??
-        report?.machine2_total_amount ??
-        0,
-
-        report?.machine2CampName ??
-        report?.machine2_camp_name ??
-        "",
-
-        report?.utrNumber ??
-        report?.utr_number ??
-        "",
-
-        getImageUrl(
-          report?.machine1CampPhoto ??
-          report?.machine1_camp_photo
-        ) || "",
-
-        getImageUrl(
-          report?.machine2CampPhoto ??
-          report?.machine2_camp_photo
-        ) || "",
-
-        report?.status || "Active",
-      ]
-    );
-
-    const headerHtml = headers
-      .map(
-        (header) =>
-          `<th>${escapeExcel(header)}</th>`
-      )
-      .join("");
-
-    const bodyHtml = rows
-      .map(
-        (row) =>
-          `<tr>${row
-            .map(
-              (cell) =>
-                `<td>${escapeExcel(cell)}</td>`
-            )
-            .join("")}</tr>`
-      )
-      .join("");
-
-    const workbookHtml = `
-      <html
-        xmlns:o="urn:schemas-microsoft-com:office:office"
-        xmlns:x="urn:schemas-microsoft-com:office:excel"
-        xmlns="http://www.w3.org/TR/REC-html40"
-      >
-        <head>
-          <meta
-            http-equiv="Content-Type"
-            content="text/html; charset=UTF-8"
-          />
-
-          <!--[if gte mso 9]>
-          <xml>
-            <x:ExcelWorkbook>
-              <x:ExcelWorksheets>
-                <x:ExcelWorksheet>
-                  <x:Name>District Reports</x:Name>
-                  <x:WorksheetOptions>
-                    <x:DisplayGridlines/>
-                  </x:WorksheetOptions>
-                </x:ExcelWorksheet>
-              </x:ExcelWorksheets>
-            </x:ExcelWorkbook>
-          </xml>
-          <![endif]-->
-
-          <style>
-            table {
-              border-collapse: collapse;
-              width: 100%;
-            }
-
-            th {
-              background: #212529;
-              color: #ffffff;
-              font-weight: bold;
-              border: 1px solid #000000;
-              padding: 8px;
-            }
-
-            td {
-              border: 1px solid #cccccc;
-              padding: 8px;
-              vertical-align: top;
-            }
-          </style>
-        </head>
-
-        <body>
-          <table>
-            <thead>
-              <tr>${headerHtml}</tr>
-            </thead>
-
-            <tbody>
-              ${bodyHtml}
-            </tbody>
-          </table>
-        </body>
-      </html>
-    `;
-
-    const blob = new Blob(
-      ["\ufeff", workbookHtml],
-      {
-        type:
-          "application/vnd.ms-excel;charset=utf-8;",
-      }
-    );
-
+    const blob = new Blob(["\uFEFF" + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
     const url = URL.createObjectURL(blob);
-
     const link = document.createElement("a");
-
-    const datePart =
-      new Date()
-        .toISOString()
-        .substring(0, 10);
-
     link.href = url;
-
-    link.download =
-      `District_Reports_${datePart}.xls`;
-
+    link.download = `District_Reports_${getTodayForInput()}.csv`;
     document.body.appendChild(link);
-
     link.click();
-
     document.body.removeChild(link);
-
     URL.revokeObjectURL(url);
-
-    setSuccess(
-      `${filteredReports.length} report(s) Excel मध्ये download झाले.`
-    );
-  };
-
-  // =====================================================
-  // LOGOUT
-  // =====================================================
-
-  const handleLogout = () => {
-    localStorage.removeItem("admin_logged_in");
-    localStorage.removeItem("logged_in_role");
-    localStorage.removeItem("logged_in_user");
-    localStorage.removeItem("logged_in_user_id");
-    localStorage.removeItem("logged_in_user");
-    localStorage.removeItem("logged_in_name");
-    localStorage.removeItem("logged_in_role");
-    localStorage.removeItem("logged_in_status");
-    localStorage.removeItem("logged_in_district_id");
-    localStorage.removeItem("logged_in_district_name");
-
-    navigate("/login", { replace: true });
+    setSuccess("District reports downloaded successfully.");
   };
 
   return (
-    <div className="min-vh-100 bg-light district-dashboard">
-
-      <nav className="navbar bg-white border-bottom px-4 py-3">
-        <div className="container-fluid p-0">
+    <div className="district-dashboard-wrapper">
+      {/* HEADER NAVBAR */}
+      <header className="district-navbar bg-white border-bottom py-3 px-4 d-flex justify-content-between align-items-center sticky-top shadow-sm">
+        <div className="d-flex align-items-center gap-3">
+          <div
+            className="bg-dark text-white rounded d-flex align-items-center justify-content-center fw-bold"
+            style={{ width: "42px", height: "42px", fontSize: "16px" }}
+          >
+            D
+          </div>
           <div>
             <h5 className="fw-bold mb-0">District Dashboard</h5>
-            <small className="text-muted">District Management System</small>
-          </div>
-
-          <div className="d-flex align-items-center gap-3">
-            <div className="d-flex align-items-center gap-2">
-              <div
-                className="rounded-circle bg-dark text-white d-flex align-items-center justify-content-center fw-bold"
-                style={{ width: "40px", height: "40px" }}
-              >
-                D
-              </div>
-              <div>
-                <div className="fw-semibold">District</div>
-                <small className="text-muted">District Head</small>
-              </div>
-            </div>
-
-            <Button variant="outline-danger" size="sm" onClick={handleLogout}>
-              Logout
-            </Button>
+            <small className="text-muted">{loggedInDistrictName}</small>
           </div>
         </div>
-      </nav>
 
-      <main className="container-fluid p-4">
+        <div className="d-flex align-items-center gap-3">
+          <Button variant="dark" onClick={handleAddReport} className="fw-semibold shadow-sm">
+            <span className="me-1">+</span> Add District
+          </Button>
 
+          <button
+            type="button"
+            className="btn btn-outline-danger d-flex align-items-center gap-2 fw-semibold"
+            onClick={handleLogout}
+            title="Logout"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            Logout
+          </button>
+        </div>
+      </header>
+
+      {/* MAIN CONTAINER */}
+      <main className="p-4" style={{ background: "#f8fafc", minHeight: "calc(100vh - 78px)" }}>
         {error && (
           <Alert variant="danger" dismissible onClose={() => setError("")}>
             {error}
@@ -888,51 +625,30 @@ const DistrictDashboard = () => {
           </Alert>
         )}
 
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <div>
-            <h3 className="fw-bold mb-1">Reports</h3>
-            <p className="text-muted mb-0">Manage district reports</p>
-          </div>
-
-          <Button variant="dark" onClick={handleAddReport}>
-            <span className="fw-bold me-2" style={{ fontSize: "18px" }}>+</span>
-            Add Report
-          </Button>
-        </div>
-
+        {/* COUNTER CARD */}
         <div className="card border-0 shadow-sm mb-4">
-          <div className="card-body">
+          <div className="card-body p-3 p-md-4">
             <div className="d-flex align-items-center gap-3">
               <div
                 className="bg-dark text-white rounded d-flex align-items-center justify-content-center fw-bold"
-                style={{ width: "60px", height: "60px", fontSize: "20px" }}
+                style={{ width: "56px", height: "56px", fontSize: "20px" }}
               >
                 {reports.length}
               </div>
               <div>
-                <small className="text-muted">Total Reports</small>
-                <h4 className="fw-bold mb-0">
-                  {reports.length}
-                </h4>
+                <small className="text-muted">Total District Reports</small>
+                <h4 className="fw-bold mb-0">{reports.length}</h4>
               </div>
             </div>
           </div>
         </div>
 
-        {/* =====================================================
-            FILTERS
-        ===================================================== */}
-
+        {/* FILTERS */}
         <div className="card border-0 shadow-sm mb-4">
           <div className="card-body p-3 p-md-4">
-
             <div className="row g-3">
-
               <div className="col-12 col-md-6 col-xl-3">
-                <Form.Label className="fw-semibold">
-                  Name
-                </Form.Label>
-
+                <Form.Label className="fw-semibold">Name (नाव)</Form.Label>
                 <Form.Control
                   type="text"
                   name="name"
@@ -943,10 +659,7 @@ const DistrictDashboard = () => {
               </div>
 
               <div className="col-12 col-md-6 col-xl-3">
-                <Form.Label className="fw-semibold">
-                  Taluka
-                </Form.Label>
-
+                <Form.Label className="fw-semibold">Taluka (तालुका)</Form.Label>
                 <Form.Control
                   type="text"
                   name="taluka"
@@ -957,10 +670,7 @@ const DistrictDashboard = () => {
               </div>
 
               <div className="col-12 col-md-6 col-xl-3">
-                <Form.Label className="fw-semibold">
-                  District
-                </Form.Label>
-
+                <Form.Label className="fw-semibold">District (जिल्हा)</Form.Label>
                 <Form.Control
                   type="text"
                   name="district"
@@ -971,10 +681,7 @@ const DistrictDashboard = () => {
               </div>
 
               <div className="col-12 col-md-6 col-xl-3">
-                <Form.Label className="fw-semibold">
-                  Report Date
-                </Form.Label>
-
+                <Form.Label className="fw-semibold">Report Date (अहवालाची तारीख)</Form.Label>
                 <Form.Control
                   type="date"
                   name="report_date"
@@ -984,21 +691,14 @@ const DistrictDashboard = () => {
               </div>
 
               <div className="col-12">
-
-                <Form.Label className="fw-semibold">
-                  Search
-                </Form.Label>
-
-                <div className="row g-2">
-
+                <div className="row g-2 align-items-end">
                   <div className="col-12 col-lg">
+                    <Form.Label className="fw-semibold">Search</Form.Label>
                     <Form.Control
                       type="text"
                       value={search}
-                      onChange={(e) =>
-                        setSearch(e.target.value)
-                      }
-                      placeholder="Search Name, Taluka, District, Mobile, UTR..."
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Search by Name, Taluka, District, Mobile, UTR, Center Name..."
                     />
                   </div>
 
@@ -1017,253 +717,160 @@ const DistrictDashboard = () => {
                     <Button
                       type="button"
                       variant="success"
-                      className="w-100"
+                      className="w-100 fw-semibold"
                       onClick={downloadExcel}
                       disabled={!filteredReports.length}
                     >
                       Download Excel
                     </Button>
                   </div>
-
                 </div>
-
               </div>
-
             </div>
-
           </div>
         </div>
 
+        {/* TABLE */}
         <div className="card border-0 shadow-sm">
           <div className="card-body p-0">
             <div className="table-responsive">
-              <table
-                className="table table-hover align-middle mb-0"
-                style={{ minWidth: "2700px" }}
-              >
+              <table className="table table-hover table-bordered align-middle mb-0" style={{ minWidth: "3000px" }}>
                 <thead className="table-light">
                   <tr>
-                    <th>SR</th>
-                    <th>Name</th>
-                    <th>Designation</th>
-                    <th>Taluka</th>
-                    <th>District</th>
-                    <th>Mobile Number</th>
-                    <th>Report Date</th>
-                    <th>Total Center Heads</th>
-                    <th>Total Authorised Center Heads (300 to 500)</th>
-                    <th>Total Active Center Heads</th>
-                    <th>Additional Remarks</th>
-                    <th>Machine 1 Test Amount (₹)</th>
-                    <th>Machine 1 Medicine Amount (₹)</th>
-                    <th>Machine 1 Total Amount (₹)</th>
-                    <th>Machine 1 Camp Name</th>
-                    <th>Machine 2 Test Amount (₹)</th>
-                    <th>Machine 2 Medicine Amount (₹)</th>
-                    <th>Machine 2 Total Amount (₹)</th>
-                    <th>Machine 2 Camp Name</th>
-                    <th>UTR Number</th>
-                    <th>Machine 1 Camp Photo</th>
-                    <th>Machine 2 Camp Photo</th>
-                    <th>Status</th>
-                    <th>Action</th>
+                    <th className="text-center" style={{ width: "60px" }}>SR</th>
+                    <th style={{ minWidth: "180px" }}>Name (नाव)</th>
+                    <th style={{ minWidth: "150px" }}>Designation (पद)</th>
+                    <th style={{ minWidth: "130px" }}>Taluka (तालुका)</th>
+                    <th style={{ minWidth: "130px" }}>District (जिल्हा)</th>
+                    <th style={{ minWidth: "150px" }}>Mobile Number (मोबाईल क्रमांक)</th>
+                    <th style={{ minWidth: "140px" }}>Report Date (अहवालाची तारीख)</th>
+                    <th className="text-center" style={{ minWidth: "220px" }}>Total authourised center Head -10</th>
+                    <th className="text-center" style={{ minWidth: "180px" }}>Total Active center Head</th>
+                    <th className="text-center" style={{ minWidth: "160px" }}>Today Visited Centers</th>
+                    <th style={{ minWidth: "200px" }}>Visited Center Head Name</th>
+                    <th className="text-center" style={{ minWidth: "180px" }}>New Members Added Today</th>
+                    <th className="text-center" style={{ minWidth: "160px" }}>Sanitary Pad box Sales</th>
+                    <th style={{ minWidth: "260px" }}>Today's health ATM Machine details</th>
+                    <th className="text-center" style={{ minWidth: "150px" }}>Birth (Baby Girls)</th>
+                    <th className="text-center" style={{ minWidth: "130px" }}>Death Count</th>
+                    <th className="text-center" style={{ minWidth: "140px" }}>Accident Count</th>
+                    <th style={{ minWidth: "160px" }}>UTR Number</th>
+                    <th style={{ minWidth: "260px" }}>Any Other Information (इतर माहिती)</th>
+                    <th className="text-center" style={{ minWidth: "140px" }}>Meeting Photo 1</th>
+                    <th className="text-center" style={{ minWidth: "140px" }}>Meeting Photo 2</th>
+                    <th className="text-center" style={{ minWidth: "100px" }}>Status</th>
+                    <th className="text-center" style={{ minWidth: "140px" }}>Action</th>
                   </tr>
                 </thead>
 
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan="24" className="text-center py-5">
+                      <td colSpan="23" className="text-center py-5">
                         <Spinner animation="border" size="sm" className="me-2" />
                         Loading reports...
                       </td>
                     </tr>
                   ) : filteredReports.length === 0 ? (
                     <tr>
-                      <td colSpan="24" className="text-center py-5 text-muted">
-                        No reports found for the selected filters.
+                      <td colSpan="23" className="text-center py-5 text-muted">
+                        No district reports found.
                       </td>
                     </tr>
                   ) : (
-                    filteredReports.map((report, index) => (
-                      <tr key={report.id}>
-                        <td>{index + 1}</td>
-                        <td>{report.name || "-"}</td>
-                        <td>{report.designation || "-"}</td>
-                        <td>{report.taluka || "-"}</td>
-                        <td>{report.district || "-"}</td>
-                        <td>
-                          {report.mobileNumber ??
-                            report.mobile_number ??
-                            "-"}
-                        </td>
-                        <td>
-                          {formatDateForTable(
-                            report.reportDate ??
-                              report.report_date
-                          )}
-                        </td>
-                        <td>{report.totalCenterHeads ?? report.total_center_heads ?? "0"}</td>
-                        <td>{report.totalAuthorisedCenterHeads ?? report.total_authorised_center_heads ?? "0"}</td>
-                        <td>{report.totalActiveCenterHeads ?? report.total_active_center_heads ?? "0"}</td>
-                        <td
-                          style={{
-                            whiteSpace: "normal",
-                            minWidth: "280px",
-                            maxWidth: "360px",
-                          }}
-                        >
-                          {report.additionalRemarks ?? report.additional_remarks ?? "-"}
-                        </td>
-                        <td>₹ {report.machine1TestAmount ?? report.machine1_test_amount ?? "0"}</td>
-                        <td>₹ {report.machine1MedicineAmount ?? report.machine1_medicine_amount ?? "0"}</td>
-                        <td>₹ {report.machine1TotalAmount ?? report.machine1_total_amount ?? "0"}</td>
-                        <td>{report.machine1CampName ?? report.machine1_camp_name ?? "-"}</td>
-                        <td>₹ {report.machine2TestAmount ?? report.machine2_test_amount ?? "0"}</td>
-                        <td>₹ {report.machine2MedicineAmount ?? report.machine2_medicine_amount ?? "0"}</td>
-                        <td>₹ {report.machine2TotalAmount ?? report.machine2_total_amount ?? "0"}</td>
-                        <td>{report.machine2CampName ?? report.machine2_camp_name ?? "-"}</td>
-                        <td>{report.utrNumber ?? report.utr_number ?? "-"}</td>
-                        <td>
-                          {getImageUrl(
-                            report.machine1CampPhoto ??
-                            report.machine1_camp_photo
-                          ) ? (
-                            <>
-                              <a
-                                href={getImageUrl(
-                                  report.machine1CampPhoto ??
-                                  report.machine1_camp_photo
-                                )}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
+                    filteredReports.map((report, index) => {
+                      const photo1 = report.meeting_photo_1 || report.machine1_camp_photo;
+                      const photo2 = report.meeting_photo_2 || report.machine2_camp_photo;
+
+                      return (
+                        <tr key={report.id}>
+                          <td className="text-center">{index + 1}</td>
+                          <td>{report.name || "-"}</td>
+                          <td>{report.designation || "-"}</td>
+                          <td>{report.taluka || "-"}</td>
+                          <td>{report.district || "-"}</td>
+                          <td>{report.mobile_number || report.mobileNumber || "-"}</td>
+                          <td>{formatDateForTable(report.report_date || report.reportDate)}</td>
+                          <td className="text-center">
+                            {report.total_authorised_center_heads ??
+                              report.total_authorised_center_heads_300_to_500 ??
+                              "0"}
+                          </td>
+                          <td className="text-center">{report.total_active_center_heads ?? "0"}</td>
+                          <td className="text-center">{report.today_visited_centers ?? "0"}</td>
+                          <td>{report.visited_center_head_name || "-"}</td>
+                          <td className="text-center">{report.new_members_added_today ?? "0"}</td>
+                          <td className="text-center">{report.sanitary_pad_box_sales ?? "0"}</td>
+                          <td>{report.health_atm_machine_details || "-"}</td>
+                          <td className="text-center">{report.birth_baby_girls ?? "0"}</td>
+                          <td className="text-center">{report.death_count ?? "0"}</td>
+                          <td className="text-center">{report.accident_count ?? "0"}</td>
+                          <td>{report.utr_number || report.utrNumber || "-"}</td>
+                          <td>{report.any_other_information || report.additional_remarks || "-"}</td>
+                          <td className="text-center">
+                            {photo1 ? (
+                              <a href={getImageUrl(photo1)} target="_blank" rel="noreferrer">
                                 <img
-                                  src={getImageUrl(
-                                    report.machine1CampPhoto ??
-                                    report.machine1_camp_photo
-                                  )}
-                                alt="Machine 1 Camp"
-                                loading="lazy"
-                                style={{
-                                  width: "60px",
-                                  height: "60px",
-                                  maxWidth: "60px",
-                                  maxHeight: "60px",
-                                  objectFit: "cover",
-                                  borderRadius: "6px",
-                                  border: "1px solid #dee2e6",
-                                  display: "block",
-                                }}
-                                onError={(e) => {
-                                  e.currentTarget.style.display = "none";
-
-                                  const next =
-                                    e.currentTarget.nextElementSibling;
-
-                                  if (next) {
-                                    next.style.display = "inline";
-                                  }
-                                }}
+                                  src={getImageUrl(photo1)}
+                                  alt="Photo 1"
+                                  style={{
+                                    width: "50px",
+                                    height: "50px",
+                                    objectFit: "cover",
+                                    borderRadius: "6px",
+                                    border: "1px solid #e2e8f0",
+                                  }}
                                 />
                               </a>
-
-                              <span
-                                className="text-muted small"
-                                style={{
-                                  display: "none",
-                                }}
-                              >
-                                Image unavailable
-                              </span>
-                            </>
-                          ) : (
-                            "-"
-                          )}
-                        </td>
-
-                        <td>
-                          {getImageUrl(
-                            report.machine2CampPhoto ??
-                            report.machine2_camp_photo
-                          ) ? (
-                            <>
-                              <a
-                                href={getImageUrl(
-                                  report.machine2CampPhoto ??
-                                    report.machine2_camp_photo
-                                )}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
+                            ) : (
+                              "-"
+                            )}
+                          </td>
+                          <td className="text-center">
+                            {photo2 ? (
+                              <a href={getImageUrl(photo2)} target="_blank" rel="noreferrer">
                                 <img
-                                  src={getImageUrl(
-                                    report.machine2CampPhoto ??
-                                      report.machine2_camp_photo
-                                  )}
-                                alt="Machine 2 Camp"
-                                loading="lazy"
-                                style={{
-                                  width: "60px",
-                                  height: "60px",
-                                  maxWidth: "60px",
-                                  maxHeight: "60px",
-                                  objectFit: "cover",
-                                  borderRadius: "6px",
-                                  border: "1px solid #dee2e6",
-                                  display: "block",
-                                }}
-                                onError={(e) => {
-                                  e.currentTarget.style.display = "none";
-
-                                  const next =
-                                    e.currentTarget.nextElementSibling;
-
-                                  if (next) {
-                                    next.style.display = "inline";
-                                  }
-                                }}
+                                  src={getImageUrl(photo2)}
+                                  alt="Photo 2"
+                                  style={{
+                                    width: "50px",
+                                    height: "50px",
+                                    objectFit: "cover",
+                                    borderRadius: "6px",
+                                    border: "1px solid #e2e8f0",
+                                  }}
                                 />
                               </a>
-
-                              <span
-                                className="text-muted small"
-                                style={{
-                                  display: "none",
-                                }}
+                            ) : (
+                              "-"
+                            )}
+                          </td>
+                          <td className="text-center">
+                            <span className="badge bg-success-subtle text-success">
+                              {report.status || "active"}
+                            </span>
+                          </td>
+                          <td className="text-center">
+                            <div className="d-flex gap-2 justify-content-center">
+                              <Button
+                                size="sm"
+                                variant="outline-dark"
+                                onClick={() => handleEdit(report)}
                               >
-                                Image unavailable
-                              </span>
-                            </>
-                          ) : (
-                            "-"
-                          )}
-                        </td>
-                        <td>
-                          <span className="badge bg-success-subtle text-success">
-                            {report.status || "Active"}
-                          </span>
-                        </td>
-                        <td>
-                          <div className="d-flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline-dark"
-                              onClick={() => handleEdit(report)}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline-danger"
-                              onClick={() => handleDelete(report.id)}
-                            >
-                              Delete
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))
+                                Edit
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline-danger"
+                                onClick={() => handleDelete(report.id)}
+                              >
+                                Delete
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
@@ -1272,29 +879,24 @@ const DistrictDashboard = () => {
         </div>
       </main>
 
+      {/* ADD / EDIT DISTRICT REPORT MODAL WITH EXACT MARATHI LABELS */}
       <Modal
         show={showModal}
         onHide={handleClose}
         centered
         size="xl"
         backdrop="static"
-        dialogClassName="district-report-modal"
       >
         <Form onSubmit={handleSubmit}>
           <Modal.Header closeButton>
             <Modal.Title className="fw-bold">
-              {editingId !== null ? "Edit Report" : "Add Report"}
+              {editingId !== null ? "Edit District Report" : "Add District Report (अहवाल जोडा)"}
             </Modal.Title>
           </Modal.Header>
 
-          <Modal.Body className="district-report-modal-body">
-
-            <div className="mb-4">
-              <h5 className="fw-bold border-bottom pb-2">Basic Information</h5>
-            </div>
-
+          <Modal.Body style={{ maxHeight: "75vh", overflowY: "auto" }}>
             <div className="row g-3">
-
+              {/* 1. Name (नाव) */}
               <div className="col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold">
@@ -1305,50 +907,61 @@ const DistrictDashboard = () => {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    placeholder="Enter name"
+                    placeholder="नाव प्रविष्ट करा"
+                    required
                   />
                 </Form.Group>
               </div>
 
+              {/* 2. Designation ( पद) */}
               <div className="col-md-6">
                 <Form.Group>
-                  <Form.Label className="fw-semibold">Designation (पद)</Form.Label>
+                  <Form.Label className="fw-semibold">
+                    Designation ( पद)
+                  </Form.Label>
                   <Form.Control
                     type="text"
                     name="designation"
                     value={formData.designation}
                     onChange={handleChange}
-                    placeholder="Enter designation"
+                    placeholder="पद प्रविष्ट करा"
                   />
                 </Form.Group>
               </div>
 
+              {/* 3. Taluka (तालुका) */}
               <div className="col-md-6">
                 <Form.Group>
-                  <Form.Label className="fw-semibold">Taluka (तालुका)</Form.Label>
+                  <Form.Label className="fw-semibold">
+                    Taluka (तालुका)
+                  </Form.Label>
                   <Form.Control
                     type="text"
                     name="taluka"
                     value={formData.taluka}
                     onChange={handleChange}
-                    placeholder="Enter taluka"
+                    placeholder="तालुका प्रविष्ट करा"
                   />
                 </Form.Group>
               </div>
 
+              {/* 4. District (जिल्हा) */}
               <div className="col-md-6">
                 <Form.Group>
-                  <Form.Label className="fw-semibold">District (जिल्हा)</Form.Label>
+                  <Form.Label className="fw-semibold">
+                    District (जिल्हा)
+                  </Form.Label>
                   <Form.Control
                     type="text"
                     name="district"
                     value={formData.district}
                     onChange={handleChange}
-                    placeholder="Enter district"
+                    placeholder="जिल्हा प्रविष्ट करा"
                   />
                 </Form.Group>
               </div>
 
+              {/* 5. Mobile Number (मोबाईल क्रमांक) */}
               <div className="col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold">
@@ -1356,608 +969,284 @@ const DistrictDashboard = () => {
                   </Form.Label>
                   <Form.Control
                     type="tel"
-                    name="mobileNumber"
-                    value={formData.mobileNumber}
+                    name="mobile_number"
+                    value={formData.mobile_number}
                     onChange={handleChange}
-                    placeholder="Enter 10 digit mobile number"
+                    placeholder="१० अंकी मोबाईल क्रमांक प्रविष्ट करा"
                     maxLength="10"
-                    inputMode="numeric"
                   />
                 </Form.Group>
               </div>
 
+              {/* 6. Report Date (अहवालाची तारीख) */}
               <div className="col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold">
-                    Report Date (अहवालाची तारीख)
+                    Report Date (अहवालाची तारीख) <span className="text-danger">*</span>
                   </Form.Label>
                   <Form.Control
                     type="date"
-                    name="reportDate"
-                    value={formData.reportDate}
+                    name="report_date"
+                    value={formData.report_date}
                     onChange={handleChange}
+                    required
                   />
                 </Form.Group>
               </div>
 
+              {/* 7. Total authourised center Head -10(अधिकृत केंद्र प्रमुखांची एकूण संख्या -10) */}
               <div className="col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold">
-                    Total Center Heads (केंद्र प्रमुखांची एकूण संख्या)
+                    Total authourised center Head -10(अधिकृत केंद्र प्रमुखांची एकूण संख्या -10)
                   </Form.Label>
                   <Form.Control
                     type="number"
-                    name="totalCenterHeads"
-                    value={formData.totalCenterHeads}
+                    name="total_authorised_center_heads"
+                    value={formData.total_authorised_center_heads}
                     onChange={handleChange}
-                    placeholder="Enter total center heads"
+                    placeholder="संख्या प्रविष्ट करा"
                     min="0"
                   />
                 </Form.Group>
               </div>
 
+              {/* 8. Total Active center Head (सक्रिय केंद्र प्रमुखांची एकूण संख्या) */}
               <div className="col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold">
-                    Total Authorised Center Head 300 to 500
-                    <small className="text-muted d-block">
-                      अधिकृत केंद्र प्रमुखांची एकूण संख्या (300 ते 500)
-                    </small>
+                    Total Active center Head (सक्रिय केंद्र प्रमुखांची एकूण संख्या)
                   </Form.Label>
-
                   <Form.Control
                     type="number"
-                    name="totalAuthorisedCenterHeads"
-                    value={formData.totalAuthorisedCenterHeads}
+                    name="total_active_center_heads"
+                    value={formData.total_active_center_heads}
                     onChange={handleChange}
-                    placeholder="Enter authorised center heads"
-                    min="300"
-                    max="500"
-                  />
-                </Form.Group>
-              </div>
-
-              <div className="col-md-6">
-                <Form.Group>
-                  <Form.Label className="fw-semibold">
-                    Total Active Center Head
-                    <small className="text-muted d-block">
-                      सक्रिय केंद्र प्रमुखांची एकूण संख्या
-                    </small>
-                  </Form.Label>
-
-                  <Form.Control
-                    type="number"
-                    name="totalActiveCenterHeads"
-                    value={formData.totalActiveCenterHeads}
-                    onChange={handleChange}
-                    placeholder="Enter active center heads"
+                    placeholder="संख्या प्रविष्ट करा"
                     min="0"
                   />
                 </Form.Group>
               </div>
 
+              {/* 9. Today Visited Centers (आज भेट दिलेली केंद्रे) */}
+              <div className="col-md-6">
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    Today Visited Centers (आज भेट दिलेली केंद्रे)
+                  </Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="today_visited_centers"
+                    value={formData.today_visited_centers}
+                    onChange={handleChange}
+                    placeholder="केंद्रांची संख्या"
+                    min="0"
+                  />
+                </Form.Group>
+              </div>
+
+              {/* 10. Visited Center Head Name (केंद्र प्रमुख यांची नावे ) */}
+              <div className="col-md-6">
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    Visited Center Head Name (केंद्र प्रमुख यांची नावे )
+                  </Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="visited_center_head_name"
+                    value={formData.visited_center_head_name}
+                    onChange={handleChange}
+                    placeholder="केंद्र प्रमुखांची नावे"
+                  />
+                </Form.Group>
+              </div>
+
+              {/* 11. New Members Added Today(आज नव्याने जोडलेले सदस्य ) */}
+              <div className="col-md-6">
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    New Members Added Today(आज नव्याने जोडलेले सदस्य )
+                  </Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="new_members_added_today"
+                    value={formData.new_members_added_today}
+                    onChange={handleChange}
+                    placeholder="सदस्यांची संख्या"
+                    min="0"
+                  />
+                </Form.Group>
+              </div>
+
+              {/* 12. Sanitary Pad box Sales (पॅड बॉक्स विक्री) */}
+              <div className="col-md-6">
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    Sanitary Pad box Sales (पॅड बॉक्स विक्री)
+                  </Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="sanitary_pad_box_sales"
+                    value={formData.sanitary_pad_box_sales}
+                    onChange={handleChange}
+                    placeholder="पॅड बॉक्स विक्री संख्या"
+                    min="0"
+                  />
+                </Form.Group>
+              </div>
+
+              {/* 13. Today’s health ATM Machine details (एटीएम मशीन बुकिंग) */}
+              <div className="col-md-6">
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    Today’s health ATM Machine details (एटीएम मशीन बुकिंग)
+                  </Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="health_atm_machine_details"
+                    value={formData.health_atm_machine_details}
+                    onChange={handleChange}
+                    placeholder="एटीएम मशीन माहिती / बुकिंग"
+                  />
+                </Form.Group>
+              </div>
+
+              {/* 14. Birth (Baby Girls)  (जन्मलेल्या मुलींची संख्या) */}
+              <div className="col-md-6">
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    Birth (Baby Girls)  (जन्मलेल्या मुलींची संख्या)
+                  </Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="birth_baby_girls"
+                    value={formData.birth_baby_girls}
+                    onChange={handleChange}
+                    placeholder="मुलींची संख्या"
+                    min="0"
+                  />
+                </Form.Group>
+              </div>
+
+              {/* 15. Death Count  (मृत्यू संख्या) */}
+              <div className="col-md-6">
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    Death Count  (मृत्यू संख्या)
+                  </Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="death_count"
+                    value={formData.death_count}
+                    onChange={handleChange}
+                    placeholder="मृत्यू संख्या"
+                    min="0"
+                  />
+                </Form.Group>
+              </div>
+
+              {/* 16. Accident Count (अपघात संख्या) */}
+              <div className="col-md-6">
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    Accident Count (अपघात संख्या)
+                  </Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="accident_count"
+                    value={formData.accident_count}
+                    onChange={handleChange}
+                    placeholder="अपघात संख्या"
+                    min="0"
+                  />
+                </Form.Group>
+              </div>
+
+              {/* 17. UTR Number */}
+              <div className="col-md-6">
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    UTR Number
+                  </Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="utr_number"
+                    value={formData.utr_number}
+                    onChange={handleChange}
+                    placeholder="UTR क्रमांक प्रविष्ट करा"
+                  />
+                </Form.Group>
+              </div>
+
+              {/* 18. Any Other Information(इतर माहिती) */}
               <div className="col-12">
                 <Form.Group>
                   <Form.Label className="fw-semibold">
-                    Additional Remarks (इतर माहिती)
+                    Any Other Information(इतर माहिती)
                   </Form.Label>
-
                   <Form.Control
                     as="textarea"
-                    rows={4}
-                    name="additionalRemarks"
-                    value={formData.additionalRemarks}
+                    rows={3}
+                    name="any_other_information"
+                    value={formData.any_other_information}
                     onChange={handleChange}
-                    placeholder="Enter additional remarks / other information"
+                    placeholder="इतर कोणतीही माहिती असल्यास येथे लिहा"
                   />
                 </Form.Group>
               </div>
 
-            </div>
-
-            <div className="mt-5 mb-3">
-              <h5 className="fw-bold border-bottom pb-2">
-                Today's Machine 1 (आजची मशीन 1)
-              </h5>
-            </div>
-
-            <div className="row g-3">
-
+              {/* 19. Meeting Photo 1 (बैठकीचे फोटो १) */}
               <div className="col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold">
-                    Today's Machine 1 Total Test Amount (₹)
-                    <small className="text-muted d-block">
-                      आजची मशीन 1 तपासणीची एकूण रक्कम (₹)
-                    </small>
-                  </Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="machine1TestAmount"
-                    value={formData.machine1TestAmount}
-                    onChange={handleChange}
-                    placeholder="Enter test amount"
-                    min="0"
-                  />
-                </Form.Group>
-              </div>
-
-              <div className="col-md-6">
-                <Form.Group>
-                  <Form.Label className="fw-semibold">
-                    Today's Machine 1 Total Medicine Amount (₹)
-                    <small className="text-muted d-block">
-                      आजची मशीन 1 औषधांची एकूण रक्कम (₹)
-                    </small>
-                  </Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="machine1MedicineAmount"
-                    value={formData.machine1MedicineAmount}
-                    onChange={handleChange}
-                    placeholder="Enter medicine amount"
-                    min="0"
-                  />
-                </Form.Group>
-              </div>
-
-              <div className="col-md-6">
-                <Form.Group>
-                  <Form.Label className="fw-semibold">
-                    Today's Machine 1 Total Amount (₹)
-                    <small className="text-muted d-block">
-                      आजची मशीन 1 एकूण रक्कम (₹)
-                    </small>
-                  </Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="machine1TotalAmount"
-                    value={formData.machine1TotalAmount}
-                    onChange={handleChange}
-                    placeholder="Enter total amount"
-                    min="0"
-                  />
-                </Form.Group>
-              </div>
-
-              <div className="col-md-6">
-                <Form.Group>
-                  <Form.Label className="fw-semibold">
-                    Today's Machine 1 Camp Name
-                    <small className="text-muted d-block">
-                      आजच्या मशीन 1 शिबिराचे नाव
-                    </small>
-                  </Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="machine1CampName"
-                    value={formData.machine1CampName}
-                    onChange={handleChange}
-                    placeholder="Enter camp name"
-                  />
-                </Form.Group>
-              </div>
-
-            </div>
-
-            <div className="mt-5 mb-3">
-              <h5 className="fw-bold border-bottom pb-2">
-                Today's Machine 2 (आजची मशीन 2)
-              </h5>
-            </div>
-
-            <div className="row g-3">
-
-              <div className="col-md-6">
-                <Form.Group>
-                  <Form.Label className="fw-semibold">
-                    Today's Machine 2 Total Test Amount (₹)
-                    <small className="text-muted d-block">
-                      आजची मशीन 2 तपासणीची एकूण रक्कम (₹)
-                    </small>
-                  </Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="machine2TestAmount"
-                    value={formData.machine2TestAmount}
-                    onChange={handleChange}
-                    placeholder="Enter test amount"
-                    min="0"
-                  />
-                </Form.Group>
-              </div>
-
-              <div className="col-md-6">
-                <Form.Group>
-                  <Form.Label className="fw-semibold">
-                    Today's Machine 2 Total Medicine Amount (₹)
-                    <small className="text-muted d-block">
-                      आजची मशीन 2 औषधांची एकूण रक्कम (₹)
-                    </small>
-                  </Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="machine2MedicineAmount"
-                    value={formData.machine2MedicineAmount}
-                    onChange={handleChange}
-                    placeholder="Enter medicine amount"
-                    min="0"
-                  />
-                </Form.Group>
-              </div>
-
-              <div className="col-md-6">
-                <Form.Group>
-                  <Form.Label className="fw-semibold">
-                    Today's Machine 2 Total Amount (₹)
-                    <small className="text-muted d-block">
-                      आजची मशीन 2 एकूण रक्कम (₹)
-                    </small>
-                  </Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="machine2TotalAmount"
-                    value={formData.machine2TotalAmount}
-                    onChange={handleChange}
-                    placeholder="Enter total amount"
-                    min="0"
-                  />
-                </Form.Group>
-              </div>
-
-              <div className="col-md-6">
-                <Form.Group>
-                  <Form.Label className="fw-semibold">
-                    Today's Machine 2 Camp Name
-                    <small className="text-muted d-block">
-                      आजच्या मशीन 2 शिबिराचे नाव
-                    </small>
-                  </Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="machine2CampName"
-                    value={formData.machine2CampName}
-                    onChange={handleChange}
-                    placeholder="Enter camp name"
-                  />
-                </Form.Group>
-              </div>
-
-            </div>
-
-            <div className="mt-5 mb-3">
-              <h5 className="fw-bold border-bottom pb-2">
-                Transaction Details (व्यवहाराची माहिती)
-              </h5>
-            </div>
-
-            <div className="row g-3">
-              <div className="col-12">
-                <Form.Group>
-                  <Form.Label className="fw-semibold">
-                    Machine 1 and Machine 2 UTR Number
-                    <small className="text-muted d-block">
-                      मशीन 1 आणि मशीन 2 च्या व्यवहारांचे UTR क्रमांक
-                    </small>
-                  </Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="utrNumber"
-                    value={formData.utrNumber}
-                    onChange={handleChange}
-                    placeholder="Enter UTR number"
-                  />
-                </Form.Group>
-              </div>
-            </div>
-
-            <div className="mt-5 mb-3">
-              <h5 className="fw-bold border-bottom pb-2">
-                Camp Photos (शिबिराचे फोटो)
-              </h5>
-            </div>
-
-            <div className="row g-3 pb-3">
-
-              <div className="col-md-6">
-                <Form.Group>
-                  <Form.Label className="fw-semibold">
-                    Machine 1 Camp Photo
-                    <span className="text-danger">*</span>
-                    <small className="text-muted d-block">
-                      मशीन 1 च्या शिबिराचा फोटो
-                    </small>
+                    Meeting Photo 1 (बैठकीचे फोटो १)
                   </Form.Label>
                   <Form.Control
                     type="file"
-                    name="machine1CampPhoto"
+                    name="meeting_photo_1"
+                    accept="image/*"
                     onChange={handleChange}
-                    accept="image/jpeg,image/jpg,image/png,image/webp"
                   />
-                  {formData.machine1CampPhoto && (
-                    <>
-                      <div className="text-success small mt-2">
-                        {formData.machine1CampPhoto instanceof File
-                          ? `Selected: ${fileName(formData.machine1CampPhoto)}`
-                          : `Current: ${fileName(formData.machine1CampPhoto)}`}
-                      </div>
-
-                      {getImageUrl(formData.machine1CampPhoto) && (
-                        <img
-                          src={getImageUrl(formData.machine1CampPhoto)}
-                          alt="Machine 1 Camp Preview"
-                          className="mt-2"
-                          style={{
-                            width: "110px",
-                            height: "85px",
-                            objectFit: "cover",
-                            borderRadius: "6px",
-                            border: "1px solid #dee2e6",
-                            display: "block",
-                          }}
-                        />
-                      )}
-                    </>
+                  {formData.meeting_photo_1 && (
+                    <small className="text-muted d-block mt-1">
+                      Selected: {formData.meeting_photo_1 instanceof File ? formData.meeting_photo_1.name : "Existing Photo 1"}
+                    </small>
                   )}
                 </Form.Group>
               </div>
 
+              {/* 20. Meeting Photo 2 (बैठकीचे फोटो २ ) */}
               <div className="col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold">
-                    Machine 2 Camp Photo
-                    <small className="text-muted d-block">
-                      मशीन 2 च्या शिबिराचा फोटो
-                    </small>
+                    Meeting Photo 2 (बैठकीचे फोटो २ )
                   </Form.Label>
                   <Form.Control
                     type="file"
-                    name="machine2CampPhoto"
+                    name="meeting_photo_2"
+                    accept="image/*"
                     onChange={handleChange}
-                    accept="image/jpeg,image/jpg,image/png,image/webp"
                   />
-                  {formData.machine2CampPhoto && (
-                    <>
-                      <div className="text-success small mt-2">
-                        {formData.machine2CampPhoto instanceof File
-                          ? `Selected: ${fileName(formData.machine2CampPhoto)}`
-                          : `Current: ${fileName(formData.machine2CampPhoto)}`}
-                      </div>
-
-                      {getImageUrl(formData.machine2CampPhoto) && (
-                        <img
-                          src={getImageUrl(formData.machine2CampPhoto)}
-                          alt="Machine 2 Camp Preview"
-                          className="mt-2"
-                          style={{
-                            width: "110px",
-                            height: "85px",
-                            objectFit: "cover",
-                            borderRadius: "6px",
-                            border: "1px solid #dee2e6",
-                            display: "block",
-                          }}
-                        />
-                      )}
-                    </>
+                  {formData.meeting_photo_2 && (
+                    <small className="text-muted d-block mt-1">
+                      Selected: {formData.meeting_photo_2 instanceof File ? formData.meeting_photo_2.name : "Existing Photo 2"}
+                    </small>
                   )}
                 </Form.Group>
               </div>
-
             </div>
-
           </Modal.Body>
 
-          <Modal.Footer className="district-report-modal-footer">
-            <Button
-              variant="secondary"
-              type="button"
-              onClick={handleClose}
-              disabled={saving}
-            >
+          <Modal.Footer>
+            <Button variant="secondary" onClick={handleClose} disabled={saving}>
               Cancel
             </Button>
-
-            <Button
-              variant="dark"
-              type="submit"
-              disabled={saving}
-            >
-              {saving ? (
-                <>
-                  <Spinner animation="border" size="sm" className="me-2" />
-                  Saving...
-                </>
-              ) : (
-                editingId !== null ? "Update Report" : "Add Report"
-              )}
+            <Button variant="dark" type="submit" disabled={saving}>
+              {saving ? "Saving..." : editingId ? "Update Report" : "Save Report"}
             </Button>
           </Modal.Footer>
         </Form>
       </Modal>
-
-      <style>{`
-        .district-dashboard .table-responsive {
-          -webkit-overflow-scrolling: touch;
-        }
-
-        .district-dashboard .table th,
-        .district-dashboard .table td {
-          white-space: nowrap;
-        }
-
-        .district-dashboard .table th,
-        .district-dashboard .table td {
-          font-size: 13px;
-          vertical-align: middle;
-        }
-
-        .district-dashboard .table th {
-          white-space: nowrap;
-        }
-
-        .district-dashboard .table td {
-          white-space: nowrap;
-        }
-
-        @media (max-width: 767.98px) {
-
-          .district-dashboard main.container-fluid {
-            padding: 12px !important;
-          }
-
-          .district-dashboard .navbar {
-            padding-left: 12px !important;
-            padding-right: 12px !important;
-          }
-
-          .district-dashboard .navbar .d-flex.align-items-center.gap-3 {
-            gap: 8px !important;
-          }
-
-          .district-dashboard .navbar small {
-            display: none;
-          }
-
-          .district-dashboard h3 {
-            font-size: 1.5rem;
-          }
-
-          .district-dashboard .table-responsive {
-            overflow-x: auto;
-          }
-
-          .district-dashboard .district-report-modal {
-            width: calc(100% - 16px) !important;
-            margin: 8px auto !important;
-          }
-
-          .district-dashboard .district-report-modal-body {
-            max-height: 72vh !important;
-            padding: 16px !important;
-          }
-
-          .district-dashboard .district-report-modal-footer {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-          }
-
-          .district-dashboard .district-report-modal-footer > button {
-            width: 100%;
-            margin: 0 !important;
-          }
-        }
-
-        @media (min-width: 768px) and (max-width: 1199.98px) {
-
-          .district-dashboard .table-responsive {
-            overflow-x: auto;
-          }
-
-        }
-
-        .table th,
-        .table td {
-          white-space: nowrap;
-          font-size: 13px;
-          vertical-align: middle;
-        }
-
-        .table-responsive {
-          overflow-x: auto;
-        }
-
-        .district-report-modal {
-          max-width: 1200px;
-          width: 95%;
-        }
-
-        .district-report-modal .modal-content {
-          max-height: 90vh;
-          border: none;
-          border-radius: 12px;
-          overflow: hidden;
-        }
-
-        .district-report-modal .modal-header {
-          flex-shrink: 0;
-          background: #fff;
-          padding: 20px 30px;
-          border-bottom: 1px solid #dee2e6;
-        }
-
-        .district-report-modal .modal-header .modal-title {
-          font-size: 30px;
-          font-weight: 700;
-        }
-
-        .district-report-modal-body {
-          max-height: calc(90vh - 145px);
-          overflow-y: auto;
-          overflow-x: hidden;
-          padding: 28px 30px;
-        }
-
-        .district-report-modal-body::-webkit-scrollbar {
-          width: 8px;
-        }
-
-        .district-report-modal-body::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 10px;
-        }
-
-        .district-report-modal-body::-webkit-scrollbar-thumb {
-          background: #adb5bd;
-          border-radius: 10px;
-        }
-
-        .district-report-modal-footer {
-          flex-shrink: 0;
-          background: #fff;
-          border-top: 1px solid #dee2e6;
-          padding: 14px 30px;
-        }
-
-        .district-report-modal .form-control {
-          min-height: 46px;
-          border-radius: 7px;
-        }
-
-        .district-report-modal .form-label {
-          margin-bottom: 7px;
-        }
-
-        @media (max-width: 768px) {
-          .district-report-modal {
-            width: 96%;
-            margin: 0 auto;
-          }
-
-          .district-report-modal .modal-content {
-            max-height: 94vh;
-          }
-
-          .district-report-modal-body {
-            max-height: calc(94vh - 145px);
-            padding: 20px;
-          }
-
-          .district-report-modal .modal-header {
-            padding: 16px 20px;
-          }
-
-          .district-report-modal .modal-header .modal-title {
-            font-size: 24px;
-          }
-
-          .district-report-modal-footer {
-            padding: 12px 20px;
-          }
-        }
-      `}</style>
     </div>
   );
 };

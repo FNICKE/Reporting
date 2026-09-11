@@ -46,6 +46,12 @@ const EMPTY_FORM = {
     vibhagId: "",
     vibhag: "",
     contactNumber: "",
+    designation: "",
+    joiningDate: "",
+    accountNumber: "",
+    ifscCode: "",
+    bankName: "",
+    status: "active",
     email: "",
     userId: "admin",
     password: "",
@@ -1365,6 +1371,36 @@ const Trainer = () => {
                     item?.contactNumber ||
                     "",
 
+                designation:
+                    item?.designation ||
+                    "",
+
+                joiningDate:
+                    item?.joining_date
+                        ? String(item.joining_date).split("T")[0]
+                        : item?.joiningDate
+                        ? String(item.joiningDate).split("T")[0]
+                        : "",
+
+                accountNumber:
+                    item?.account_number ||
+                    item?.accountNumber ||
+                    "",
+
+                ifscCode:
+                    item?.ifsc_code ||
+                    item?.ifscCode ||
+                    "",
+
+                bankName:
+                    item?.bank_name ||
+                    item?.bankName ||
+                    "",
+
+                status:
+                    item?.status ||
+                    "active",
+
                 email:
                     item?.email ||
                     "",
@@ -1636,6 +1672,30 @@ const Trainer = () => {
 
                 contact_number:
                     formData.contactNumber.trim(),
+
+                designation:
+                    formData.designation?.trim() ||
+                    null,
+
+                joining_date:
+                    formData.joiningDate ||
+                    null,
+
+                account_number:
+                    formData.accountNumber?.trim() ||
+                    null,
+
+                ifsc_code:
+                    formData.ifscCode?.trim() ||
+                    null,
+
+                bank_name:
+                    formData.bankName?.trim() ||
+                    null,
+
+                status:
+                    formData.status ||
+                    "active",
 
                 user_id:
                     formData.userId.trim(),
@@ -3457,11 +3517,7 @@ const Trainer = () => {
                             className="fw-bold"
                         >
 
-                            {
-                                editingId
-                                    ? "Edit BDO Officer"
-                                    : "Add BDO Officer"
-                            }
+                            {editingId ? "Edit BDO Officer (BDO अधिकारी संपादित करा)" : "Add BDO Officer (BDO अधिकारी जोडा)"}
 
                         </Modal.Title>
 
@@ -3470,415 +3526,285 @@ const Trainer = () => {
 
                     <Modal.Body className="trainer-modal-body">
 
-                        <div
-                            className="
-                                row
-                                g-3
-                                mx-0
-                            "
-                        >
+                        <div className="row g-3 mx-0">
 
-                            {/* BDO Officer Name */}
-
-                            <div
-                                className="col-md-6"
-                            >
-
+                            {/* 1. Full Name */}
+                            <div className="col-md-6">
                                 <Form.Group>
-
-                                    <Form.Label>
-                                        BDO Officer Name
+                                    <Form.Label className="fw-semibold">
+                                        Full Name (पूर्ण नाव)
                                     </Form.Label>
-
                                     <Form.Control
                                         type="text"
                                         name="name"
-                                        value={
-                                            formData.name
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
-                                        placeholder="Enter BDO Officer name"
+                                        value={formData.name}
+                                        onChange={handleChange}
+                                        placeholder="पूर्ण नाव प्रविष्ट करा"
                                     />
-
                                 </Form.Group>
-
                             </div>
 
-
-                            {/* BDO Officer ID */}
-
-                            <div
-                                className="col-md-6"
-                            >
-
+                            {/* 2. Head ID / BDO Officer ID */}
+                            <div className="col-md-6">
                                 <Form.Group>
-
-                                    <Form.Label>
-                                        BDO Officer ID
+                                    <Form.Label className="fw-semibold">
+                                        Head ID (हेड आयडी / BDO अधिकारी क्रमांक)
                                     </Form.Label>
-
                                     <Form.Control
                                         type="text"
                                         name="trainerId"
-                                        value={
-                                            formData.trainerId
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
+                                        value={formData.trainerId}
+                                        onChange={handleChange}
                                         readOnly
                                         style={{
                                             backgroundColor: "#f8f9fa",
                                             fontWeight: "600",
                                             color: "#212529",
                                         }}
-                                        placeholder="Enter BDO Officer ID"
+                                        placeholder="हेड आयडी"
                                     />
-
                                 </Form.Group>
-
                             </div>
 
-
-                            {/* District */}
-
-                            <div
-                                className="col-md-6"
-                            >
-
+                            {/* 3. Designation */}
+                            <div className="col-md-6">
                                 <Form.Group>
-
-                                    <Form.Label>
-                                        Select District
+                                    <Form.Label className="fw-semibold">
+                                        Designation (पद)
                                     </Form.Label>
+                                    <Form.Control
+                                        type="text"
+                                        name="designation"
+                                        value={formData.designation}
+                                        onChange={handleChange}
+                                        placeholder="पद प्रविष्ट करा"
+                                    />
+                                </Form.Group>
+                            </div>
 
+                            {/* 4. District */}
+                            <div className="col-md-6">
+                                <Form.Group>
+                                    <Form.Label className="fw-semibold">
+                                        District (जिल्हा)
+                                    </Form.Label>
                                     <Form.Select
                                         name="districtId"
-                                        value={
-                                            formData.districtId
-                                        }
-                                        onChange={
-                                            handleDistrictChange
-                                        }
+                                        value={formData.districtId}
+                                        onChange={handleDistrictChange}
                                     >
-
-                                        <option value="">
-                                            Select District
-                                        </option>
-
-
-                                        {districts.map(
-                                            (
-                                                district
-                                            ) => (
-
-                                                <option
-                                                    key={
-                                                        district.id
-                                                    }
-                                                    value={
-                                                        district.id
-                                                    }
-                                                >
-
-                                                    {
-                                                        getDistrictName(
-                                                            district
-                                                        )
-                                                    }
-
-                                                </option>
-
-                                            )
-                                        )}
-
+                                        <option value="">जिल्हा निवडा</option>
+                                        {districts.map((district) => (
+                                            <option key={district.id} value={district.id}>
+                                                {getDistrictName(district)}
+                                            </option>
+                                        ))}
                                     </Form.Select>
-
                                 </Form.Group>
-
                             </div>
 
-
-                            {/* Taluka */}
-
-                            <div
-                                className="col-md-6"
-                            >
-
+                            {/* 5. Taluka */}
+                            <div className="col-md-6">
                                 <Form.Group>
-
-                                    <Form.Label>
-                                        Select Taluka
+                                    <Form.Label className="fw-semibold">
+                                        Taluka (तालुका)
                                     </Form.Label>
-
                                     <Form.Select
                                         name="talukaId"
-                                        value={
-                                            formData.talukaId
-                                        }
-                                        onChange={
-                                            handleTalukaChange
-                                        }
-                                        disabled={
-                                            !formData.districtId
-                                        }
+                                        value={formData.talukaId}
+                                        onChange={handleTalukaChange}
+                                        disabled={!formData.districtId}
                                     >
-
-                                        <option value="">
-                                            Select Taluka
-                                        </option>
-
-
-                                        {talukas.map(
-                                            (
-                                                taluka
-                                            ) => (
-
-                                                <option
-                                                    key={
-                                                        taluka.id
-                                                    }
-                                                    value={
-                                                        taluka.id
-                                                    }
-                                                >
-
-                                                    {
-                                                        getTalukaName(
-                                                            taluka
-                                                        )
-                                                    }
-
-                                                </option>
-
-                                            )
-                                        )}
-
+                                        <option value="">तालुका निवडा</option>
+                                        {talukas.map((taluka) => (
+                                            <option key={taluka.id} value={taluka.id}>
+                                                {getTalukaName(taluka)}
+                                            </option>
+                                        ))}
                                     </Form.Select>
-
                                 </Form.Group>
-
                             </div>
 
-
-                            {/* Vibhag */}
-
-                            <div
-                                className="col-md-6"
-                            >
-
+                            {/* 6. Vibhag */}
+                            <div className="col-md-6">
                                 <Form.Group>
-
-                                    <Form.Label>
-                                        Select Vibhag
+                                    <Form.Label className="fw-semibold">
+                                        Vibhag (विभाग)
                                     </Form.Label>
-
                                     <Form.Select
                                         name="vibhagId"
-                                        value={
-                                            formData.vibhagId
-                                        }
-                                        onChange={
-                                            handleVibhagChange
-                                        }
-                                        disabled={
-                                            !formData.talukaId
-                                        }
+                                        value={formData.vibhagId}
+                                        onChange={handleVibhagChange}
+                                        disabled={!formData.talukaId}
                                     >
-
-                                        <option value="">
-                                            Select Vibhag
-                                        </option>
-
-
-                                        {vibhags.map(
-                                            (
-                                                vibhag
-                                            ) => (
-
-                                                <option
-                                                    key={
-                                                        vibhag.id
-                                                    }
-                                                    value={
-                                                        vibhag.id
-                                                    }
-                                                >
-
-                                                    {
-                                                        getVibhagName(
-                                                            vibhag
-                                                        )
-                                                    }
-
-                                                </option>
-
-                                            )
-                                        )}
-
+                                        <option value="">विभाग निवडा</option>
+                                        {vibhags.map((vibhag) => (
+                                            <option key={vibhag.id} value={vibhag.id}>
+                                                {getVibhagName(vibhag)}
+                                            </option>
+                                        ))}
                                     </Form.Select>
-
                                 </Form.Group>
-
                             </div>
 
-
-                            {/* Contact */}
-
-                            <div
-                                className="col-md-6"
-                            >
-
+                            {/* 7. Mobile Number */}
+                            <div className="col-md-6">
                                 <Form.Group>
-
-                                    <Form.Label>
-                                        Contact Number
+                                    <Form.Label className="fw-semibold">
+                                        Mobile Number (मोबाईल क्रमांक)
                                     </Form.Label>
-
                                     <Form.Control
                                         type="tel"
                                         name="contactNumber"
-                                        value={
-                                            formData.contactNumber
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
+                                        value={formData.contactNumber}
+                                        onChange={handleChange}
                                         maxLength={10}
-                                        placeholder="Enter 10 digit contact number"
+                                        placeholder="१० अंकी मोबाईल क्रमांक"
                                     />
-
                                 </Form.Group>
-
                             </div>
 
-
-                            {/* Email */}
-
-                            <div
-                                className="col-md-6"
-                            >
-
+                            {/* 8. Joining Date */}
+                            <div className="col-md-6">
                                 <Form.Group>
-
-                                    <Form.Label>
-                                        Email
+                                    <Form.Label className="fw-semibold">
+                                        Joining Date (रुजू तारीख)
                                     </Form.Label>
+                                    <Form.Control
+                                        type="date"
+                                        name="joiningDate"
+                                        value={formData.joiningDate}
+                                        onChange={handleChange}
+                                    />
+                                </Form.Group>
+                            </div>
 
+                            {/* 9. Status */}
+                            <div className="col-md-6">
+                                <Form.Group>
+                                    <Form.Label className="fw-semibold">
+                                        Status (स्थिती)
+                                    </Form.Label>
+                                    <Form.Select
+                                        name="status"
+                                        value={formData.status}
+                                        onChange={handleChange}
+                                    >
+                                        <option value="active">Active (सक्रिय)</option>
+                                        <option value="inactive">Inactive (निष्क्रिय)</option>
+                                    </Form.Select>
+                                </Form.Group>
+                            </div>
+
+                            {/* 10. Account Number */}
+                            <div className="col-md-6">
+                                <Form.Group>
+                                    <Form.Label className="fw-semibold">
+                                        Account Number (खाते क्रमांक)
+                                    </Form.Label>
+                                    <Form.Control
+                                        type="text"
+                                        name="accountNumber"
+                                        value={formData.accountNumber}
+                                        onChange={handleChange}
+                                        placeholder="बँक खाते क्रमांक प्रविष्ट करा"
+                                    />
+                                </Form.Group>
+                            </div>
+
+                            {/* 11. IFSC Code */}
+                            <div className="col-md-6">
+                                <Form.Group>
+                                    <Form.Label className="fw-semibold">
+                                        IFSC Code (आयएफएससी कोड)
+                                    </Form.Label>
+                                    <Form.Control
+                                        type="text"
+                                        name="ifscCode"
+                                        value={formData.ifscCode}
+                                        onChange={handleChange}
+                                        placeholder="IFSC कोड प्रविष्ट करा"
+                                    />
+                                </Form.Group>
+                            </div>
+
+                            {/* 12. Bank Name */}
+                            <div className="col-md-6">
+                                <Form.Group>
+                                    <Form.Label className="fw-semibold">
+                                        Bank Name (बँकेचे नाव)
+                                    </Form.Label>
+                                    <Form.Control
+                                        type="text"
+                                        name="bankName"
+                                        value={formData.bankName}
+                                        onChange={handleChange}
+                                        placeholder="बँकेचे नाव प्रविष्ट करा"
+                                    />
+                                </Form.Group>
+                            </div>
+
+                            {/* 13. Email */}
+                            <div className="col-md-6">
+                                <Form.Group>
+                                    <Form.Label className="fw-semibold">
+                                        Email (ईमेल)
+                                    </Form.Label>
                                     <Form.Control
                                         type="email"
                                         name="email"
-                                        value={
-                                            formData.email
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
-                                        placeholder="Enter email"
+                                        value={formData.email}
+                                        onChange={handleChange}
+                                        placeholder="ईमेल पत्ता प्रविष्ट करा"
                                     />
-
                                 </Form.Group>
-
                             </div>
 
-
-                            {/* User ID */}
-
-                            <div
-                                className="col-md-6"
-                            >
-
+                            {/* 14. User ID */}
+                            <div className="col-md-6">
                                 <Form.Group>
-
-                                    <Form.Label>
-                                        User ID
+                                    <Form.Label className="fw-semibold">
+                                        User ID (वापरकर्ता आयडी)
                                     </Form.Label>
-
                                     <Form.Control
                                         type="text"
                                         name="userId"
-                                        value={
-                                            formData.userId
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
-                                        placeholder="Enter user ID"
+                                        value={formData.userId}
+                                        onChange={handleChange}
+                                        placeholder="वापरकर्ता आयडी प्रविष्ट करा"
                                     />
-
                                 </Form.Group>
-
                             </div>
 
-
-                            {/* Password */}
-
-                            <div
-                                className="col-md-6"
-                            >
-
+                            {/* 15. Password */}
+                            <div className="col-md-6">
                                 <Form.Group>
-
-                                    <Form.Label>
-                                        Password
-                                        {!editingId &&
-                                            " *"}
+                                    <Form.Label className="fw-semibold">
+                                        Password (पासवर्ड)
+                                        {!editingId && " *"}
                                     </Form.Label>
-
-                                    <div
-                                        className="password-input-wrapper"
-                                    >
-
+                                    <div className="password-input-wrapper">
                                         <Form.Control
-                                            type={
-                                                showPassword
-                                                    ? "text"
-                                                    : "password"
-                                            }
+                                            type={showPassword ? "text" : "password"}
                                             name="password"
-                                            value={
-                                                formData.password
-                                            }
-                                            onChange={
-                                                handleChange
-                                            }
-                                            placeholder="Enter Password"
+                                            value={formData.password}
+                                            onChange={handleChange}
+                                            placeholder="पासवर्ड प्रविष्ट करा"
                                             autoComplete="new-password"
                                             className="password-form-control"
                                         />
-
                                         <button
                                             type="button"
                                             className="password-toggle-button"
-                                            onClick={() =>
-                                                setShowPassword(
-                                                    (prev) => !prev
-                                                )
-                                            }
-                                            aria-label={
-                                                showPassword
-                                                    ? "Hide password"
-                                                    : "Show password"
-                                            }
-                                            title={
-                                                showPassword
-                                                    ? "Hide password"
-                                                    : "Show password"
-                                            }
+                                            onClick={() => setShowPassword((prev) => !prev)}
+                                            aria-label={showPassword ? "Hide password" : "Show password"}
+                                            title={showPassword ? "Hide password" : "Show password"}
                                         >
-                                            {showPassword
-                                                ? "🙈"
-                                                : "👁️"}
+                                            {showPassword ? "🙈" : "👁️"}
                                         </button>
-
                                     </div>
-
                                 </Form.Group>
-
                             </div>
-
 
                         </div>
 
@@ -3890,32 +3816,24 @@ const Trainer = () => {
                         <Button
                             variant="secondary"
                             type="button"
-                            onClick={
-                                closeModal
-                            }
-                            disabled={
-                                saving
-                            }
+                            onClick={closeModal}
+                            disabled={saving}
                         >
-                            Cancel
+                            Cancel (रद्द करा)
                         </Button>
 
 
                         <Button
                             variant="dark"
                             type="submit"
-                            disabled={
-                                saving
-                            }
+                            disabled={saving}
                         >
 
-                            {
-                                saving
-                                    ? "Saving..."
-                                    : editingId
-                                        ? "Update BDO Officer"
-                                        : "Add BDO Officer"
-                            }
+                            {saving
+                                ? "Saving..."
+                                : editingId
+                                    ? "Update BDO Officer (अद्यतनित करा)"
+                                    : "Add BDO Officer (जोडा)"}
 
                         </Button>
 
