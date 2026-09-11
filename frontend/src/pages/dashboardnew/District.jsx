@@ -726,10 +726,8 @@
         }
 
         const requiredFields = [
-          ["reportDate", "Report Date"],
           ["designation", "Designation"],
           ["districtName", "District"],
-          ["districtCode", "District ID"],
           ["joiningDate", "Joining Date"],
           ["accountNumber", "Account Number"],
           ["ifscCode", "IFSC Code"],
@@ -1109,51 +1107,18 @@
           const excelData = filteredDistricts.map(
             (district, index) => ({
               SR: index + 1,
-
-              "Full Name":
-                district.name || "",
-
-              "Mobile Number":
-                district.contactNumber || "",
-
-              "Report Date":
-                district.reportDate || "",
-
-              Designation:
-                district.designation || "",
-
-              District:
-                district.districtName || "",
-
-              "District ID":
-                district.districtCode || "",
-
-              Taluka:
-                district.taluka || "",
-
-              "Joining Date":
-                district.joiningDate || "",
-
-              "Account No.":
-                district.accountNumber || "",
-
-              "IFSC Code":
-                district.ifscCode || "",
-
-              "Bank Name":
-                district.bankName || "",
-
-              Email:
-                district.email || "",
-
-              "User ID":
-                district.userId || "",
-
-              Password:
-                district.password || "",
-
-              Status:
-                district.status || "",
+              "District ID": district.districtCode || getDistrictHeadId(district, index),
+              "Full Name": district.name || "",
+              "Mobile Number": district.contactNumber || "",
+              Designation: district.designation || "",
+              District: district.districtName || "",
+              "Joining Date": district.joiningDate || "",
+              Status: district.status || "",
+              "Account No.": district.accountNumber || "",
+              "IFSC Code": district.ifscCode || "",
+              "Bank Name": district.bankName || "",
+              "User ID": district.userId || "",
+              Password: district.password || "",
             })
           );
 
@@ -1544,153 +1509,89 @@
                   >
 
                     <tr>
-
-                      <th>
-                        SR
-                      </th>
-
+                      <th>SR</th>
+                      <th>District ID</th>
                       <th>Full Name</th>
                       <th>Mobile Number</th>
-                      <th>Report Date</th>
                       <th>Designation</th>
                       <th>District</th>
-                      <th>District ID</th>
-                      <th>Taluka</th>
                       <th>Joining Date</th>
+                      <th>Status</th>
                       <th>Account No.</th>
                       <th>IFSC Code</th>
                       <th>Bank Name</th>
-                      <th>Email</th>
                       <th>User ID</th>
                       <th>Password</th>
-                      <th>Status</th>
-
-                      <th>
-                        Action
-                      </th>
-
+                      <th>Action</th>
                     </tr>
-
                   </thead>
 
-
                   <tbody>
-
                     {loading && (
-
                       <tr>
-
-                        <td
-                          colSpan="16"
-                          className="
-                            text-center
-                            py-5
-                          "
-                        >
-
+                        <td colSpan="14" className="text-center py-5">
                           Loading districts...
-
                         </td>
-
                       </tr>
-
                     )}
 
+                    {!loading && filteredDistricts.length === 0 && (
+                      <tr>
+                        <td colSpan="14" className="text-center py-5 text-muted">
+                          No districts found.
+                        </td>
+                      </tr>
+                    )}
 
                     {!loading &&
-                      filteredDistricts.length === 0 && (
-
-                        <tr>
-
-                          <td
-                          colSpan="16"
-                            className="
-                              text-center
-                              py-5
-                              text-muted
-                            "
-                          >
-
-                            No districts found.
-
+                      filteredDistricts.map((district, index) => (
+                        <tr key={district.id}>
+                          <td>{index + 1}</td>
+                          <td><strong>{district.districtCode || getDistrictHeadId(district, index)}</strong></td>
+                          <td>{district.name || "-"}</td>
+                          <td>{district.contactNumber || "-"}</td>
+                          <td>{district.designation || "-"}</td>
+                          <td>{district.districtName || "-"}</td>
+                          <td>{district.joiningDate || "-"}</td>
+                          <td>
+                            <span
+                              className={`badge ${
+                                district.status === "Inactive" || district.status === "inactive"
+                                  ? "bg-danger-subtle text-danger"
+                                  : "bg-success-subtle text-success"
+                              }`}
+                            >
+                              {district.status}
+                            </span>
                           </td>
-
-                        </tr>
-
-                      )}
-
-
-                    {!loading &&
-                      filteredDistricts.map(
-                        (district, index) => (
-
-                          <tr
-                            key={
-                              district.id
-                            }
-                          >
-
-                            {/* SR */}
-
-                            <td>
-
-                              {index + 1}
-
-                            </td>
-
-
-                            <td>{district.name || "-"}</td>
-                            <td>{district.contactNumber || "-"}</td>
-                            <td>{district.reportDate || "-"}</td>
-                            <td>{district.designation || "-"}</td>
-                            <td>{district.districtName || "-"}</td>
-                            <td>{district.districtCode || "-"}</td>
-                            <td>{district.taluka || "-"}</td>
-                            <td>{district.joiningDate || "-"}</td>
-                            <td>{district.accountNumber || "-"}</td>
-                            <td>{district.ifscCode || "-"}</td>
-                            <td>{district.bankName || "-"}</td>
-                            <td>{district.email || "-"}</td>
-                            <td>{district.userId || "-"}</td>
-                            <td>
-                              {district.password
-                                ? (showPasswords[district.id]
-                                    ? district.password
-                                    : "••••••••")
-                                : "-"}
-                              {district.password && (
-                                <Button
-                                  type="button"
-                                  variant="link"
-                                  size="sm"
-                                  className="p-0 ms-2 text-decoration-none"
-                                  onClick={() =>
-                                    togglePassword(district.id)
-                                  }
-                                  disabled={loading}
-                                >
-                                  {showPasswords[district.id]
-                                    ? "Hide"
-                                    : "Show"}
-                                </Button>
-                              )}
-                            </td>
-
-                            <td>
-                              <span
-                                className={`badge ${
-                                  district.status === "Inactive"
-                                    ? "bg-danger-subtle text-danger"
-                                    : "bg-success-subtle text-success"
-                                }`}
+                          <td>{district.accountNumber || "-"}</td>
+                          <td>{district.ifscCode || "-"}</td>
+                          <td>{district.bankName || "-"}</td>
+                          <td>{district.userId || "-"}</td>
+                          <td>
+                            {district.password
+                              ? (showPasswords[district.id]
+                                  ? district.password
+                                  : "••••••••")
+                              : "-"}
+                            {district.password && (
+                              <Button
+                                type="button"
+                                variant="link"
+                                size="sm"
+                                className="p-0 ms-2 text-decoration-none"
+                                onClick={() =>
+                                  togglePassword(district.id)
+                                }
+                                disabled={loading}
                               >
-                                {district.status}
-                              </span>
-                            </td>
-
-                            {/* ACTION */}
-
-                            <td>
+                                {showPasswords[district.id]
+                                  ? "Hide"
+                                  : "Show"}
+                              </Button>
+                            )}
+                          </td>
+                          <td>
 
                               <div
                                 className="
@@ -1893,22 +1794,6 @@
                     </Form.Group>
                   </div>
 
-                  {/* TALUKA (OPTIONAL) */}
-                  <div className="col-md-6">
-                    <Form.Group>
-                      <Form.Label className="fw-semibold">
-                        Taluka (तालुका) <span className="text-muted fw-normal">(Optional / पर्यायी)</span>
-                      </Form.Label>
-                      <Form.Control
-                        type="text"
-                        name="taluka"
-                        value={formData.taluka}
-                        onChange={handleChange}
-                        placeholder="तालुका प्रविष्ट करा (पर्यायी)"
-                        disabled={loading}
-                      />
-                    </Form.Group>
-                  </div>
 
                   {/* JOINING DATE */}
                   <div className="col-md-6">

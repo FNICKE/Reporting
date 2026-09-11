@@ -1,5 +1,5 @@
 const db = require("../config/db");
-
+const { syncSystemUser, deleteSystemUser } = require("../utils/user.utils");
 
 // =====================================================
 // GET ALL VIBHAGS
@@ -7,72 +7,53 @@ const db = require("../config/db");
 // =====================================================
 
 const getVibhags = async (req, res) => {
-
     try {
-
-        const [rows] = await db.query(
-            `
-SELECT
-    vibhags.id,
-    vibhags.head,
-    vibhags.district_id,
-    districts.name AS district_name,
-    vibhags.taluka_id,
-    talukas.name AS taluka_name,
-    vibhags.contact_number,
-    vibhags.user_id,
-    vibhags.email,
-    vibhags.password,
-    vibhags.vibhag,
-    vibhags.address,
-    vibhags.status,
-    vibhags.created_at,
-    vibhags.updated_at
-FROM vibhags
-
-            LEFT JOIN districts
-                ON vibhags.district_id = districts.id
-
-            LEFT JOIN talukas
-                ON vibhags.taluka_id = talukas.id
-
-            ORDER BY vibhags.id DESC
-            `
-        );
+        const [rows] = await db.query(`
+            SELECT
+                v.id,
+                v.vibhag_code,
+                v.head,
+                v.contact_number,
+                v.designation,
+                v.district_id,
+                d.district_name,
+                d.name AS district_head_name,
+                v.taluka_id,
+                t.taluka_name,
+                t.name AS taluka_head_name,
+                v.vibhag,
+                v.joining_date,
+                v.status,
+                v.account_number,
+                v.ifsc_code,
+                v.bank_name,
+                v.user_id,
+                v.email,
+                v.password,
+                v.address,
+                v.created_at,
+                v.updated_at
+            FROM vibhags v
+            LEFT JOIN districts d ON d.id = v.district_id
+            LEFT JOIN talukas t ON t.id = v.taluka_id
+            ORDER BY v.id DESC
+        `);
 
         return res.status(200).json({
-
             success: true,
-
             data: rows,
-
             vibhags: rows,
-
             total: rows.length,
-
             count: rows.length,
-
         });
 
     } catch (error) {
-
-        console.error(
-            "GET VIBHAGS ERROR:",
-            error
-        );
-
+        console.error("GET VIBHAGS ERROR:", error);
         return res.status(500).json({
-
             success: false,
-
-            message:
-                error.message ||
-                "Failed to fetch vibhags",
-
+            message: error.message || "Failed to fetch vibhags",
         });
-
     }
-
 };
 
 
@@ -81,101 +62,62 @@ FROM vibhags
 // GET /api/vibhag/:id
 // =====================================================
 
-const getVibhagById = async (
-    req,
-    res
-) => {
-
+const getVibhagById = async (req, res) => {
     try {
+        const { id } = req.params;
 
-        const {
-            id
-        } = req.params;
-
-        const [rows] = await db.query(
-
-            `
+        const [rows] = await db.query(`
             SELECT
-                vibhags.id,
-                vibhags.head,
-                vibhags.district_id,
-                districts.name AS district_name,
-                vibhags.taluka_id,
-                talukas.name AS taluka_name,
-                vibhags.contact_number,
-                vibhags.user_id,
-                vibhags.email,
-                vibhags.vibhag,
-                vibhags.address,
-                vibhags.status,
-                vibhags.created_at,
-                vibhags.updated_at
-
-            FROM vibhags
-
-            LEFT JOIN districts
-                ON vibhags.district_id = districts.id
-
-            LEFT JOIN talukas
-                ON vibhags.taluka_id = talukas.id
-
-            WHERE vibhags.id = ?
-
+                v.id,
+                v.vibhag_code,
+                v.head,
+                v.contact_number,
+                v.designation,
+                v.district_id,
+                d.district_name,
+                d.name AS district_head_name,
+                v.taluka_id,
+                t.taluka_name,
+                t.name AS taluka_head_name,
+                v.vibhag,
+                v.joining_date,
+                v.status,
+                v.account_number,
+                v.ifsc_code,
+                v.bank_name,
+                v.user_id,
+                v.email,
+                v.password,
+                v.address,
+                v.created_at,
+                v.updated_at
+            FROM vibhags v
+            LEFT JOIN districts d ON d.id = v.district_id
+            LEFT JOIN talukas t ON t.id = v.taluka_id
+            WHERE v.id = ?
             LIMIT 1
-            `,
+        `, [id]);
 
-            [
-                id
-            ]
-
-        );
-
-        if (
-            rows.length === 0
-        ) {
-
+        if (rows.length === 0) {
             return res.status(404).json({
-
                 success: false,
-
-                message:
-                    "Vibhag not found",
-
+                message: "Vibhag not found",
             });
-
         }
 
         return res.status(200).json({
-
             success: true,
-
-            data:
-                rows[0],
-
-            vibhag:
-                rows[0],
-
+            data: rows[0],
+            vibhag: rows[0],
         });
 
     } catch (error) {
-
-        console.error(
-            "GET VIBHAG ERROR:",
-            error
-        );
-
+        console.error("GET VIBHAG BY ID ERROR:", error);
         return res.status(500).json({
-
             success: false,
-
-            message:
-                error.message ||
-                "Failed to fetch Vibhag",
-
+            message: error.message || "Failed to fetch vibhag",
         });
-
     }
-
 };
 
 
@@ -184,422 +126,182 @@ const getVibhagById = async (
 // POST /api/vibhag
 // =====================================================
 
-const createVibhag = async (
-    req,
-    res
-) => {
-
+const createVibhag = async (req, res) => {
     try {
-
         const {
-
+            vibhag_code,
             head,
+            name,
+            contact_number,
+            designation,
             district_id,
             taluka_id,
-            contact_number,
+            vibhag,
+            joining_date,
+            status = "active",
+            account_number,
+            ifsc_code,
+            bank_name,
             user_id,
             email,
             password,
-            vibhag,
             address,
-            status,
-
         } = req.body;
 
-
-        // =================================================
-        // VALIDATION
-        // =================================================
-
-        if (
-            !head ||
-            !district_id ||
-            !taluka_id ||
-            !user_id ||
-            !password ||
-            !email ||
-            !vibhag
-        ) {
-
+        const finalHead = head || name;
+        if (!finalHead || !String(finalHead).trim()) {
             return res.status(400).json({
-
                 success: false,
-
-                message:
-                    "Required fields are missing",
-
+                message: "Full Name is required",
             });
-
         }
 
-
-        // =================================================
-        // CHECK DISTRICT
-        // =================================================
-
-        const [districtRows] =
-            await db.query(
-
-                `
-                SELECT id
-                FROM districts
-                WHERE id = ?
-                LIMIT 1
-                `,
-
-                [
-                    district_id
-                ]
-
-            );
-
-
-        if (
-            districtRows.length === 0
-        ) {
-
+        if (!district_id) {
             return res.status(400).json({
-
                 success: false,
-
-                message:
-                    "Invalid district",
-
+                message: "District is required",
             });
-
         }
 
-
-        // =================================================
-        // CHECK TALUKA
-        // =================================================
-
-        const [talukaRows] =
-            await db.query(
-
-                `
-                SELECT id
-                FROM talukas
-                WHERE id = ?
-                AND district_id = ?
-                LIMIT 1
-                `,
-
-                [
-
-                    taluka_id,
-
-                    district_id,
-
-                ]
-
-            );
-
-
-        if (
-            talukaRows.length === 0
-        ) {
-
+        if (!taluka_id) {
             return res.status(400).json({
-
                 success: false,
-
-                message:
-                    "Selected taluka does not belong to selected district",
-
+                message: "Taluka is required",
             });
-
         }
 
-
-        // =================================================
-        // CHECK USER ID IN USERS
-        // =================================================
-
-        const [existingUser] =
-            await db.query(
-
-                `
-                SELECT id
-                FROM users
-                WHERE user_id = ?
-                LIMIT 1
-                `,
-
-                [
-                    user_id
-                ]
-
-            );
-
-
-        if (
-            existingUser.length > 0
-        ) {
-
-            return res.status(409).json({
-
-                success: false,
-
-                message:
-                    "User ID already exists",
-
-            });
-
-        }
-
-
-        // =================================================
-        // CHECK USER ID IN VIBHAGS
-        // =================================================
-
-        const [existingVibhag] =
-            await db.query(
-
-                `
-                SELECT id
-                FROM vibhags
-                WHERE user_id = ?
-                LIMIT 1
-                `,
-
-                [
-                    user_id
-                ]
-
-            );
-
-
-        if (
-            existingVibhag.length > 0
-        ) {
-
-            return res.status(409).json({
-
-                success: false,
-
-                message:
-                    "Vibhag User ID already exists",
-
-            });
-
-        }
-
-
-        // =================================================
-        // GET SINGLE DATABASE CONNECTION
-        // NO POOL
-        // =================================================
-
-        const connection =
-            await db.connectDatabase();
-
-
-        try {
-
-            // =================================================
-            // START TRANSACTION
-            // =================================================
-
-            await connection.beginTransaction();
-
-
-            // =================================================
-            // INSERT VIBHAG
-            // =================================================
-
-            const [vibhagResult] =
-                await connection.query(
-
-                    `
-                    INSERT INTO vibhags
-                    (
-                        head,
-                        district_id,
-                        taluka_id,
-                        contact_number,
-                        user_id,
-                        email,
-                        password,
-                        vibhag,
-                        address,
-                        status
-                    )
-
-                    VALUES
-                    (
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        ?,
-                        ?
-                    )
-                    `,
-
-                    [
-
-                        head,
-
-                        district_id,
-
-                        taluka_id,
-
-                        contact_number ||
-                            null,
-
-                        user_id,
-
-                        email,
-
-                        password,
-
-                        vibhag,
-
-                        address ||
-                            null,
-
-                        status ||
-                            "active",
-
-                    ]
-
-                );
-
-
-            // =================================================
-            // INSERT USER
-            // =================================================
-
-            await connection.query(
-
-                `
-                INSERT INTO users
-                (
-                    user_id,
-                    password,
-                    name,
-                    role,
-                    status
-                )
-
-                VALUES
-                (
-                    ?,
-                    ?,
-                    ?,
-                    ?,
-                    ?
-                )
-                `,
-
-                [
-
-                    user_id,
-
-                    password,
-
-                    head,
-
-                    "vibhag",
-
-                    status ||
-                        "active",
-
-                ]
-
-            );
-
-
-            // =================================================
-            // COMMIT
-            // =================================================
-
-            await connection.commit();
-
-
-            // =================================================
-            // SUCCESS
-            // =================================================
-
-            return res.status(201).json({
-
-                success: true,
-
-                message:
-                    "Vibhag and user created successfully",
-
-                data: {
-
-                    id:
-                        vibhagResult.insertId,
-
-                    user_id:
-                        user_id,
-
-                    role:
-                        "vibhag",
-
-                },
-
-                vibhag: {
-
-                    id:
-                        vibhagResult.insertId,
-
-                    user_id:
-                        user_id,
-
-                    role:
-                        "vibhag",
-
-                },
-
-            });
-
-
-        } catch (transactionError) {
-
-            // =================================================
-            // ROLLBACK
-            // =================================================
-
-            await connection.rollback();
-
-            throw transactionError;
-
-        }
-
-        // =================================================
-        // IMPORTANT
-        // NO connection.release()
-        // BECAUSE THIS IS NOT A POOL
-        // =================================================
-
-
-    } catch (error) {
-
-        console.error(
-            "CREATE VIBHAG ERROR:",
-            error
+        const cleanUserId = user_id && String(user_id).trim()
+            ? String(user_id).trim()
+            : String(finalHead).trim();
+
+        const cleanPassword = password && String(password).trim()
+            ? String(password).trim()
+            : "123456";
+
+        // Check duplicate user_id
+        const [userExists] = await db.query(
+            "SELECT id FROM vibhags WHERE user_id = ? LIMIT 1",
+            [cleanUserId]
         );
 
-        return res.status(500).json({
+        if (userExists.length > 0) {
+            return res.status(409).json({
+                success: false,
+                message: "Vibhag User ID already exists",
+            });
+        }
 
-            success: false,
+        // Auto generate vibhag_code if missing
+        let finalVibhagCode = vibhag_code ? String(vibhag_code).trim() : "";
+        if (!finalVibhagCode) {
+            const [maxRows] = await db.query("SELECT MAX(id) as maxId FROM vibhags");
+            const nextNum = (maxRows[0]?.maxId || 0) + 1;
+            finalVibhagCode = `VH-${String(nextNum).padStart(4, "0")}`;
+        }
 
-            message:
-                error.message ||
-                "Failed to create Vibhag",
+        const normalizedStatus =
+            String(status || "active").toLowerCase() === "inactive"
+                ? "inactive"
+                : "active";
 
+        const finalVibhagName = vibhag ? String(vibhag).trim() : (finalHead ? String(finalHead).trim() : finalVibhagCode);
+
+        const [result] = await db.query(`
+            INSERT INTO vibhags
+            (
+                vibhag_code,
+                head,
+                district_id,
+                taluka_id,
+                contact_number,
+                designation,
+                joining_date,
+                status,
+                account_number,
+                ifsc_code,
+                bank_name,
+                user_id,
+                email,
+                password,
+                vibhag,
+                address
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+            finalVibhagCode,
+            String(finalHead).trim(),
+            district_id,
+            taluka_id,
+            contact_number ? String(contact_number).trim() : null,
+            designation ? String(designation).trim() : null,
+            joining_date || null,
+            normalizedStatus,
+            account_number ? String(account_number).trim() : null,
+            ifsc_code ? String(ifsc_code).trim().toUpperCase() : null,
+            bank_name ? String(bank_name).trim() : null,
+            cleanUserId,
+            email ? String(email).trim() : null,
+            cleanPassword,
+            finalVibhagName,
+            address ? String(address).trim() : null,
+        ]);
+
+        // Sync with users table for authentication
+        await syncSystemUser({
+            user_id: cleanUserId,
+            password: cleanPassword,
+            name: String(finalHead).trim(),
+            role: "vibhag",
+            status: normalizedStatus,
         });
 
-    }
+        const [rows] = await db.query(`
+            SELECT
+                v.id,
+                v.vibhag_code,
+                v.head,
+                v.contact_number,
+                v.designation,
+                v.district_id,
+                d.district_name,
+                d.name AS district_head_name,
+                v.taluka_id,
+                t.taluka_name,
+                t.name AS taluka_head_name,
+                v.vibhag,
+                v.joining_date,
+                v.status,
+                v.account_number,
+                v.ifsc_code,
+                v.bank_name,
+                v.user_id,
+                v.email,
+                v.password,
+                v.address,
+                v.created_at,
+                v.updated_at
+            FROM vibhags v
+            LEFT JOIN districts d ON d.id = v.district_id
+            LEFT JOIN talukas t ON t.id = v.taluka_id
+            WHERE v.id = ?
+            LIMIT 1
+        `, [result.insertId]);
 
+        return res.status(201).json({
+            success: true,
+            message: "Vibhag created successfully",
+            data: rows[0],
+            vibhag: rows[0],
+            vibhag_code: finalVibhagCode,
+        });
+
+    } catch (error) {
+        console.error("CREATE VIBHAG ERROR:", error);
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Failed to create vibhag",
+        });
+    }
 };
 
 
@@ -608,373 +310,166 @@ const createVibhag = async (
 // PUT /api/vibhag/:id
 // =====================================================
 
-const updateVibhag = async (
-    req,
-    res
-) => {
-
+const updateVibhag = async (req, res) => {
     try {
-
+        const { id } = req.params;
         const {
-            id
-        } = req.params;
-
-
-        const {
-
+            vibhag_code,
             head,
+            name,
+            contact_number,
+            designation,
             district_id,
             taluka_id,
-            contact_number,
+            vibhag,
+            joining_date,
+            status,
+            account_number,
+            ifsc_code,
+            bank_name,
             user_id,
             email,
             password,
-            vibhag,
             address,
-            status,
-
         } = req.body;
 
-
-        // =================================================
-        // CHECK VIBHAG
-        // =================================================
-
-        const [existingRows] =
-            await db.query(
-
-                `
-                SELECT *
-                FROM vibhags
-                WHERE id = ?
-                LIMIT 1
-                `,
-
-                [
-                    id
-                ]
-
-            );
-
-
-        if (
-            existingRows.length === 0
-        ) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message:
-                    "Vibhag not found",
-
-            });
-
-        }
-
-
-        const oldVibhag =
-            existingRows[0];
-
-
-        // =================================================
-        // VALIDATION
-        // =================================================
-
-        if (
-            !head ||
-            !district_id ||
-            !taluka_id ||
-            !user_id ||
-            !email ||
-            !vibhag
-        ) {
-
-            return res.status(400).json({
-
-                success: false,
-
-                message:
-                    "Required fields are missing",
-
-            });
-
-        }
-
-
-        // =================================================
-        // CHECK DISTRICT
-        // =================================================
-
-        const [districtRows] =
-            await db.query(
-
-                `
-                SELECT id
-                FROM districts
-                WHERE id = ?
-                LIMIT 1
-                `,
-
-                [
-                    district_id
-                ]
-
-            );
-
-
-        if (
-            districtRows.length === 0
-        ) {
-
-            return res.status(400).json({
-
-                success: false,
-
-                message:
-                    "Invalid district",
-
-            });
-
-        }
-
-
-        // =================================================
-        // CHECK TALUKA
-        // =================================================
-
-        const [talukaRows] =
-            await db.query(
-
-                `
-                SELECT id
-                FROM talukas
-                WHERE id = ?
-                AND district_id = ?
-                LIMIT 1
-                `,
-
-                [
-
-                    taluka_id,
-
-                    district_id,
-
-                ]
-
-            );
-
-
-        if (
-            talukaRows.length === 0
-        ) {
-
-            return res.status(400).json({
-
-                success: false,
-
-                message:
-                    "Selected taluka does not belong to selected district",
-
-            });
-
-        }
-
-
-        // =================================================
-        // PASSWORD
-        // =================================================
-
-        const finalPassword =
-
-            password &&
-            String(password).trim()
-
-                ? String(password).trim()
-
-                : oldVibhag.password;
-
-
-        // =================================================
-        // GET SINGLE DATABASE CONNECTION
-        // NO POOL
-        // =================================================
-
-        const connection =
-            await db.connectDatabase();
-
-
-        try {
-
-            // =================================================
-            // START TRANSACTION
-            // =================================================
-
-            await connection.beginTransaction();
-
-
-            // =================================================
-            // UPDATE VIBHAGS
-            // =================================================
-
-            await connection.query(
-
-                `
-                UPDATE vibhags
-
-                SET
-
-                    head = ?,
-
-                    district_id = ?,
-
-                    taluka_id = ?,
-
-                    contact_number = ?,
-
-                    user_id = ?,
-
-                    email = ?,
-
-                    password = ?,
-
-                    vibhag = ?,
-
-                    address = ?,
-
-                    status = ?
-
-                WHERE id = ?
-                `,
-
-                [
-
-                    head,
-
-                    district_id,
-
-                    taluka_id,
-
-                    contact_number ||
-                        null,
-
-                    user_id,
-
-                    email,
-
-                    finalPassword,
-
-                    vibhag,
-
-                    address ||
-                        null,
-
-                    status ||
-                        "active",
-
-                    id,
-
-                ]
-
-            );
-
-
-            // =================================================
-            // UPDATE USERS
-            // =================================================
-
-            await connection.query(
-
-                `
-                UPDATE users
-
-                SET
-
-                    user_id = ?,
-
-                    password = ?,
-
-                    name = ?,
-
-                    status = ?
-
-                WHERE user_id = ?
-
-                AND role = 'vibhag'
-                `,
-
-                [
-
-                    user_id,
-
-                    finalPassword,
-
-                    head,
-
-                    status ||
-                        "active",
-
-                    oldVibhag.user_id,
-
-                ]
-
-            );
-
-
-            // =================================================
-            // COMMIT
-            // =================================================
-
-            await connection.commit();
-
-
-        } catch (transactionError) {
-
-            // =================================================
-            // ROLLBACK
-            // =================================================
-
-            await connection.rollback();
-
-            throw transactionError;
-
-        }
-
-
-        // =================================================
-        // SUCCESS
-        // =================================================
-
-        return res.status(200).json({
-
-            success: true,
-
-            message:
-                "Vibhag updated successfully",
-
-        });
-
-
-    } catch (error) {
-
-        console.error(
-            "UPDATE VIBHAG ERROR:",
-            error
+        const [existing] = await db.query(
+            "SELECT * FROM vibhags WHERE id = ? LIMIT 1",
+            [id]
         );
 
+        if (existing.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Vibhag not found",
+            });
+        }
 
-        return res.status(500).json({
+        const oldRecord = existing[0];
+        const finalHead = (head || name) !== undefined ? String(head || name).trim() : oldRecord.head;
+        const finalUserId = user_id !== undefined ? String(user_id).trim() : oldRecord.user_id;
+        const finalDistrictId = district_id !== undefined ? district_id : oldRecord.district_id;
+        const finalTalukaId = taluka_id !== undefined ? taluka_id : oldRecord.taluka_id;
+        const normalizedStatus = status !== undefined
+            ? (String(status).toLowerCase() === "inactive" ? "inactive" : "active")
+            : oldRecord.status;
 
-            success: false,
+        // Check duplicate user_id if changed
+        if (finalUserId && finalUserId !== oldRecord.user_id) {
+            const [duplicateUser] = await db.query(
+                "SELECT id FROM vibhags WHERE user_id = ? AND id != ?",
+                [finalUserId, id]
+            );
+            if (duplicateUser.length > 0) {
+                return res.status(409).json({
+                    success: false,
+                    message: "User ID already exists in Vibhags",
+                });
+            }
+        }
 
-            message:
-                error.message ||
-                "Failed to update Vibhag",
+        const finalPassword = password && String(password).trim()
+            ? String(password).trim()
+            : oldRecord.password;
 
+        const finalVibhagName = vibhag !== undefined ? String(vibhag).trim() : oldRecord.vibhag;
+
+        await db.query(`
+            UPDATE vibhags
+            SET
+                vibhag_code = COALESCE(?, vibhag_code),
+                head = ?,
+                district_id = ?,
+                taluka_id = ?,
+                contact_number = COALESCE(?, contact_number),
+                designation = COALESCE(?, designation),
+                joining_date = COALESCE(?, joining_date),
+                status = ?,
+                account_number = COALESCE(?, account_number),
+                ifsc_code = COALESCE(?, ifsc_code),
+                bank_name = COALESCE(?, bank_name),
+                user_id = ?,
+                email = COALESCE(?, email),
+                password = ?,
+                vibhag = COALESCE(?, vibhag),
+                address = COALESCE(?, address)
+            WHERE id = ?
+        `, [
+            vibhag_code ? String(vibhag_code).trim() : null,
+            finalHead,
+            finalDistrictId,
+            finalTalukaId,
+            contact_number ? String(contact_number).trim() : null,
+            designation ? String(designation).trim() : null,
+            joining_date || null,
+            normalizedStatus,
+            account_number ? String(account_number).trim() : null,
+            ifsc_code ? String(ifsc_code).trim().toUpperCase() : null,
+            bank_name ? String(bank_name).trim() : null,
+            finalUserId,
+            email ? String(email).trim() : null,
+            finalPassword,
+            finalVibhagName,
+            address ? String(address).trim() : null,
+            id,
+        ]);
+
+        // Sync with users table
+        await syncSystemUser({
+            user_id: finalUserId,
+            password: finalPassword,
+            name: finalHead,
+            role: "vibhag",
+            status: normalizedStatus,
+            old_user_id: oldRecord.user_id,
         });
 
-    }
+        const [rows] = await db.query(`
+            SELECT
+                v.id,
+                v.vibhag_code,
+                v.head,
+                v.contact_number,
+                v.designation,
+                v.district_id,
+                d.district_name,
+                d.name AS district_head_name,
+                v.taluka_id,
+                t.taluka_name,
+                t.name AS taluka_head_name,
+                v.vibhag,
+                v.joining_date,
+                v.status,
+                v.account_number,
+                v.ifsc_code,
+                v.bank_name,
+                v.user_id,
+                v.email,
+                v.password,
+                v.address,
+                v.created_at,
+                v.updated_at
+            FROM vibhags v
+            LEFT JOIN districts d ON d.id = v.district_id
+            LEFT JOIN talukas t ON t.id = v.taluka_id
+            WHERE v.id = ?
+            LIMIT 1
+        `, [id]);
 
+        return res.status(200).json({
+            success: true,
+            message: "Vibhag updated successfully",
+            data: rows[0],
+            vibhag: rows[0],
+        });
+
+    } catch (error) {
+        console.error("UPDATE VIBHAG ERROR:", error);
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Failed to update vibhag",
+        });
+    }
 };
 
 
@@ -983,188 +478,64 @@ const updateVibhag = async (
 // DELETE /api/vibhag/:id
 // =====================================================
 
-const deleteVibhag = async (
-    req,
-    res
-) => {
-
+const deleteVibhag = async (req, res) => {
     try {
+        const { id } = req.params;
 
-        const {
-            id
-        } = req.params;
-
-
-        // =================================================
-        // GET USER ID
-        // =================================================
-
-        const [rows] =
-            await db.query(
-
-                `
-                SELECT user_id
-                FROM vibhags
-                WHERE id = ?
-                LIMIT 1
-                `,
-
-                [
-                    id
-                ]
-
-            );
-
-
-        if (
-            rows.length === 0
-        ) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message:
-                    "Vibhag not found",
-
-            });
-
-        }
-
-
-        const userId =
-            rows[0].user_id;
-
-
-        // =================================================
-        // GET SINGLE DATABASE CONNECTION
-        // NO POOL
-        // =================================================
-
-        const connection =
-            await db.connectDatabase();
-
-
-        try {
-
-            // =================================================
-            // START TRANSACTION
-            // =================================================
-
-            await connection.beginTransaction();
-
-
-            // =================================================
-            // DELETE USER
-            // =================================================
-
-            await connection.query(
-
-                `
-                DELETE FROM users
-
-                WHERE user_id = ?
-
-                AND role = 'vibhag'
-                `,
-
-                [
-                    userId
-                ]
-
-            );
-
-
-            // =================================================
-            // DELETE VIBHAG
-            // =================================================
-
-            await connection.query(
-
-                `
-                DELETE FROM vibhags
-
-                WHERE id = ?
-                `,
-
-                [
-                    id
-                ]
-
-            );
-
-
-            // =================================================
-            // COMMIT
-            // =================================================
-
-            await connection.commit();
-
-
-        } catch (transactionError) {
-
-            // =================================================
-            // ROLLBACK
-            // =================================================
-
-            await connection.rollback();
-
-            throw transactionError;
-
-        }
-
-
-        // =================================================
-        // SUCCESS
-        // =================================================
-
-        return res.status(200).json({
-
-            success: true,
-
-            message:
-                "Vibhag and user deleted successfully",
-
-        });
-
-
-    } catch (error) {
-
-        console.error(
-            "DELETE VIBHAG ERROR:",
-            error
+        const [existing] = await db.query(
+            "SELECT user_id FROM vibhags WHERE id = ? LIMIT 1",
+            [id]
         );
 
+        if (existing.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Vibhag not found",
+            });
+        }
 
-        return res.status(500).json({
+        const [result] = await db.query("DELETE FROM vibhags WHERE id = ?", [id]);
 
-            success: false,
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Vibhag not found",
+            });
+        }
 
-            message:
-                error.message ||
-                "Failed to delete Vibhag",
+        if (existing[0].user_id) {
+            await deleteSystemUser(existing[0].user_id);
+        }
 
+        return res.status(200).json({
+            success: true,
+            message: "Vibhag deleted successfully",
         });
 
-    }
+    } catch (error) {
+        console.error("DELETE VIBHAG ERROR:", error);
 
+        if (
+            error.code === "ER_ROW_IS_REFERENCED_2" ||
+            error.code === "ER_ROW_IS_REFERENCED"
+        ) {
+            return res.status(409).json({
+                success: false,
+                message: "Vibhag cannot be deleted because it is being used",
+            });
+        }
+
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Failed to delete vibhag",
+        });
+    }
 };
 
-
-// =====================================================
-// EXPORT
-// =====================================================
-
 module.exports = {
-
     getVibhags,
-
     getVibhagById,
-
     createVibhag,
-
     updateVibhag,
-
     deleteVibhag,
-
 };

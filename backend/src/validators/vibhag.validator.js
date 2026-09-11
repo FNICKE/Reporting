@@ -1,52 +1,43 @@
 const { body } = require("express-validator");
 
-
 // =====================================================
 // VIBHAG VALIDATOR
 // =====================================================
 
 const vibhagValidator = [
 
-    // HEAD
+    // HEAD / FULL NAME
     body("head")
         .trim()
         .notEmpty()
-        .withMessage("Head is required")
+        .withMessage("Full Name / Head is required")
         .isLength({
             min: 2,
             max: 100
         })
         .withMessage(
-            "Head must be between 2 and 100 characters"
+            "Name must be between 2 and 100 characters"
         ),
-
 
     // DISTRICT
     body("district_id")
         .notEmpty()
-        .withMessage("District is required")
-        .isInt()
-        .withMessage("District ID must be a valid number"),
-
+        .withMessage("District is required"),
 
     // TALUKA
     body("taluka_id")
         .notEmpty()
-        .withMessage("Taluka is required")
-        .isInt()
-        .withMessage("Taluka ID must be a valid number"),
-
+        .withMessage("Taluka is required"),
 
     // CONTACT NUMBER
     body("contact_number")
         .trim()
         .notEmpty()
-        .withMessage("Contact number is required")
+        .withMessage("Mobile Number is required")
         .matches(/^[0-9]{10}$/)
         .withMessage(
-            "Contact number must be exactly 10 digits"
+            "Mobile number must be exactly 10 digits"
         ),
-
 
     // USER ID
     body("user_id")
@@ -54,13 +45,12 @@ const vibhagValidator = [
         .notEmpty()
         .withMessage("User ID is required")
         .isLength({
-            min: 3,
+            min: 1,
             max: 100
         })
         .withMessage(
-            "User ID must be between 3 and 100 characters"
+            "User ID must be between 1 and 100 characters"
         ),
-
 
     // EMAIL
     body("email")
@@ -69,36 +59,30 @@ const vibhagValidator = [
         .isEmail()
         .withMessage("Please enter a valid email"),
 
-
     // PASSWORD
     body("password")
+        .optional({ checkFalsy: true })
         .trim()
-        .notEmpty()
-        .withMessage("Password is required")
         .isLength({
-            min: 6,
+            min: 1,
             max: 255
         })
         .withMessage(
-            "Password must be between 6 and 255 characters"
+            "Password must be between 1 and 255 characters"
         ),
 
-
-    // VIBHAG NAME
+    // VIBHAG NAME (Optional)
     body("vibhag")
+        .optional({ checkFalsy: true })
         .trim()
-        .notEmpty()
-        .withMessage("Vibhag name is required")
         .isLength({
-            min: 2,
             max: 100
         })
         .withMessage(
-            "Vibhag name must be between 2 and 100 characters"
+            "Vibhag name cannot exceed 100 characters"
         ),
 
-
-    // ADDRESS
+    // ADDRESS (Optional)
     body("address")
         .optional({
             values: "null"
@@ -111,8 +95,7 @@ const vibhagValidator = [
             "Address cannot exceed 500 characters"
         ),
 
-
-    // STATUS
+    // STATUS (Optional)
     body("status")
         .optional()
         .isIn([
@@ -123,7 +106,6 @@ const vibhagValidator = [
             "Status must be active or inactive"
         )
 ];
-
 
 module.exports = {
     vibhagValidator

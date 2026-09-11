@@ -1,1239 +1,5 @@
-// const db = require("../config/db");
-
-
-// // =====================================================
-// // GET ALL TALUKAS
-// // GET /api/taluka
-// // =====================================================
-
-// const getTalukas = async (req, res) => {
-
-//     try {
-
-//         const [rows] = await db.query(`
-//             SELECT
-//                 t.id,
-//                 t.name,
-//                 t.district_id,
-//                 d.name AS district_name,
-//                 t.contact_number,
-//                 t.user_id,
-//                 t.email,
-//                 t.password,
-//                 t.address,
-//                 t.status,
-//                 t.created_at,
-//                 t.updated_at
-
-//             FROM talukas t
-
-//             LEFT JOIN districts d
-//                 ON d.id = t.district_id
-
-//             ORDER BY t.id DESC
-//         `);
-
-
-//         return res.status(200).json({
-
-//             success: true,
-
-//             data: rows,
-
-//             talukas: rows,
-
-//             count: rows.length,
-
-//             total: rows.length,
-
-//         });
-
-
-//     } catch (error) {
-
-//         console.error(
-//             "GET TALUKAS ERROR:",
-//             error
-//         );
-
-
-//         return res.status(500).json({
-
-//             success: false,
-
-//             message:
-//                 error.message ||
-//                 "Failed to fetch Talukas",
-
-//         });
-
-//     }
-
-// };
-
-
-// // =====================================================
-// // GET TALUKAS BY DISTRICT
-// // GET /api/taluka/district/:districtId
-// // =====================================================
-
-// const getTalukasByDistrict = async (
-//     req,
-//     res
-// ) => {
-
-//     try {
-
-//         const {
-//             districtId
-//         } = req.params;
-
-
-//         const [rows] = await db.query(`
-//             SELECT
-//                 t.id,
-//                 t.name,
-//                 t.district_id,
-//                 d.name AS district_name,
-//                 t.contact_number,
-//                 t.user_id,
-//                 t.email,
-//                 t.password,
-//                 t.address,
-//                 t.status,
-//                 t.created_at,
-//                 t.updated_at
-
-//             FROM talukas t
-
-//             LEFT JOIN districts d
-//                 ON d.id = t.district_id
-
-//             WHERE t.district_id = ?
-
-//             ORDER BY t.id DESC
-//         `, [
-
-//             districtId
-
-//         ]);
-
-
-//         return res.status(200).json({
-
-//             success: true,
-
-//             data: rows,
-
-//             talukas: rows,
-
-//             count: rows.length,
-
-//             total: rows.length,
-
-//         });
-
-
-//     } catch (error) {
-
-//         console.error(
-//             "GET TALUKAS BY DISTRICT ERROR:",
-//             error
-//         );
-
-
-//         return res.status(500).json({
-
-//             success: false,
-
-//             message:
-//                 error.message ||
-//                 "Failed to fetch Talukas",
-
-//         });
-
-//     }
-
-// };
-
-
-// // =====================================================
-// // GET SINGLE TALUKA
-// // GET /api/taluka/:id
-// // =====================================================
-
-// const getTalukaById = async (
-//     req,
-//     res
-// ) => {
-
-//     try {
-
-//         const {
-//             id
-//         } = req.params;
-
-
-//         const [rows] = await db.query(`
-//             SELECT
-//                 t.id,
-//                 t.name,
-//                 t.district_id,
-//                 d.name AS district_name,
-//                 t.contact_number,
-//                 t.user_id,
-//                 t.email,
-//                 t.password,
-//                 t.address,
-//                 t.status,
-//                 t.created_at,
-//                 t.updated_at
-
-//             FROM talukas t
-
-//             LEFT JOIN districts d
-//                 ON d.id = t.district_id
-
-//             WHERE t.id = ?
-
-//             LIMIT 1
-//         `, [
-
-//             id
-
-//         ]);
-
-
-//         if (
-//             rows.length === 0
-//         ) {
-
-//             return res.status(404).json({
-
-//                 success: false,
-
-//                 message:
-//                     "Taluka not found",
-
-//             });
-
-//         }
-
-
-//         return res.status(200).json({
-
-//             success: true,
-
-//             data: rows[0],
-
-//             taluka: rows[0],
-
-//         });
-
-
-//     } catch (error) {
-
-//         console.error(
-//             "GET TALUKA BY ID ERROR:",
-//             error
-//         );
-
-
-//         return res.status(500).json({
-
-//             success: false,
-
-//             message:
-//                 error.message ||
-//                 "Failed to fetch Taluka",
-
-//         });
-
-//     }
-
-// };
-
-
-// // =====================================================
-// // CREATE TALUKA
-// // POST /api/taluka
-// // =====================================================
-
-// const createTaluka = async (
-//     req,
-//     res
-// ) => {
-
-//     try {
-
-//         const {
-
-//             name,
-
-//             district_id,
-
-//             contact_number,
-
-//             user_id,
-
-//             email,
-
-//             password,
-
-//             address,
-
-//         } = req.body;
-
-
-//         // =================================================
-//         // VALIDATION
-//         // =================================================
-
-//         if (
-//             !name ||
-//             !String(name).trim()
-//         ) {
-
-//             return res.status(400).json({
-
-//                 success: false,
-
-//                 message:
-//                     "Taluka name is required",
-
-//             });
-
-//         }
-
-
-//         if (
-//             !district_id
-//         ) {
-
-//             return res.status(400).json({
-
-//                 success: false,
-
-//                 message:
-//                     "District is required",
-
-//             });
-
-//         }
-
-
-//         if (
-//             !contact_number ||
-//             !String(contact_number).trim()
-//         ) {
-
-//             return res.status(400).json({
-
-//                 success: false,
-
-//                 message:
-//                     "Contact number is required",
-
-//             });
-
-//         }
-
-
-//         if (
-//             !user_id ||
-//             !String(user_id).trim()
-//         ) {
-
-//             return res.status(400).json({
-
-//                 success: false,
-
-//                 message:
-//                     "User ID is required",
-
-//             });
-
-//         }
-
-
-//         if (
-//             !email ||
-//             !String(email).trim()
-//         ) {
-
-//             return res.status(400).json({
-
-//                 success: false,
-
-//                 message:
-//                     "Email is required",
-
-//             });
-
-//         }
-
-
-//         if (
-//             !password ||
-//             !String(password).trim()
-//         ) {
-
-//             return res.status(400).json({
-
-//                 success: false,
-
-//                 message:
-//                     "Password is required",
-
-//             });
-
-//         }
-
-
-//         if (
-//             !address ||
-//             !String(address).trim()
-//         ) {
-
-//             return res.status(400).json({
-
-//                 success: false,
-
-//                 message:
-//                     "Address is required",
-
-//             });
-
-//         }
-
-
-//         // =================================================
-//         // CHECK DISTRICT
-//         // =================================================
-
-//         const [
-//             districtRows
-//         ] = await db.query(`
-//             SELECT
-//                 id,
-//                 name
-//             FROM districts
-//             WHERE id = ?
-//             LIMIT 1
-//         `, [
-
-//             district_id
-
-//         ]);
-
-
-//         if (
-//             districtRows.length === 0
-//         ) {
-
-//             return res.status(404).json({
-
-//                 success: false,
-
-//                 message:
-//                     "Selected district not found",
-
-//             });
-
-//         }
-
-
-//         // =================================================
-//         // CHECK DUPLICATE TALUKA
-//         // =================================================
-
-//         const [
-//             existingRows
-//         ] = await db.query(`
-//             SELECT
-//                 id
-//             FROM talukas
-//             WHERE name = ?
-//             AND district_id = ?
-//             LIMIT 1
-//         `, [
-
-//             String(name).trim(),
-
-//             district_id
-
-//         ]);
-
-
-//         if (
-//             existingRows.length > 0
-//         ) {
-
-//             return res.status(409).json({
-
-//                 success: false,
-
-//                 message:
-//                     "Taluka already exists in this district",
-
-//             });
-
-//         }
-
-
-//         // =================================================
-//         // INSERT TALUKA
-//         // =================================================
-
-//         const [
-//             result
-//         ] = await db.query(`
-//             INSERT INTO talukas
-//             (
-//                 name,
-//                 district_id,
-//                 contact_number,
-//                 user_id,
-//                 email,
-//                 password,
-//                 address,
-//                 status
-//             )
-
-//             VALUES
-//             (
-//                 ?,
-//                 ?,
-//                 ?,
-//                 ?,
-//                 ?,
-//                 ?,
-//                 ?,
-//                 'active'
-//             )
-//         `, [
-
-//             String(name).trim(),
-
-//             district_id,
-
-//             String(
-//                 contact_number
-//             ).trim(),
-
-//             String(
-//                 user_id
-//             ).trim(),
-
-//             String(
-//                 email
-//             ).trim(),
-
-//             String(
-//                 password
-//             ).trim(),
-
-//             String(
-//                 address
-//             ).trim(),
-
-//         ]);
-
-
-//         // =================================================
-//         // GET CREATED TALUKA
-//         // =================================================
-
-//         const [
-//             rows
-//         ] = await db.query(`
-//             SELECT
-//                 t.id,
-//                 t.name,
-//                 t.district_id,
-//                 d.name AS district_name,
-//                 t.contact_number,
-//                 t.user_id,
-//                 t.email,
-//                 t.password,
-//                 t.address,
-//                 t.status,
-//                 t.created_at,
-//                 t.updated_at
-
-//             FROM talukas t
-
-//             LEFT JOIN districts d
-//                 ON d.id = t.district_id
-
-//             WHERE t.id = ?
-
-//             LIMIT 1
-//         `, [
-
-//             result.insertId
-
-//         ]);
-
-
-//         return res.status(201).json({
-
-//             success: true,
-
-//             message:
-//                 "Taluka created successfully",
-
-//             data:
-//                 rows[0],
-
-//             taluka:
-//                 rows[0],
-
-//         });
-
-
-//     } catch (error) {
-
-//         console.error(
-//             "CREATE TALUKA ERROR:",
-//             error
-//         );
-
-
-//         if (
-//             error.code ===
-//             "ER_DUP_ENTRY"
-//         ) {
-
-//             return res.status(409).json({
-
-//                 success: false,
-
-//                 message:
-//                     "Taluka already exists",
-
-//             });
-
-//         }
-
-
-//         return res.status(500).json({
-
-//             success: false,
-
-//             message:
-//                 error.message ||
-//                 "Failed to create Taluka",
-
-//         });
-
-//     }
-
-// };
-
-
-// // =====================================================
-// // UPDATE TALUKA
-// // PUT /api/taluka/:id
-// // =====================================================
-
-// const updateTaluka = async (
-//     req,
-//     res
-// ) => {
-
-//     try {
-
-//         const {
-//             id
-//         } = req.params;
-
-
-//         const {
-
-//             name,
-
-//             district_id,
-
-//             contact_number,
-
-//             user_id,
-
-//             email,
-
-//             password,
-
-//             address,
-
-//             status,
-
-//         } = req.body;
-
-
-//         // =================================================
-//         // VALIDATION
-//         // =================================================
-
-//         if (
-//             !name ||
-//             !String(name).trim()
-//         ) {
-
-//             return res.status(400).json({
-
-//                 success: false,
-
-//                 message:
-//                     "Taluka name is required",
-
-//             });
-
-//         }
-
-
-//         if (
-//             !district_id
-//         ) {
-
-//             return res.status(400).json({
-
-//                 success: false,
-
-//                 message:
-//                     "District is required",
-
-//             });
-
-//         }
-
-
-//         if (
-//             !contact_number ||
-//             !String(contact_number).trim()
-//         ) {
-
-//             return res.status(400).json({
-
-//                 success: false,
-
-//                 message:
-//                     "Contact number is required",
-
-//             });
-
-//         }
-
-
-//         if (
-//             !user_id ||
-//             !String(user_id).trim()
-//         ) {
-
-//             return res.status(400).json({
-
-//                 success: false,
-
-//                 message:
-//                     "User ID is required",
-
-//             });
-
-//         }
-
-
-//         if (
-//             !email ||
-//             !String(email).trim()
-//         ) {
-
-//             return res.status(400).json({
-
-//                 success: false,
-
-//                 message:
-//                     "Email is required",
-
-//             });
-
-//         }
-
-
-//         if (
-//             !address ||
-//             !String(address).trim()
-//         ) {
-
-//             return res.status(400).json({
-
-//                 success: false,
-
-//                 message:
-//                     "Address is required",
-
-//             });
-
-//         }
-
-
-//         // =================================================
-//         // CHECK TALUKA
-//         // =================================================
-
-//         const [
-//             existingRows
-//         ] = await db.query(`
-//             SELECT
-//                 id
-//             FROM talukas
-//             WHERE id = ?
-//             LIMIT 1
-//         `, [
-
-//             id
-
-//         ]);
-
-
-//         if (
-//             existingRows.length === 0
-//         ) {
-
-//             return res.status(404).json({
-
-//                 success: false,
-
-//                 message:
-//                     "Taluka not found",
-
-//             });
-
-//         }
-
-
-//         // =================================================
-//         // CHECK DISTRICT
-//         // =================================================
-
-//         const [
-//             districtRows
-//         ] = await db.query(`
-//             SELECT
-//                 id
-//             FROM districts
-//             WHERE id = ?
-//             LIMIT 1
-//         `, [
-
-//             district_id
-
-//         ]);
-
-
-//         if (
-//             districtRows.length === 0
-//         ) {
-
-//             return res.status(404).json({
-
-//                 success: false,
-
-//                 message:
-//                     "Selected district not found",
-
-//             });
-
-//         }
-
-
-//         // =================================================
-//         // CHECK DUPLICATE
-//         // =================================================
-
-//         const [
-//             duplicateRows
-//         ] = await db.query(`
-//             SELECT
-//                 id
-//             FROM talukas
-//             WHERE name = ?
-//             AND district_id = ?
-//             AND id != ?
-//             LIMIT 1
-//         `, [
-
-//             String(name).trim(),
-
-//             district_id,
-
-//             id,
-
-//         ]);
-
-
-//         if (
-//             duplicateRows.length > 0
-//         ) {
-
-//             return res.status(409).json({
-
-//                 success: false,
-
-//                 message:
-//                     "Taluka already exists in this district",
-
-//             });
-
-//         }
-
-
-//         // =================================================
-//         // UPDATE WITH PASSWORD
-//         // =================================================
-
-//         if (
-//             password &&
-//             String(password).trim()
-//         ) {
-
-//             await db.query(`
-//                 UPDATE talukas
-
-//                 SET
-//                     name = ?,
-//                     district_id = ?,
-//                     contact_number = ?,
-//                     user_id = ?,
-//                     email = ?,
-//                     password = ?,
-//                     address = ?,
-//                     status = COALESCE(?, status)
-
-//                 WHERE id = ?
-//             `, [
-
-//                 String(name).trim(),
-
-//                 district_id,
-
-//                 String(
-//                     contact_number
-//                 ).trim(),
-
-//                 String(
-//                     user_id
-//                 ).trim(),
-
-//                 String(
-//                     email
-//                 ).trim(),
-
-//                 String(
-//                     password
-//                 ).trim(),
-
-//                 String(
-//                     address
-//                 ).trim(),
-
-//                 status || null,
-
-//                 id,
-
-//             ]);
-
-//         }
-
-
-//         // =================================================
-//         // UPDATE WITHOUT PASSWORD
-//         // =================================================
-
-//         else {
-
-//             await db.query(`
-//                 UPDATE talukas
-
-//                 SET
-//                     name = ?,
-//                     district_id = ?,
-//                     contact_number = ?,
-//                     user_id = ?,
-//                     email = ?,
-//                     address = ?,
-//                     status = COALESCE(?, status)
-
-//                 WHERE id = ?
-//             `, [
-
-//                 String(name).trim(),
-
-//                 district_id,
-
-//                 String(
-//                     contact_number
-//                 ).trim(),
-
-//                 String(
-//                     user_id
-//                 ).trim(),
-
-//                 String(
-//                     email
-//                 ).trim(),
-
-//                 String(
-//                     address
-//                 ).trim(),
-
-//                 status || null,
-
-//                 id,
-
-//             ]);
-
-//         }
-
-
-//         // =================================================
-//         // GET UPDATED TALUKA
-//         // =================================================
-
-//         const [
-//             rows
-//         ] = await db.query(`
-//             SELECT
-//                 t.id,
-//                 t.name,
-//                 t.district_id,
-//                 d.name AS district_name,
-//                 t.contact_number,
-//                 t.user_id,
-//                 t.email,
-//                 t.password,
-//                 t.address,
-//                 t.status,
-//                 t.created_at,
-//                 t.updated_at
-
-//             FROM talukas t
-
-//             LEFT JOIN districts d
-//                 ON d.id = t.district_id
-
-//             WHERE t.id = ?
-
-//             LIMIT 1
-//         `, [
-
-//             id
-
-//         ]);
-
-
-//         return res.status(200).json({
-
-//             success: true,
-
-//             message:
-//                 "Taluka updated successfully",
-
-//             data:
-//                 rows[0],
-
-//             taluka:
-//                 rows[0],
-
-//         });
-
-
-//     } catch (error) {
-
-//         console.error(
-//             "UPDATE TALUKA ERROR:",
-//             error
-//         );
-
-
-//         if (
-//             error.code ===
-//             "ER_DUP_ENTRY"
-//         ) {
-
-//             return res.status(409).json({
-
-//                 success: false,
-
-//                 message:
-//                     "Taluka already exists",
-
-//             });
-
-//         }
-
-
-//         return res.status(500).json({
-
-//             success: false,
-
-//             message:
-//                 error.message ||
-//                 "Failed to update Taluka",
-
-//         });
-
-//     }
-
-// };
-
-
-// // =====================================================
-// // DELETE TALUKA
-// // DELETE /api/taluka/:id
-// // =====================================================
-
-// const deleteTaluka = async (
-//     req,
-//     res
-// ) => {
-
-//     try {
-
-//         const {
-//             id
-//         } = req.params;
-
-
-//         // =================================================
-//         // CHECK TALUKA
-//         // =================================================
-
-//         const [
-//             rows
-//         ] = await db.query(`
-//             SELECT
-//                 id
-//             FROM talukas
-//             WHERE id = ?
-//             LIMIT 1
-//         `, [
-
-//             id
-
-//         ]);
-
-
-//         if (
-//             rows.length === 0
-//         ) {
-
-//             return res.status(404).json({
-
-//                 success: false,
-
-//                 message:
-//                     "Taluka not found",
-
-//             });
-
-//         }
-
-
-//         // =================================================
-//         // DELETE
-//         // =================================================
-
-//         await db.query(`
-//             DELETE FROM talukas
-//             WHERE id = ?
-//         `, [
-
-//             id
-
-//         ]);
-
-
-//         return res.status(200).json({
-
-//             success: true,
-
-//             message:
-//                 "Taluka deleted successfully",
-
-//         });
-
-
-//     } catch (error) {
-
-//         console.error(
-//             "DELETE TALUKA ERROR:",
-//             error
-//         );
-
-
-//         // =================================================
-//         // FOREIGN KEY ERROR
-//         // =================================================
-
-//         if (
-
-//             error.code ===
-//             "ER_ROW_IS_REFERENCED_2"
-
-//             ||
-
-//             error.code ===
-//             "ER_ROW_IS_REFERENCED"
-
-//         ) {
-
-//             return res.status(409).json({
-
-//                 success: false,
-
-//                 message:
-//                     "Taluka cannot be deleted because it is being used",
-
-//             });
-
-//         }
-
-
-//         return res.status(500).json({
-
-//             success: false,
-
-//             message:
-//                 error.message ||
-//                 "Failed to delete Taluka",
-
-//         });
-
-//     }
-
-// };
-
-
-// // =====================================================
-// // EXPORT
-// // =====================================================
-
-// module.exports = {
-
-//     getTalukas,
-
-//     getTalukasByDistrict,
-
-//     getTalukaById,
-
-//     createTaluka,
-
-//     updateTaluka,
-
-//     deleteTaluka,
-
-// };
 const db = require("../config/db");
-
+const { syncSystemUser, deleteSystemUser } = require("../utils/user.utils");
 
 // =====================================================
 // GET ALL TALUKAS
@@ -1242,22 +8,30 @@ const db = require("../config/db");
 
 const getTalukas = async (req, res) => {
     try {
-
         const [rows] = await db.query(`
             SELECT
                 t.id,
+                t.taluka_code,
                 t.name,
+                t.contact_number,
+                t.designation,
                 t.district_id,
-                d.name AS district_name,
+                d.district_name,
+                d.name AS district_head_name,
+                t.taluka_name,
+                t.joining_date,
                 t.status,
+                t.account_number,
+                t.ifsc_code,
+                t.bank_name,
+                t.user_id,
+                t.email,
+                t.password,
                 t.created_at,
                 t.updated_at
-
             FROM talukas t
-
             LEFT JOIN districts d
                 ON d.id = t.district_id
-
             ORDER BY t.id DESC
         `);
 
@@ -1270,17 +44,11 @@ const getTalukas = async (req, res) => {
         });
 
     } catch (error) {
-
-        console.error(
-            "GET TALUKAS ERROR:",
-            error
-        );
+        console.error("GET TALUKAS ERROR:", error);
 
         return res.status(500).json({
             success: false,
-            message:
-                error.message ||
-                "Failed to fetch Talukas",
+            message: error.message || "Failed to fetch Talukas",
         });
     }
 };
@@ -1291,46 +59,44 @@ const getTalukas = async (req, res) => {
 // GET /api/taluka/district/:districtId
 // =====================================================
 
-const getTalukasByDistrict = async (
-    req,
-    res
-) => {
-
+const getTalukasByDistrict = async (req, res) => {
     try {
-
-        const { districtId } =
-            req.params;
+        const { districtId } = req.params;
 
         if (!districtId) {
-
             return res.status(400).json({
                 success: false,
-                message:
-                    "District ID is required",
+                message: "District ID is required",
             });
         }
 
         const [rows] = await db.query(`
             SELECT
                 t.id,
+                t.taluka_code,
                 t.name,
+                t.contact_number,
+                t.designation,
                 t.district_id,
-                d.name AS district_name,
+                d.district_name,
+                d.name AS district_head_name,
+                t.taluka_name,
+                t.joining_date,
                 t.status,
+                t.account_number,
+                t.ifsc_code,
+                t.bank_name,
+                t.user_id,
+                t.email,
+                t.password,
                 t.created_at,
                 t.updated_at
-
             FROM talukas t
-
             LEFT JOIN districts d
                 ON d.id = t.district_id
-
             WHERE t.district_id = ?
-
             ORDER BY t.id DESC
-        `, [
-            districtId
-        ]);
+        `, [districtId]);
 
         return res.status(200).json({
             success: true,
@@ -1341,17 +107,11 @@ const getTalukasByDistrict = async (
         });
 
     } catch (error) {
-
-        console.error(
-            "GET TALUKAS BY DISTRICT ERROR:",
-            error
-        );
+        console.error("GET TALUKAS BY DISTRICT ERROR:", error);
 
         return res.status(500).json({
             success: false,
-            message:
-                error.message ||
-                "Failed to fetch Talukas",
+            message: error.message || "Failed to fetch Talukas for district",
         });
     }
 };
@@ -1362,44 +122,42 @@ const getTalukasByDistrict = async (
 // GET /api/taluka/:id
 // =====================================================
 
-const getTalukaById = async (
-    req,
-    res
-) => {
-
+const getTalukaById = async (req, res) => {
     try {
-
-        const { id } =
-            req.params;
+        const { id } = req.params;
 
         const [rows] = await db.query(`
             SELECT
                 t.id,
+                t.taluka_code,
                 t.name,
+                t.contact_number,
+                t.designation,
                 t.district_id,
-                d.name AS district_name,
+                d.district_name,
+                d.name AS district_head_name,
+                t.taluka_name,
+                t.joining_date,
                 t.status,
+                t.account_number,
+                t.ifsc_code,
+                t.bank_name,
+                t.user_id,
+                t.email,
+                t.password,
                 t.created_at,
                 t.updated_at
-
             FROM talukas t
-
             LEFT JOIN districts d
                 ON d.id = t.district_id
-
             WHERE t.id = ?
-
             LIMIT 1
-        `, [
-            id
-        ]);
+        `, [id]);
 
         if (rows.length === 0) {
-
             return res.status(404).json({
                 success: false,
-                message:
-                    "Taluka not found",
+                message: "Taluka not found",
             });
         }
 
@@ -1410,17 +168,11 @@ const getTalukaById = async (
         });
 
     } catch (error) {
-
-        console.error(
-            "GET TALUKA BY ID ERROR:",
-            error
-        );
+        console.error("GET TALUKA BY ID ERROR:", error);
 
         return res.status(500).json({
             success: false,
-            message:
-                error.message ||
-                "Failed to fetch Taluka",
+            message: error.message || "Failed to fetch Taluka",
         });
     }
 };
@@ -1431,215 +183,174 @@ const getTalukaById = async (
 // POST /api/taluka
 // =====================================================
 
-const createTaluka = async (
-    req,
-    res
-) => {
-
+const createTaluka = async (req, res) => {
     try {
-
         const {
+            taluka_code,
             name,
+            contact_number,
+            designation,
             district_id,
+            taluka_name,
+            taluka,
+            joining_date,
+            status = "active",
+            account_number,
+            ifsc_code,
+            bank_name,
+            user_id,
+            email,
+            password,
         } = req.body;
 
-
-        // =================================================
-        // VALIDATION
-        // =================================================
-
-        if (
-            !name ||
-            !String(name).trim()
-        ) {
-
+        if (!name || !String(name).trim()) {
             return res.status(400).json({
                 success: false,
-                message:
-                    "Taluka name is required",
+                message: "Full Name is required",
             });
         }
 
-
-        if (
-            !district_id
-        ) {
-
+        if (!district_id) {
             return res.status(400).json({
                 success: false,
-                message:
-                    "District is required",
+                message: "District is required",
             });
         }
 
+        const finalTalukaName = taluka_name || taluka || name;
 
-        // =================================================
-        // CHECK DISTRICT
-        // =================================================
-
-        const [
-            districtRows
-        ] = await db.query(`
-            SELECT
-                id,
-                name
-
-            FROM districts
-
-            WHERE id = ?
-
-            LIMIT 1
-        `, [
-            district_id
-        ]);
-
-
-        if (
-            districtRows.length === 0
-        ) {
-
-            return res.status(404).json({
-                success: false,
-                message:
-                    "Selected district not found",
-            });
-        }
-
-
-        // =================================================
-        // CHECK DUPLICATE TALUKA
-        // =================================================
-
-        const [
-            existingRows
-        ] = await db.query(`
-            SELECT
-                id
-
-            FROM talukas
-
-            WHERE name = ?
-
-            AND district_id = ?
-
-            LIMIT 1
-        `, [
-            String(name).trim(),
-            district_id
-        ]);
-
-
-        if (
-            existingRows.length > 0
-        ) {
-
-            return res.status(409).json({
-                success: false,
-                message:
-                    "Taluka already exists in this district",
-            });
-        }
-
-
-        // =================================================
-        // INSERT
-        // =================================================
-
-        const [
-            result
-        ] = await db.query(`
-            INSERT INTO talukas
-            (
-                name,
-                district_id,
-                status
-            )
-
-            VALUES
-            (
-                ?,
-                ?,
-                'active'
-            )
-        `, [
-
-            String(name).trim(),
-
-            district_id,
-
-        ]);
-
-
-        // =================================================
-        // GET CREATED TALUKA
-        // =================================================
-
-        const [
-            rows
-        ] = await db.query(`
-            SELECT
-                t.id,
-                t.name,
-                t.district_id,
-                d.name AS district_name,
-                t.status,
-                t.created_at,
-                t.updated_at
-
-            FROM talukas t
-
-            LEFT JOIN districts d
-                ON d.id = t.district_id
-
-            WHERE t.id = ?
-
-            LIMIT 1
-        `, [
-            result.insertId
-        ]);
-
-
-        return res.status(201).json({
-
-            success: true,
-
-            message:
-                "Taluka created successfully",
-
-            data:
-                rows[0],
-
-            taluka:
-                rows[0],
-        });
-
-
-    } catch (error) {
-
-        console.error(
-            "CREATE TALUKA ERROR:",
-            error
+        // Check district exists
+        const [districtRows] = await db.query(
+            "SELECT id, district_name, name FROM districts WHERE id = ? LIMIT 1",
+            [district_id]
         );
 
-
-        if (
-            error.code ===
-            "ER_DUP_ENTRY"
-        ) {
-
-            return res.status(409).json({
+        if (districtRows.length === 0) {
+            return res.status(404).json({
                 success: false,
-                message:
-                    "Taluka already exists",
+                message: "Selected district not found",
             });
         }
 
+        const cleanUserId = user_id && String(user_id).trim()
+            ? String(user_id).trim()
+            : String(name).trim();
 
+        const cleanPassword = password && String(password).trim()
+            ? String(password).trim()
+            : "123456";
+
+        // Check duplicate user_id
+        const [userExists] = await db.query(
+            "SELECT id FROM talukas WHERE user_id = ? LIMIT 1",
+            [cleanUserId]
+        );
+
+        if (userExists.length > 0) {
+            return res.status(409).json({
+                success: false,
+                message: "User ID already exists in Talukas",
+            });
+        }
+
+        // Auto generate taluka_code if missing
+        let finalTalukaCode = taluka_code ? String(taluka_code).trim() : "";
+        if (!finalTalukaCode) {
+            const [maxRows] = await db.query("SELECT MAX(id) as maxId FROM talukas");
+            const nextNum = (maxRows[0]?.maxId || 0) + 1;
+            finalTalukaCode = `TH-${String(nextNum).padStart(4, "0")}`;
+        }
+
+        const normalizedStatus =
+            String(status || "active").toLowerCase() === "inactive"
+                ? "inactive"
+                : "active";
+
+        const [result] = await db.query(`
+            INSERT INTO talukas
+            (
+                taluka_code,
+                name,
+                district_id,
+                taluka_name,
+                contact_number,
+                designation,
+                joining_date,
+                status,
+                account_number,
+                ifsc_code,
+                bank_name,
+                user_id,
+                email,
+                password
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+            finalTalukaCode,
+            String(name).trim(),
+            district_id,
+            String(finalTalukaName).trim(),
+            contact_number ? String(contact_number).trim() : null,
+            designation ? String(designation).trim() : null,
+            joining_date || null,
+            normalizedStatus,
+            account_number ? String(account_number).trim() : null,
+            ifsc_code ? String(ifsc_code).trim().toUpperCase() : null,
+            bank_name ? String(bank_name).trim() : null,
+            cleanUserId,
+            email ? String(email).trim() : null,
+            cleanPassword,
+        ]);
+
+        // Sync with users table for authentication
+        await syncSystemUser({
+            user_id: cleanUserId,
+            password: cleanPassword,
+            name: String(name).trim(),
+            role: "taluka",
+            status: normalizedStatus,
+        });
+
+        const [rows] = await db.query(`
+            SELECT
+                t.id,
+                t.taluka_code,
+                t.name,
+                t.contact_number,
+                t.designation,
+                t.district_id,
+                d.district_name,
+                d.name AS district_head_name,
+                t.taluka_name,
+                t.joining_date,
+                t.status,
+                t.account_number,
+                t.ifsc_code,
+                t.bank_name,
+                t.user_id,
+                t.email,
+                t.password,
+                t.created_at,
+                t.updated_at
+            FROM talukas t
+            LEFT JOIN districts d ON d.id = t.district_id
+            WHERE t.id = ?
+            LIMIT 1
+        `, [result.insertId]);
+
+        return res.status(201).json({
+            success: true,
+            message: "Taluka created successfully",
+            data: rows[0],
+            taluka: rows[0],
+            taluka_code: finalTalukaCode,
+        });
+
+    } catch (error) {
+        console.error("CREATE TALUKA ERROR:", error);
         return res.status(500).json({
             success: false,
-            message:
-                error.message ||
-                "Failed to create Taluka",
+            message: error.message || "Failed to create Taluka",
         });
     }
 };
@@ -1650,249 +361,151 @@ const createTaluka = async (
 // PUT /api/taluka/:id
 // =====================================================
 
-const updateTaluka = async (
-    req,
-    res
-) => {
-
+const updateTaluka = async (req, res) => {
     try {
-
-        const { id } =
-            req.params;
-
+        const { id } = req.params;
         const {
+            taluka_code,
             name,
+            contact_number,
+            designation,
             district_id,
+            taluka_name,
+            taluka,
+            joining_date,
             status,
+            account_number,
+            ifsc_code,
+            bank_name,
+            user_id,
+            email,
+            password,
         } = req.body;
 
+        const [existingRows] = await db.query(
+            "SELECT * FROM talukas WHERE id = ? LIMIT 1",
+            [id]
+        );
 
-        // =================================================
-        // VALIDATION
-        // =================================================
-
-        if (
-            !name ||
-            !String(name).trim()
-        ) {
-
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Taluka name is required",
-            });
-        }
-
-
-        if (
-            !district_id
-        ) {
-
-            return res.status(400).json({
-                success: false,
-                message:
-                    "District is required",
-            });
-        }
-
-
-        // =================================================
-        // CHECK TALUKA
-        // =================================================
-
-        const [
-            existingRows
-        ] = await db.query(`
-            SELECT
-                id
-
-            FROM talukas
-
-            WHERE id = ?
-
-            LIMIT 1
-        `, [
-            id
-        ]);
-
-
-        if (
-            existingRows.length === 0
-        ) {
-
+        if (existingRows.length === 0) {
             return res.status(404).json({
                 success: false,
-                message:
-                    "Taluka not found",
+                message: "Taluka not found",
             });
         }
 
+        const oldRecord = existingRows[0];
+        const finalName = name !== undefined ? String(name).trim() : oldRecord.name;
+        const finalUserId = user_id !== undefined ? String(user_id).trim() : oldRecord.user_id;
+        const finalDistrictId = district_id !== undefined ? district_id : oldRecord.district_id;
+        const finalTalukaName = taluka_name || taluka || oldRecord.taluka_name || finalName;
+        const normalizedStatus = status !== undefined
+            ? (String(status).toLowerCase() === "inactive" ? "inactive" : "active")
+            : oldRecord.status;
 
-        // =================================================
-        // CHECK DISTRICT
-        // =================================================
-
-        const [
-            districtRows
-        ] = await db.query(`
-            SELECT
-                id
-
-            FROM districts
-
-            WHERE id = ?
-
-            LIMIT 1
-        `, [
-            district_id
-        ]);
-
-
-        if (
-            districtRows.length === 0
-        ) {
-
-            return res.status(404).json({
-                success: false,
-                message:
-                    "Selected district not found",
-            });
+        // Check duplicate user_id if changed
+        if (finalUserId && finalUserId !== oldRecord.user_id) {
+            const [duplicateUser] = await db.query(
+                "SELECT id FROM talukas WHERE user_id = ? AND id != ?",
+                [finalUserId, id]
+            );
+            if (duplicateUser.length > 0) {
+                return res.status(409).json({
+                    success: false,
+                    message: "User ID already exists in Talukas",
+                });
+            }
         }
 
-
-        // =================================================
-        // CHECK DUPLICATE
-        // =================================================
-
-        const [
-            duplicateRows
-        ] = await db.query(`
-            SELECT
-                id
-
-            FROM talukas
-
-            WHERE name = ?
-
-            AND district_id = ?
-
-            AND id != ?
-
-            LIMIT 1
-        `, [
-            String(name).trim(),
-            district_id,
-            id,
-        ]);
-
-
-        if (
-            duplicateRows.length > 0
-        ) {
-
-            return res.status(409).json({
-                success: false,
-                message:
-                    "Taluka already exists in this district",
-            });
-        }
-
-
-        // =================================================
-        // UPDATE
-        // =================================================
+        const finalPassword = password && String(password).trim()
+            ? String(password).trim()
+            : oldRecord.password;
 
         await db.query(`
             UPDATE talukas
-
             SET
+                taluka_code = COALESCE(?, taluka_code),
                 name = ?,
                 district_id = ?,
-                status = COALESCE(?, status)
-
+                taluka_name = ?,
+                contact_number = COALESCE(?, contact_number),
+                designation = COALESCE(?, designation),
+                joining_date = COALESCE(?, joining_date),
+                status = ?,
+                account_number = COALESCE(?, account_number),
+                ifsc_code = COALESCE(?, ifsc_code),
+                bank_name = COALESCE(?, bank_name),
+                user_id = ?,
+                email = COALESCE(?, email),
+                password = ?
             WHERE id = ?
         `, [
-
-            String(name).trim(),
-
-            district_id,
-
-            status || null,
-
+            taluka_code ? String(taluka_code).trim() : null,
+            finalName,
+            finalDistrictId,
+            String(finalTalukaName).trim(),
+            contact_number ? String(contact_number).trim() : null,
+            designation ? String(designation).trim() : null,
+            joining_date || null,
+            normalizedStatus,
+            account_number ? String(account_number).trim() : null,
+            ifsc_code ? String(ifsc_code).trim().toUpperCase() : null,
+            bank_name ? String(bank_name).trim() : null,
+            finalUserId,
+            email ? String(email).trim() : null,
+            finalPassword,
             id,
         ]);
 
-
-        // =================================================
-        // GET UPDATED TALUKA
-        // =================================================
-
-        const [
-            rows
-        ] = await db.query(`
-            SELECT
-                t.id,
-                t.name,
-                t.district_id,
-                d.name AS district_name,
-                t.status,
-                t.created_at,
-                t.updated_at
-
-            FROM talukas t
-
-            LEFT JOIN districts d
-                ON d.id = t.district_id
-
-            WHERE t.id = ?
-
-            LIMIT 1
-        `, [
-            id
-        ]);
-
-
-        return res.status(200).json({
-
-            success: true,
-
-            message:
-                "Taluka updated successfully",
-
-            data:
-                rows[0],
-
-            taluka:
-                rows[0],
+        // Sync with users table
+        await syncSystemUser({
+            user_id: finalUserId,
+            password: finalPassword,
+            name: finalName,
+            role: "taluka",
+            status: normalizedStatus,
+            old_user_id: oldRecord.user_id,
         });
 
+        const [rows] = await db.query(`
+            SELECT
+                t.id,
+                t.taluka_code,
+                t.name,
+                t.contact_number,
+                t.designation,
+                t.district_id,
+                d.district_name,
+                d.name AS district_head_name,
+                t.taluka_name,
+                t.joining_date,
+                t.status,
+                t.account_number,
+                t.ifsc_code,
+                t.bank_name,
+                t.user_id,
+                t.email,
+                t.password,
+                t.created_at,
+                t.updated_at
+            FROM talukas t
+            LEFT JOIN districts d ON d.id = t.district_id
+            WHERE t.id = ?
+            LIMIT 1
+        `, [id]);
+
+        return res.status(200).json({
+            success: true,
+            message: "Taluka updated successfully",
+            data: rows[0],
+            taluka: rows[0],
+        });
 
     } catch (error) {
-
-        console.error(
-            "UPDATE TALUKA ERROR:",
-            error
-        );
-
-
-        if (
-            error.code ===
-            "ER_DUP_ENTRY"
-        ) {
-
-            return res.status(409).json({
-                success: false,
-                message:
-                    "Taluka already exists",
-            });
-        }
-
-
+        console.error("UPDATE TALUKA ERROR:", error);
         return res.status(500).json({
             success: false,
-            message:
-                error.message ||
-                "Failed to update Taluka",
+            message: error.message || "Failed to update Taluka",
         });
     }
 };
@@ -1903,119 +516,65 @@ const updateTaluka = async (
 // DELETE /api/taluka/:id
 // =====================================================
 
-const deleteTaluka = async (
-    req,
-    res
-) => {
-
+const deleteTaluka = async (req, res) => {
     try {
+        const { id } = req.params;
 
-        const { id } =
-            req.params;
-
-
-        // =================================================
-        // CHECK TALUKA
-        // =================================================
-
-        const [
-            rows
-        ] = await db.query(`
-            SELECT
-                id
-
-            FROM talukas
-
-            WHERE id = ?
-
-            LIMIT 1
-        `, [
-            id
-        ]);
-
-
-        if (
-            rows.length === 0
-        ) {
-
-            return res.status(404).json({
-                success: false,
-                message:
-                    "Taluka not found",
-            });
-        }
-
-
-        // =================================================
-        // DELETE
-        // =================================================
-
-        await db.query(`
-            DELETE FROM talukas
-            WHERE id = ?
-        `, [
-            id
-        ]);
-
-
-        return res.status(200).json({
-
-            success: true,
-
-            message:
-                "Taluka deleted successfully",
-        });
-
-
-    } catch (error) {
-
-        console.error(
-            "DELETE TALUKA ERROR:",
-            error
+        const [existing] = await db.query(
+            "SELECT user_id FROM talukas WHERE id = ? LIMIT 1",
+            [id]
         );
 
-
-        if (
-            error.code ===
-            "ER_ROW_IS_REFERENCED_2" ||
-            error.code ===
-            "ER_ROW_IS_REFERENCED"
-        ) {
-
-            return res.status(409).json({
+        if (existing.length === 0) {
+            return res.status(404).json({
                 success: false,
-                message:
-                    "Taluka cannot be deleted because it is being used",
+                message: "Taluka not found",
             });
         }
 
+        const [result] = await db.query("DELETE FROM talukas WHERE id = ?", [id]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Taluka not found",
+            });
+        }
+
+        if (existing[0].user_id) {
+            await deleteSystemUser(existing[0].user_id);
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "Taluka deleted successfully",
+        });
+
+    } catch (error) {
+        console.error("DELETE TALUKA ERROR:", error);
+
+        if (
+            error.code === "ER_ROW_IS_REFERENCED_2" ||
+            error.code === "ER_ROW_IS_REFERENCED"
+        ) {
+            return res.status(409).json({
+                success: false,
+                message: "Taluka cannot be deleted because it is being used",
+            });
+        }
 
         return res.status(500).json({
             success: false,
-            message:
-                error.message ||
-                "Failed to delete Taluka",
+            message: error.message || "Failed to delete Taluka",
         });
     }
 };
 
-
-// =====================================================
-// EXPORT
-// =====================================================
-
 module.exports = {
-
     getTalukas,
-
     getTalukasByDistrict,
-
     getTalukaById,
-
     createTaluka,
-
     updateTaluka,
-
     deleteTaluka,
-
 };

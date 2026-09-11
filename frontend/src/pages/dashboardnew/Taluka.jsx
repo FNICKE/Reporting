@@ -29,37 +29,19 @@ const DISTRICT_API_URL =
 ========================================================= */
 
 const EMPTY_FORM = {
+  talukaCode: "",
   name: "",
-
   contactNumber: "",
-
-  reportDate:
-    new Date()
-      .toISOString()
-      .split("T")[0],
-
   designation: "",
-
   districtId: "",
-
   districtName: "",
-
   taluka: "",
-
   joiningDate: "",
-
   accountNumber: "",
-
   ifscCode: "",
-
   bankName: "",
-
   status: "active",
-
-  email: "",
-
   userId: "",
-
   password: "",
 };
 
@@ -449,6 +431,10 @@ const Taluka = () => {
                 item?.taluka_id ??
                 "",
 
+              talukaCode:
+                item?.taluka_code ??
+                item?.talukaCode ??
+                "",
 
               name:
                 item?.name ??
@@ -772,6 +758,12 @@ const Taluka = () => {
 
     setFormData({
 
+      talukaCode:
+        safeString(
+          taluka?.talukaCode ||
+          taluka?.taluka_code
+        ),
+
       name:
         safeString(
           taluka?.name
@@ -928,19 +920,20 @@ const Taluka = () => {
        VALIDATION
     ===================================================== */
 
-    if (
-      !safeString(
-        formData.name
-      ).trim()
-    ) {
-
-      alert(
-        "Please enter Taluka Name"
-      );
-
+    if (!safeString(formData.name).trim()) {
+      alert("Please enter Full Name");
       return;
     }
 
+    if (!safeString(formData.contactNumber).trim()) {
+      alert("Please enter Mobile Number");
+      return;
+    }
+
+    if (!safeString(formData.designation).trim()) {
+      alert("Please enter Designation");
+      return;
+    }
 
     /* =====================================================
        DISTRICT REQUIRED
@@ -963,6 +956,10 @@ const Taluka = () => {
             safeString(
               d?.name
             ).trim().toLowerCase() ===
+            districtNameValue.toLowerCase() ||
+            safeString(
+              d?.district_name
+            ).trim().toLowerCase() ===
             districtNameValue.toLowerCase()
         );
 
@@ -978,42 +975,55 @@ const Taluka = () => {
       !districtIdValue &&
       !districtNameValue
     ) {
-
       alert(
         "Please enter District"
       );
-
       return;
     }
 
+    if (!safeString(formData.taluka).trim()) {
+      alert("Please enter Taluka");
+      return;
+    }
+
+    if (!safeString(formData.userId).trim()) {
+      alert("Please enter User ID");
+      return;
+    }
+
+    if (!editingId && !safeString(formData.password).trim()) {
+      alert("Please enter Password");
+      return;
+    }
 
     try {
 
       setLoading(true);
 
-
       /* =================================================
          PAYLOAD
       ================================================= */
 
+      const talukaCodeValue = editingId
+        ? (formData.talukaCode || getTalukaHeadId({ id: editingId }))
+        : getNextTalukaId();
+
       const payload = {
-
-        name:
-          safeString(
-            formData.name
-          ).trim(),
-
-
-        /* backend ला district_id */
-
-        district_id:
-          Number(
-            districtIdValue
-          ) || 1,
-
-        district_name:
-          districtNameValue,
-
+        taluka_code: talukaCodeValue,
+        name: safeString(formData.name).trim(),
+        contact_number: safeString(formData.contactNumber).trim(),
+        designation: safeString(formData.designation).trim(),
+        district_id: Number(districtIdValue) || 1,
+        district_name: districtNameValue,
+        taluka_name: safeString(formData.taluka || formData.name).trim(),
+        taluka: safeString(formData.taluka || formData.name).trim(),
+        joining_date: formData.joiningDate || null,
+        status: formData.status || "active",
+        account_number: safeString(formData.accountNumber).trim(),
+        ifsc_code: safeString(formData.ifscCode).trim().toUpperCase(),
+        bank_name: safeString(formData.bankName).trim(),
+        user_id: safeString(formData.userId).trim(),
+        password: safeString(formData.password).trim(),
       };
 
 
@@ -1399,75 +1409,21 @@ const Taluka = () => {
 
       const excelData =
         filteredTalukas.map(
-          (
-            item,
-            index
-          ) => ({
-
-            SR:
-              index + 1,
-
-            "Full Name":
-              item.name || "",
-
-            "Mobile Number":
-              item.contactNumber ||
-              "",
-
-            "Report Date":
-              formatDate(
-                item.reportDate
-              ),
-
-            Designation:
-              item.designation ||
-              "",
-
-            District:
-              item.districtName ||
-              "",
-
-            "District ID":
-              item.districtId ||
-              "",
-
-            Taluka:
-              item.taluka ||
-              "",
-
-            "Joining Date":
-              formatDate(
-                item.joiningDate
-              ),
-
-            "Account No.":
-              item.accountNumber ||
-              "",
-
-            "IFSC Code":
-              item.ifscCode ||
-              "",
-
-            "Bank Name":
-              item.bankName ||
-              "",
-
-            Email:
-              item.email ||
-              "",
-
-            "User ID":
-              item.userId ||
-              "",
-
-            Password:
-              item.password ||
-              "",
-
-            Status:
-              item.status ||
-              "",
-
+          (item, index) => ({
+            SR: index + 1,
+            "Taluka ID": item.talukaCode || getTalukaHeadId(item, index),
+            "Full Name": item.name || "",
+            "Mobile Number": item.contactNumber || "",
+            Designation: item.designation || "",
+            District: item.districtName || "",
+            Taluka: item.taluka || item.talukaName || "",
+            "Joining Date": formatDate(item.joiningDate),
+            Status: item.status || "",
+            "Account No.": item.accountNumber || "",
+            "IFSC Code": item.ifscCode || "",
+            "Bank Name": item.bankName || "",
+            "User ID": item.userId || "",
+            Password: item.password || "",
           })
         );
 
@@ -1899,324 +1855,87 @@ const Taluka = () => {
               >
 
                 <tr>
-
-                  <th>
-                    SR
-                  </th>
-
-                  <th>
-                    Full Name
-                  </th>
-
-                  <th>
-                    Mobile Number
-                  </th>
-
-                  <th>
-                    Report Date
-                  </th>
-
-                  <th>
-                    Designation
-                  </th>
-
-                  <th>
-                    District
-                  </th>
-
-                  <th>
-                    Taluka ID
-                  </th>
-
-                  <th>
-                    Taluka
-                  </th>
-
-                  <th>
-                    Joining Date
-                  </th>
-
-                  <th>
-                    Account No.
-                  </th>
-
-                  <th>
-                    IFSC Code
-                  </th>
-
-                  <th>
-                    Bank Name
-                  </th>
-
-                  <th>
-                    Email
-                  </th>
-
-                  <th>
-                    User ID
-                  </th>
-
-                  <th>
-                    Password
-                  </th>
-
-                  <th>
-                    Status
-                  </th>
-
-                  <th>
-                    Action
-                  </th>
-
+                  <th>SR</th>
+                  <th>Taluka ID</th>
+                  <th>Full Name</th>
+                  <th>Mobile Number</th>
+                  <th>Designation</th>
+                  <th>District</th>
+                  <th>Taluka</th>
+                  <th>Joining Date</th>
+                  <th>Status</th>
+                  <th>Account No.</th>
+                  <th>IFSC Code</th>
+                  <th>Bank Name</th>
+                  <th>User ID</th>
+                  <th>Password</th>
+                  <th>Action</th>
                 </tr>
-
               </thead>
 
-
               <tbody>
-
                 {loading && (
-
                   <tr>
-
-                    <td
-                      colSpan="17"
-                      className="
-                        text-center
-                        py-5
-                      "
-                    >
+                    <td colSpan="15" className="text-center py-5">
                       Loading Talukas...
                     </td>
-
                   </tr>
-
                 )}
 
+                {!loading && filteredTalukas.length === 0 && (
+                  <tr>
+                    <td colSpan="15" className="text-center py-5 text-muted">
+                      No Talukas found.
+                    </td>
+                  </tr>
+                )}
 
                 {!loading &&
-                  filteredTalukas.length ===
-                    0 && (
-
-                    <tr>
-
-                      <td
-                        colSpan="17"
-                        className="
-                          text-center
-                          py-5
-                          text-muted
-                        "
-                      >
-                        No Talukas found.
+                  filteredTalukas.map((item, index) => (
+                    <tr key={item.id}>
+                      <td>{index + 1}</td>
+                      <td><strong>{item.talukaCode || getTalukaHeadId(item, index)}</strong></td>
+                      <td>{item.name || "-"}</td>
+                      <td>{item.contactNumber || "-"}</td>
+                      <td>{item.designation || "-"}</td>
+                      <td>{item.districtName || "-"}</td>
+                      <td>{item.taluka || item.talukaName || "-"}</td>
+                      <td>{formatDate(item.joiningDate) || "-"}</td>
+                      <td>
+                        <span
+                          className={`badge ${
+                            item.status === "inactive"
+                              ? "bg-danger-subtle text-danger"
+                              : "bg-success-subtle text-success"
+                          }`}
+                        >
+                          {item.status || "active"}
+                        </span>
+                      </td>
+                      <td>{item.accountNumber || "-"}</td>
+                      <td>{item.ifscCode || "-"}</td>
+                      <td>{item.bankName || "-"}</td>
+                      <td>{item.userId || "-"}</td>
+                      <td>
+                        {item.password ? (
+                          <>
+                            {showPasswords[item.id] ? item.password : "••••••••"}
+                            <Button
+                              type="button"
+                              variant="link"
+                              size="sm"
+                              className="p-0 ms-2 text-decoration-none"
+                              onClick={() => togglePassword(item.id)}
+                            >
+                              {showPasswords[item.id] ? "Hide" : "Show"}
+                            </Button>
+                          </>
+                        ) : (
+                          "-"
+                        )}
                       </td>
 
-                    </tr>
-
-                  )}
-
-
-                {!loading &&
-                  filteredTalukas.map(
-                    (
-                      item,
-                      index
-                    ) => (
-
-                      <tr
-                        key={
-                          item.id
-                        }
-                      >
-
-                        <td>
-                          {
-                            index + 1
-                          }
-                        </td>
-
-
-                        <td>
-                          {
-                            item.name ||
-                            "-"
-                          }
-                        </td>
-
-
-                        <td>
-                          {
-                            item.contactNumber ||
-                            "-"
-                          }
-                        </td>
-
-
-                        <td>
-                          {
-                            formatDate(
-                              item.reportDate
-                            ) ||
-                            "-"
-                          }
-                        </td>
-
-
-                        <td>
-                          {
-                            item.designation ||
-                            "-"
-                          }
-                        </td>
-
-
-                        <td>
-                          {
-                            item.districtName ||
-                            "-"
-                          }
-                        </td>
-
-
-                        <td>
-                          {
-                            item.districtId ||
-                            "-"
-                          }
-                        </td>
-
-
-                        <td>
-                          {
-                            item.taluka ||
-                            "-"
-                          }
-                        </td>
-
-
-                        <td>
-                          {
-                            formatDate(
-                              item.joiningDate
-                            ) ||
-                            "-"
-                          }
-                        </td>
-
-
-                        <td>
-                          {
-                            item.accountNumber ||
-                            "-"
-                          }
-                        </td>
-
-
-                        <td>
-                          {
-                            item.ifscCode ||
-                            "-"
-                          }
-                        </td>
-
-
-                        <td>
-                          {
-                            item.bankName ||
-                            "-"
-                          }
-                        </td>
-
-
-                        <td>
-                          {
-                            item.email ||
-                            "-"
-                          }
-                        </td>
-
-
-                        <td>
-                          {
-                            item.userId ||
-                            "-"
-                          }
-                        </td>
-
-
-                        <td>
-
-                          {
-                            item.password
-                              ? (
-                                <>
-                                  {
-                                    showPasswords[
-                                      item.id
-                                    ]
-                                      ? item.password
-                                      : "••••••••"
-                                  }
-
-
-                                  <Button
-                                    type="button"
-                                    variant="link"
-                                    size="sm"
-                                    className="
-                                      p-0
-                                      ms-2
-                                      text-decoration-none
-                                    "
-                                    onClick={() =>
-                                      togglePassword(
-                                        item.id
-                                      )
-                                    }
-                                  >
-
-                                    {
-                                      showPasswords[
-                                        item.id
-                                      ]
-                                        ? "Hide"
-                                        : "Show"
-                                    }
-
-                                  </Button>
-
-                                </>
-                              )
-                              : "-"
-                          }
-
-                        </td>
-
-
-                        <td>
-
-                          <span
-                            className={`badge ${
-                              safeString(
-                                item.status
-                              ).toLowerCase() ===
-                              "inactive"
-                                ? "bg-danger-subtle text-danger"
-                                : "bg-success-subtle text-success"
-                            }`}
-                          >
-
-                            {
-                              item.status ||
-                              "Active"
-                            }
-
-                          </span>
-
-                        </td>
-
-
-                        <td>
+                      <td>
 
                           <div
                             className="
@@ -2380,33 +2099,6 @@ const Taluka = () => {
               </div>
 
 
-              {/* REPORT DATE */}
-
-              <div
-                className="col-md-6"
-              >
-
-                <Form.Group>
-
-                  <Form.Label className="fw-semibold">Report Date (अहवालाची तारीख)</Form.Label>
-
-                  <Form.Control
-                    type="date"
-                    name="reportDate"
-                    value={
-                      formData.reportDate
-                    }
-                    onChange={
-                      handleChange
-                    }
-                    disabled={
-                      loading
-                    }
-                  />
-
-                </Form.Group>
-
-              </div>
 
 
               {/* DESIGNATION */}

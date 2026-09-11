@@ -320,9 +320,19 @@ const Vibhag = () => {
                             "",
 
                         name:
-                            district?.name ??
-                            district?.district_name ??
-                            district?.districtName ??
+                            district?.district_name ||
+                            district?.districtName ||
+                            district?.name ||
+                            "",
+
+                        district_name:
+                            district?.district_name ||
+                            district?.districtName ||
+                            district?.name ||
+                            "",
+
+                        head_name:
+                            district?.name ||
                             "",
 
                     })
@@ -425,10 +435,17 @@ const Vibhag = () => {
                                 "",
 
                             name:
-                                taluka?.name ??
-                                taluka?.taluka ??
-                                taluka?.taluka_name ??
-                                taluka?.talukaName ??
+                                taluka?.taluka_name ||
+                                taluka?.talukaName ||
+                                taluka?.taluka ||
+                                taluka?.name ||
+                                "",
+
+                            taluka_name:
+                                taluka?.taluka_name ||
+                                taluka?.talukaName ||
+                                taluka?.taluka ||
+                                taluka?.name ||
                                 "",
 
                         })
@@ -1411,8 +1428,6 @@ const Vibhag = () => {
 
         }
 
-
-
         if (
             !editingId &&
             !password
@@ -1426,29 +1441,24 @@ const Vibhag = () => {
 
         }
 
-        if (!address) {
-
-            alert(
-                "Please enter Address"
-            );
-
-            return;
-
-        }
-
         // ===============================================
         // PAYLOAD
         // ===============================================
 
+        const autoVibhagCode = editingId ? `VH-${String(editingId).padStart(4, "0")}` : getNextVibhagId();
+
         const payload = {
+
+            vibhag_code:
+                autoVibhagCode,
 
             head,
 
             mobile_number:
                 mobileNumber,
 
-            report_date:
-                reportDate || null,
+            contact_number:
+                mobileNumber,
 
             designation,
 
@@ -1463,34 +1473,41 @@ const Vibhag = () => {
             taluka_id:
                 Number(
                     talukaId
-                ),
+                ) || 1,
 
             taluka,
 
-            vibhag,
+            vibhag:
+                vibhag || head || autoVibhagCode,
 
             joining_date:
                 joiningDate || null,
 
+            status,
+
             account_no:
-                accountNumber,
+                accountNumber || null,
+
+            account_number:
+                accountNumber || null,
 
             ifsc_code:
-                ifscCode,
+                ifscCode || null,
 
             bank_name:
-                bankName,
-
-            status,
+                bankName || null,
 
             user_id:
                 userId,
 
-            email,
+            password:
+                password || undefined,
 
-            password,
+            email:
+                email || null,
 
-            address,
+            address:
+                address || null,
 
         };
 
@@ -1750,19 +1767,8 @@ const Vibhag = () => {
                             item?.mobile_number ||
                             "",
 
-                        "Report Date":
-                            formatDate(
-                                item?.report_date ||
-                                item?.reportDate
-                            ),
-
                         Designation:
                             item?.designation ||
-                            "",
-
-                        "District ID":
-                            item?.district_id ||
-                            item?.districtId ||
                             "",
 
                         District:
@@ -1770,19 +1776,10 @@ const Vibhag = () => {
                                 item
                             ),
 
-                        "Taluka ID":
-                            item?.taluka_id ||
-                            item?.talukaId ||
-                            "",
-
                         Taluka:
                             getTalukaName(
                                 item
                             ),
-
-                        Vibhag:
-                            item?.vibhag ||
-                            "",
 
                         "Joining Date":
                             formatDate(
@@ -1790,8 +1787,13 @@ const Vibhag = () => {
                                 item?.joiningDate
                             ),
 
-                        "Account No.":
+                        Status:
+                            item?.status ||
+                            "active",
+
+                        "Account Number":
                             item?.account_no ||
+                            item?.account_number ||
                             item?.accountNumber ||
                             "",
 
@@ -1805,14 +1807,6 @@ const Vibhag = () => {
                             item?.bankName ||
                             "",
 
-                        Status:
-                            item?.status ||
-                            "active",
-
-                        Email:
-                            item?.email ||
-                            "",
-
                         "User ID":
                             item?.user_id ||
                             item?.userId ||
@@ -1820,10 +1814,6 @@ const Vibhag = () => {
 
                         Password:
                             item?.password ||
-                            "",
-
-                        Address:
-                            item?.address ||
                             "",
 
                     })
@@ -1840,22 +1830,16 @@ const Vibhag = () => {
                 { wch: 15 },
                 { wch: 25 },
                 { wch: 18 },
-                { wch: 15 },
                 { wch: 20 },
-                { wch: 15 },
+                { wch: 25 },
                 { wch: 25 },
                 { wch: 15 },
-                { wch: 25 },
-                { wch: 20 },
-                { wch: 15 },
+                { wch: 12 },
                 { wch: 20 },
                 { wch: 18 },
                 { wch: 22 },
-                { wch: 12 },
-                { wch: 30 },
                 { wch: 20 },
                 { wch: 20 },
-                { wch: 35 },
 
             ];
 
@@ -2266,15 +2250,15 @@ const Vibhag = () => {
                                     </th>
 
                                     <th>
+                                        Vibhag ID
+                                    </th>
+
+                                    <th>
                                         Full Name
                                     </th>
 
                                     <th>
                                         Mobile Number
-                                    </th>
-
-                                    <th>
-                                        Report Date
                                     </th>
 
                                     <th>
@@ -2286,19 +2270,7 @@ const Vibhag = () => {
                                     </th>
 
                                     <th>
-                                        District ID
-                                    </th>
-
-                                    <th>
                                         Taluka
-                                    </th>
-
-                                    <th>
-                                        Taluka ID
-                                    </th>
-
-                                    <th>
-                                        Vibhag
                                     </th>
 
                                     <th>
@@ -2306,7 +2278,11 @@ const Vibhag = () => {
                                     </th>
 
                                     <th>
-                                        Account No.
+                                        Status
+                                    </th>
+
+                                    <th>
+                                        Account Number
                                     </th>
 
                                     <th>
@@ -2318,19 +2294,11 @@ const Vibhag = () => {
                                     </th>
 
                                     <th>
-                                        Email
-                                    </th>
-
-                                    <th>
                                         User ID
                                     </th>
 
                                     <th>
                                         Password
-                                    </th>
-
-                                    <th>
-                                        Status
                                     </th>
 
                                     <th>
@@ -2348,7 +2316,7 @@ const Vibhag = () => {
                                     <tr>
 
                                         <td
-                                            colSpan="19"
+                                            colSpan="15"
                                             className="
                                                 text-center
                                                 py-5
@@ -2368,7 +2336,7 @@ const Vibhag = () => {
                                         <tr>
 
                                             <td
-                                                colSpan="19"
+                                                colSpan="15"
                                                 className="
                                                     text-center
                                                     py-5
@@ -2404,6 +2372,12 @@ const Vibhag = () => {
                                                     }
                                                 </td>
 
+                                                <td>
+                                                    <span className="badge bg-light text-dark border">
+                                                        {item?.vibhag_code || `VH-${String(item?.id ?? "").padStart(4, "0")}`}
+                                                    </span>
+                                                </td>
+
                                                 <td
                                                     className="fw-semibold"
                                                 >
@@ -2424,13 +2398,6 @@ const Vibhag = () => {
                                                 </td>
 
                                                 <td>
-                                                    {formatDate(
-                                                        item?.report_date ||
-                                                        item?.reportDate
-                                                    )}
-                                                </td>
-
-                                                <td>
                                                     {
                                                         item?.designation ||
                                                         "-"
@@ -2447,32 +2414,9 @@ const Vibhag = () => {
 
                                                 <td>
                                                     {
-                                                        item?.district_id ||
-                                                        item?.districtId ||
-                                                        "-"
-                                                    }
-                                                </td>
-
-                                                <td>
-                                                    {
                                                         getTalukaName(
                                                             item
                                                         )
-                                                    }
-                                                </td>
-
-                                                <td>
-                                                    {
-                                                        item?.taluka_id ||
-                                                        item?.talukaId ||
-                                                        "-"
-                                                    }
-                                                </td>
-
-                                                <td>
-                                                    {
-                                                        item?.vibhag ||
-                                                        "-"
                                                     }
                                                 </td>
 
@@ -2484,8 +2428,26 @@ const Vibhag = () => {
                                                 </td>
 
                                                 <td>
+
+                                                    <span
+                                                        className="
+                                                            badge
+                                                            bg-success-subtle
+                                                            text-success
+                                                        "
+                                                    >
+                                                        {
+                                                            item?.status ||
+                                                            "active"
+                                                        }
+                                                    </span>
+
+                                                </td>
+
+                                                <td>
                                                     {
                                                         item?.account_no ||
+                                                        item?.account_number ||
                                                         item?.accountNumber ||
                                                         "-"
                                                     }
@@ -2503,13 +2465,6 @@ const Vibhag = () => {
                                                     {
                                                         item?.bank_name ||
                                                         item?.bankName ||
-                                                        "-"
-                                                    }
-                                                </td>
-
-                                                <td>
-                                                    {
-                                                        item?.email ||
                                                         "-"
                                                     }
                                                 </td>
@@ -2578,23 +2533,6 @@ const Vibhag = () => {
                                                         "-"
 
                                                     )}
-
-                                                </td>
-
-                                                <td>
-
-                                                    <span
-                                                        className="
-                                                            badge
-                                                            bg-success-subtle
-                                                            text-success
-                                                        "
-                                                    >
-                                                        {
-                                                            item?.status ||
-                                                            "active"
-                                                        }
-                                                    </span>
 
                                                 </td>
 
@@ -2847,18 +2785,6 @@ const Vibhag = () => {
                                 />
                             </div>
 
-                            {/* REPORT DATE */}
-                            <div className="col-md-6">
-                                <Form.Label className="fw-semibold">Report Date (अहवालाची तारीख)</Form.Label>
-                                <Form.Control
-                                    type="date"
-                                    name="reportDate"
-                                    value={formData.reportDate}
-                                    onChange={handleChange}
-                                    disabled={formLoading}
-                                />
-                            </div>
-
                             {/* DESIGNATION */}
                             <div className="col-md-6">
                                 <Form.Label className="fw-semibold">Designation (पद)</Form.Label>
@@ -2886,7 +2812,7 @@ const Vibhag = () => {
                                 />
                                 <datalist id="vibhagDistrictList">
                                     {districts.map((district) => (
-                                        <option key={district.id} value={district.name} />
+                                        <option key={district.id} value={district.district_name || district.name} />
                                     ))}
                                 </datalist>
                             </div>
@@ -2905,23 +2831,10 @@ const Vibhag = () => {
                                     </option>
                                     {talukas.map((taluka) => (
                                         <option key={taluka.id} value={taluka.id}>
-                                            {taluka.name}
+                                            {taluka.taluka_name || taluka.name}
                                         </option>
                                     ))}
                                 </Form.Select>
-                            </div>
-
-                            {/* VIBHAG */}
-                            <div className="col-md-6">
-                                <Form.Label className="fw-semibold">Vibhag Name (विभागाचे नाव)</Form.Label>
-                                <Form.Control
-                                    type="text"
-                                    name="vibhag"
-                                    value={formData.vibhag}
-                                    onChange={handleChange}
-                                    placeholder="विभागाचे नाव प्रविष्ट करा"
-                                    disabled={formLoading}
-                                />
                             </div>
 
                             {/* JOINING DATE */}
@@ -3037,19 +2950,7 @@ const Vibhag = () => {
                                 </div>
                             </div>
 
-                            {/* ADDRESS */}
-                            <div className="col-12">
-                                <Form.Label className="fw-semibold">Address (पत्ता)</Form.Label>
-                                <Form.Control
-                                    as="textarea"
-                                    rows={3}
-                                    name="address"
-                                    value={formData.address}
-                                    onChange={handleChange}
-                                    placeholder="पत्ता प्रविष्ट करा"
-                                    disabled={formLoading}
-                                />
-                            </div>
+
 
                         </div>
                     </Modal.Body>

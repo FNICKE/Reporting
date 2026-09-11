@@ -53,7 +53,7 @@ const EMPTY_FORM = {
     bankName: "",
     status: "active",
     email: "",
-    userId: "admin",
+    userId: "",
     password: "",
 };
 
@@ -187,7 +187,20 @@ const getVibhagName = (item) => {
         item?.name ||
         ""
     );
+};
 
+const formatDate = (dateString) => {
+    if (!dateString) return "";
+    try {
+        const d = new Date(dateString);
+        if (isNaN(d.getTime())) return String(dateString).split("T")[0];
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const year = d.getFullYear();
+        return `${day}/${month}/${year}`;
+    } catch (e) {
+        return String(dateString).split("T")[0];
+    }
 };
 
 
@@ -1579,21 +1592,6 @@ const Trainer = () => {
 
             }
 
-
-            if (
-                !formData.vibhagId &&
-                !formData.vibhag?.trim()
-            ) {
-
-                alert(
-                    "Please select Vibhag"
-                );
-
-                return;
-
-            }
-
-
             if (
                 !formData.contactNumber.trim()
             ) {
@@ -1681,12 +1679,10 @@ const Trainer = () => {
                     formData.taluka || "",
 
                 vibhag_id:
-                    Number(
-                        formData.vibhagId
-                    ) || 1,
+                    formData.vibhagId ? Number(formData.vibhagId) : null,
 
                 vibhag_name:
-                    formData.vibhag || "",
+                    formData.vibhag || null,
 
                 contact_number:
                     formData.contactNumber.trim(),
@@ -2035,20 +2031,25 @@ const Trainer = () => {
             const excelData = filteredTrainers.map((item, index) => ({
                 SR: index + 1,
 
-                "BDO Officer ID":
+                "BDO ID":
                     item?.trainer_code ||
                     item?.trainerId ||
                     item?.trainer_id ||
-                    `TR-${String(item?.id ?? "").padStart(4, "0")}`,
+                    `BDO-${String(item?.id ?? "").padStart(4, "0")}`,
 
-                Name:
+                "Full Name":
                     item?.trainer_name ||
                     item?.name ||
                     "",
 
-                Status:
-                    item?.status ||
-                    "Active",
+                "Mobile Number":
+                    item?.contact_number ||
+                    item?.contactNumber ||
+                    "",
+
+                Designation:
+                    item?.designation ||
+                    "",
 
                 District:
                     item?.district_name ||
@@ -2066,17 +2067,30 @@ const Trainer = () => {
                         ? item.taluka
                         : ""),
 
-                Vibhag:
-                    item?.vibhag_name ||
-                    item?.vibhagName ||
-                    item?.vibhag?.name ||
-                    (typeof item?.vibhag === "string"
-                        ? item.vibhag
-                        : ""),
+                "Joining Date":
+                    item?.joining_date
+                        ? String(item.joining_date).split("T")[0]
+                        : item?.joiningDate
+                        ? String(item.joiningDate).split("T")[0]
+                        : "",
 
-                "Contact Number":
-                    item?.contact_number ||
-                    item?.contactNumber ||
+                Status:
+                    item?.status ||
+                    "active",
+
+                "Account Number":
+                    item?.account_number ||
+                    item?.accountNumber ||
+                    "",
+
+                "IFSC Code":
+                    item?.ifsc_code ||
+                    item?.ifscCode ||
+                    "",
+
+                "Bank Name":
+                    item?.bank_name ||
+                    item?.bankName ||
                     "",
 
                 "User ID":
@@ -2087,31 +2101,25 @@ const Trainer = () => {
                 Password:
                     item?.password ||
                     "",
-
-                Email:
-                    item?.email ||
-                    "",
-
-                Address:
-                    item?.address ||
-                    "",
             }));
 
             const worksheet = XLSX.utils.json_to_sheet(excelData);
 
             worksheet["!cols"] = [
                 { wch: 8 },
-                { wch: 20 },
-                { wch: 25 },
                 { wch: 15 },
-                { wch: 22 },
-                { wch: 22 },
-                { wch: 22 },
+                { wch: 25 },
                 { wch: 18 },
                 { wch: 20 },
                 { wch: 22 },
-                { wch: 32 },
-                { wch: 40 },
+                { wch: 22 },
+                { wch: 15 },
+                { wch: 12 },
+                { wch: 20 },
+                { wch: 18 },
+                { wch: 22 },
+                { wch: 20 },
+                { wch: 20 },
             ];
 
             const workbook = XLSX.utils.book_new();
@@ -2582,55 +2590,23 @@ const Trainer = () => {
                             <thead
                                 className="table-light"
                             >
-
                                 <tr>
-
-                                    <th>
-                                        SR
-                                    </th>
-
-                                    <th>
-                                        BDO Officer ID
-                                    </th>
-
-                                    <th>
-                                        Name
-                                    </th>
-
-                                    <th>
-                                        Status
-                                    </th>
-
-                                    <th>
-                                        District
-                                    </th>
-
-                                    <th>
-                                        Taluka
-                                    </th>
-
-                                    <th>
-                                        Vibhag
-                                    </th>
-
-                                    <th>
-                                        Contact Number
-                                    </th>
-
-                                    <th>
-                                        User ID
-                                    </th>
-
-                                    <th>
-                                        Password
-                                    </th>
-
-                                    <th>
-                                        Action
-                                    </th>
-
+                                    <th>SR</th>
+                                    <th>BDO ID</th>
+                                    <th>Full Name</th>
+                                    <th>Mobile Number</th>
+                                    <th>Designation</th>
+                                    <th>District</th>
+                                    <th>Taluka</th>
+                                    <th>Joining Date</th>
+                                    <th>Status</th>
+                                    <th>Account Number</th>
+                                    <th>IFSC Code</th>
+                                    <th>Bank Name</th>
+                                    <th>User ID</th>
+                                    <th>Password</th>
+                                    <th>Action</th>
                                 </tr>
-
                             </thead>
 
 
@@ -2643,7 +2619,7 @@ const Trainer = () => {
                                     <tr>
 
                                         <td
-                                            colSpan="11"
+                                            colSpan="15"
                                             className="
                                                 text-center
                                                 py-5
@@ -2665,7 +2641,7 @@ const Trainer = () => {
                                         <tr>
 
                                             <td
-                                                colSpan="11"
+                                                colSpan="15"
                                                 className="
                                                     text-center
                                                     py-5
@@ -2788,24 +2764,16 @@ const Trainer = () => {
                                                         </td>
 
 
-                                                        {/* TRAINER ID */}
+                                                        {/* BDO ID */}
 
                                                         <td>
-
-                                                            <span
-                                                                className="
-                                                                    fw-semibold
-                                                                "
-                                                            >
-                                                                {
-                                                                    trainerId
-                                                                }
+                                                            <span className="badge bg-light text-dark border">
+                                                                {trainerId}
                                                             </span>
-
                                                         </td>
 
 
-                                                        {/* NAME */}
+                                                        {/* FULL NAME */}
 
                                                         <td
                                                             className="
@@ -2818,23 +2786,22 @@ const Trainer = () => {
                                                         </td>
 
 
-                                                        {/* STATUS */}
+                                                        {/* MOBILE NUMBER */}
 
                                                         <td>
+                                                            {
+                                                                contactNumber
+                                                            }
+                                                        </td>
 
-                                                            <span
-                                                                className="
-                                                                    badge
-                                                                    bg-success-subtle
-                                                                    text-success
-                                                                "
-                                                            >
-                                                                {
-                                                                    item?.status ||
-                                                                    "Active"
-                                                                }
-                                                            </span>
 
+                                                        {/* DESIGNATION */}
+
+                                                        <td>
+                                                            {
+                                                                item?.designation ||
+                                                                "-"
+                                                            }
                                                         </td>
 
 
@@ -2856,20 +2823,63 @@ const Trainer = () => {
                                                         </td>
 
 
-                                                        {/* VIBHAG */}
+                                                        {/* JOINING DATE */}
+
+                                                        <td>
+                                                            {formatDate(
+                                                                item?.joining_date ||
+                                                                item?.joiningDate
+                                                            ) || "-"}
+                                                        </td>
+
+
+                                                        {/* STATUS */}
+
+                                                        <td>
+                                                            <span
+                                                                className="
+                                                                    badge
+                                                                    bg-success-subtle
+                                                                    text-success
+                                                                "
+                                                            >
+                                                                {
+                                                                    item?.status ||
+                                                                    "active"
+                                                                }
+                                                            </span>
+                                                        </td>
+
+
+                                                        {/* ACCOUNT NUMBER */}
 
                                                         <td>
                                                             {
-                                                                vibhagName
+                                                                item?.account_number ||
+                                                                item?.accountNumber ||
+                                                                "-"
                                                             }
                                                         </td>
 
 
-                                                        {/* CONTACT */}
+                                                        {/* IFSC CODE */}
 
                                                         <td>
                                                             {
-                                                                contactNumber
+                                                                item?.ifsc_code ||
+                                                                item?.ifscCode ||
+                                                                "-"
+                                                            }
+                                                        </td>
+
+
+                                                        {/* BANK NAME */}
+
+                                                        <td>
+                                                            {
+                                                                item?.bank_name ||
+                                                                item?.bankName ||
+                                                                "-"
                                                             }
                                                         </td>
 
@@ -3041,7 +3051,7 @@ const Trainer = () => {
                                                         <tr>
 
                                                             <td
-                                                                colSpan="11"
+                                                                colSpan="15"
                                                                 className="
                                                                     bg-light
                                                                 "
@@ -3168,12 +3178,39 @@ const Trainer = () => {
                                                                                 mb-1
                                                                             "
                                                                         >
-                                                                            Vibhag
+                                                                            Designation
                                                                         </small>
 
                                                                         <strong>
                                                                             {
-                                                                                vibhagName
+                                                                                item?.designation ||
+                                                                                "-"
+                                                                            }
+                                                                        </strong>
+
+                                                                    </div>
+
+
+                                                                    <div
+                                                                        className="
+                                                                            col-md-3
+                                                                        "
+                                                                    >
+
+                                                                        <small
+                                                                            className="
+                                                                                text-muted
+                                                                                d-block
+                                                                                mb-1
+                                                                            "
+                                                                        >
+                                                                            Joining Date
+                                                                        </small>
+
+                                                                        <strong>
+                                                                            {
+                                                                                formatDate(item?.joining_date || item?.joiningDate) ||
+                                                                                "-"
                                                                             }
                                                                         </strong>
 
@@ -3199,6 +3236,87 @@ const Trainer = () => {
                                                                         <strong>
                                                                             {
                                                                                 contactNumber
+                                                                            }
+                                                                        </strong>
+
+                                                                    </div>
+
+
+                                                                    <div
+                                                                        className="
+                                                                            col-md-3
+                                                                        "
+                                                                    >
+
+                                                                        <small
+                                                                            className="
+                                                                                text-muted
+                                                                                d-block
+                                                                                mb-1
+                                                                            "
+                                                                        >
+                                                                            Account Number
+                                                                        </small>
+
+                                                                        <strong>
+                                                                            {
+                                                                                item?.account_number ||
+                                                                                item?.accountNumber ||
+                                                                                "-"
+                                                                            }
+                                                                        </strong>
+
+                                                                    </div>
+
+
+                                                                    <div
+                                                                        className="
+                                                                            col-md-3
+                                                                        "
+                                                                    >
+
+                                                                        <small
+                                                                            className="
+                                                                                text-muted
+                                                                                d-block
+                                                                                mb-1
+                                                                            "
+                                                                        >
+                                                                            IFSC Code
+                                                                        </small>
+
+                                                                        <strong>
+                                                                            {
+                                                                                item?.ifsc_code ||
+                                                                                item?.ifscCode ||
+                                                                                "-"
+                                                                            }
+                                                                        </strong>
+
+                                                                    </div>
+
+
+                                                                    <div
+                                                                        className="
+                                                                            col-md-3
+                                                                        "
+                                                                    >
+
+                                                                        <small
+                                                                            className="
+                                                                                text-muted
+                                                                                d-block
+                                                                                mb-1
+                                                                            "
+                                                                        >
+                                                                            Bank Name
+                                                                        </small>
+
+                                                                        <strong>
+                                                                            {
+                                                                                item?.bank_name ||
+                                                                                item?.bankName ||
+                                                                                "-"
                                                                             }
                                                                         </strong>
 
@@ -3638,28 +3756,6 @@ const Trainer = () => {
                                         {talukas.map((taluka) => (
                                             <option key={taluka.id} value={taluka.id}>
                                                 {getTalukaName(taluka)}
-                                            </option>
-                                        ))}
-                                    </Form.Select>
-                                </Form.Group>
-                            </div>
-
-                            {/* 6. Vibhag */}
-                            <div className="col-md-6">
-                                <Form.Group>
-                                    <Form.Label className="fw-semibold">
-                                        Vibhag (विभाग)
-                                    </Form.Label>
-                                    <Form.Select
-                                        name="vibhagId"
-                                        value={formData.vibhagId}
-                                        onChange={handleVibhagChange}
-                                        disabled={!formData.talukaId}
-                                    >
-                                        <option value="">विभाग निवडा</option>
-                                        {vibhags.map((vibhag) => (
-                                            <option key={vibhag.id} value={vibhag.id}>
-                                                {getVibhagName(vibhag)}
                                             </option>
                                         ))}
                                     </Form.Select>

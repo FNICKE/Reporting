@@ -1,8 +1,6 @@
 const mysql = require("mysql2/promise");
 
-// =====================================================
 // MYSQL DATABASE POOL CONFIGURATION
-// =====================================================
 
 const pool = mysql.createPool({
     host: process.env.DB_HOST || "localhost",
@@ -17,17 +15,13 @@ const pool = mysql.createPool({
     keepAliveInitialDelay: 0,
 });
 
-// =====================================================
 // HELPER QUERY FUNCTION
-// =====================================================
 
 const query = async (sql, values = []) => {
     return pool.query(sql, values);
 };
 
-// =====================================================
 // TEST DATABASE CONNECTION
-// =====================================================
 
 const testDatabaseConnection = async () => {
     try {

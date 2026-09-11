@@ -2,6 +2,7 @@ import React, {
     useEffect,
     useMemo,
     useState,
+    useRef,
 } from "react";
 
 import {
@@ -786,6 +787,15 @@ const TrainerDashboard = () => {
     ] = useState("");
 
 
+    const [
+        modalError,
+        setModalError,
+    ] = useState("");
+
+
+    const modalBodyRef = useRef(null);
+
+
     // =================================================
     // SUCCESS
     // =================================================
@@ -1324,27 +1334,35 @@ const TrainerDashboard = () => {
         setOldPhoto2("");
 
 
-        setFormData({
-
+        // Preserve previously filled data, only set defaults for missing fields
+        setFormData((prev) => ({
             ...EMPTY_FORM,
-
+            ...prev,
             name:
+                prev.name ||
                 trainerName,
 
             designation:
+                prev.designation ||
                 "Trainer",
 
             taluka:
-                talukaName,
+                prev.taluka ||
+                talukaName ||
+                "",
 
             district:
-                districtName,
+                prev.district ||
+                districtName ||
+                "",
 
             reportDate:
+                prev.reportDate ||
                 today,
+        }));
 
-        });
 
+        setModalError("");
 
         setError("");
 
@@ -1515,6 +1533,8 @@ const TrainerDashboard = () => {
         });
 
 
+        setModalError("");
+
         setError("");
 
         setSuccess("");
@@ -1539,16 +1559,21 @@ const TrainerDashboard = () => {
 
         setShowModal(false);
 
-        setEditingId(null);
+        setModalError("");
 
-        setOldPhoto1("");
+        // If editing existing report, reset state.
+        // If drafting a new report, preserve formData so user doesn't lose typed data.
+        if (editingId) {
+            setEditingId(null);
 
-        setOldPhoto2("");
+            setOldPhoto1("");
 
+            setOldPhoto2("");
 
-        setFormData({
-            ...EMPTY_FORM,
-        });
+            setFormData({
+                ...EMPTY_FORM,
+            });
+        }
 
     };
 
@@ -1808,9 +1833,17 @@ const TrainerDashboard = () => {
                 validationError
             ) {
 
+                setModalError(
+                    validationError
+                );
+
                 setError(
                     validationError
                 );
+
+                if (modalBodyRef.current) {
+                    modalBodyRef.current.scrollTop = 0;
+                }
 
                 return;
 
@@ -1820,6 +1853,8 @@ const TrainerDashboard = () => {
             try {
 
                 setSubmitting(true);
+
+                setModalError("");
 
                 setError("");
 
@@ -1838,47 +1873,53 @@ const TrainerDashboard = () => {
                 // BASIC
                 // =====================================
 
-                // Trainer identity is controlled by the logged-in user.
-                // Do not allow another trainer/taluka/district to be submitted
-                // from this dashboard.
-                const lockedTrainerName =
-                    trainerName ||
-                    formData.name.trim();
+                // Trainer identity: prioritize entered form values, fallback to logged-in user.
+                const submitTrainerName =
+                    formData.name.trim() ||
+                    trainerName;
 
-                const lockedDesignation =
+                const submitDesignation =
+                    formData.designation.trim() ||
                     currentUser?.designation ||
                     "Trainer";
 
-                const lockedTaluka =
-                    talukaName ||
-                    formData.taluka.trim();
+                const submitTaluka =
+                    formData.taluka.trim() ||
+                    talukaName;
 
-                const lockedDistrict =
-                    districtName ||
-                    formData.district.trim();
+                const submitDistrict =
+                    formData.district.trim() ||
+                    districtName;
 
                 data.append(
                     "name",
-                    lockedTrainerName.trim()
+                    submitTrainerName.trim()
                 );
 
 
                 data.append(
                     "designation",
-                    lockedDesignation.trim()
+                    submitDesignation.trim()
                 );
 
 
                 data.append(
                     "taluka",
-                    lockedTaluka.trim()
+                    submitTaluka.trim()
                 );
 
 
                 data.append(
                     "district",
-                    lockedDistrict.trim()
+                    submitDistrict.trim()
                 );
+
+                if (!talukaName && submitTaluka) {
+                    localStorage.setItem("logged_in_taluka_name", submitTaluka);
+                }
+                if (!districtName && submitDistrict) {
+                    localStorage.setItem("logged_in_district_name", submitDistrict);
+                }
 
                 // =====================================================
                 // LOGGED-IN TRAINER IDENTITY
@@ -2122,6 +2163,8 @@ const TrainerDashboard = () => {
                 );
 
 
+                setModalError("");
+
                 setShowModal(false);
 
                 setEditingId(null);
@@ -2137,6 +2180,10 @@ const TrainerDashboard = () => {
 
                 await fetchTrainerReports();
 
+                setCurrentUser(
+                    getCurrentTrainerUser()
+                );
+
 
             } catch (err) {
 
@@ -2145,11 +2192,21 @@ const TrainerDashboard = () => {
                     err
                 );
 
+                const errMessage =
+                    err.message ||
+                    "Failed to save Trainer report.";
+
+                setModalError(
+                    errMessage
+                );
 
                 setError(
-                    err.message ||
-                    "Failed to save Trainer report."
+                    errMessage
                 );
+
+                if (modalBodyRef.current) {
+                    modalBodyRef.current.scrollTop = 0;
+                }
 
             } finally {
 
@@ -2254,12 +2311,155 @@ const TrainerDashboard = () => {
 
 
     // =================================================
+    // LOGOUT
+    // =================================================
+
+    const handleLogout = () => {
+
+        localStorage.clear();
+
+        window.location.href =
+            "/login";
+
+    };
+
+
+    // =================================================
     // RENDER
     // =================================================
 
     return (
 
-        <div className="container-fluid px-0 trainer-page">
+        <div className="min-vh-100 bg-light trainer-dashboard">
+
+            {/* =================================================
+                NAVBAR
+            ================================================= */}
+
+            <nav
+                className="
+                    navbar
+                    bg-white
+                    border-bottom
+                    px-4
+                    py-3
+                "
+            >
+
+                <div
+                    className="
+                        container-fluid
+                        p-0
+                        d-flex
+                        justify-content-between
+                        align-items-center
+                    "
+                >
+
+                    <div>
+
+                        <h4
+                            className="
+                                fw-bold
+                                mb-0
+                            "
+                        >
+                            BDO Dashboard
+                        </h4>
+
+
+                        <small
+                            className="
+                                text-muted
+                            "
+                        >
+                            BDO (Business Development Officers) Management System
+                        </small>
+
+                    </div>
+
+
+                    <div
+                        className="
+                            d-flex
+                            align-items-center
+                            gap-3
+                        "
+                    >
+
+                        <div
+                            className="
+                                rounded-circle
+                                bg-dark
+                                text-white
+                                d-flex
+                                align-items-center
+                                justify-content-center
+                                fw-bold
+                            "
+                            style={{
+                                width:
+                                    "44px",
+
+                                height:
+                                    "44px",
+                            }}
+                        >
+                            {(trainerName?.trim().charAt(0) || "B").toUpperCase()}
+                        </div>
+
+
+                        <div
+                            className="
+                                d-none
+                                d-md-block
+                            "
+                        >
+
+                            <div
+                                className="
+                                    fw-semibold
+                                "
+                            >
+                                {
+                                    trainerName ||
+                                    "BDO Officer"
+                                }
+                            </div>
+
+
+                            <small
+                                className="
+                                    text-muted
+                                "
+                            >
+                                {talukaName ? `${talukaName} • ` : ""}BDO / Trainer
+                            </small>
+
+                        </div>
+
+
+                        <Button
+                            variant="outline-danger"
+                            onClick={
+                                handleLogout
+                            }
+                        >
+                            Logout
+                        </Button>
+
+                    </div>
+
+                </div>
+
+            </nav>
+
+
+            {/* =================================================
+                CONTENT
+            ================================================= */}
+
+            <div className="container-fluid p-3 p-md-4 trainer-page">
 
 
             {/* =================================================
@@ -3120,11 +3320,27 @@ const TrainerDashboard = () => {
 
 
                     <Modal.Body
+                        ref={modalBodyRef}
                         style={{
                             maxHeight: "calc(100vh - 180px)",
                             overflowY: "auto",
                         }}
                     >
+
+                        {/* ERROR ALERT IN POPUP */}
+                        {modalError && (
+                            <Alert
+                                variant="danger"
+                                dismissible
+                                onClose={() => setModalError("")}
+                                className="mb-4 shadow-sm"
+                            >
+                                <div className="d-flex align-items-center gap-2">
+                                    <span className="fw-bold">त्रुटी / Error:</span>
+                                    <span>{modalError}</span>
+                                </div>
+                            </Alert>
+                        )}
 
                         {/* =================================================
                             BASIC INFORMATION
@@ -3153,8 +3369,6 @@ const TrainerDashboard = () => {
                                         name="name"
                                         value={formData.name}
                                         onChange={handleChange}
-                                        readOnly
-                                        className="bg-light"
                                         placeholder="नाव"
                                         required
                                     />
@@ -3179,8 +3393,6 @@ const TrainerDashboard = () => {
                                         name="designation"
                                         value={formData.designation}
                                         onChange={handleChange}
-                                        readOnly
-                                        className="bg-light"
                                         placeholder="पद"
                                         required
                                     />
@@ -3205,9 +3417,7 @@ const TrainerDashboard = () => {
                                         name="taluka"
                                         value={formData.taluka}
                                         onChange={handleChange}
-                                        readOnly
-                                        className="bg-light"
-                                        placeholder="तालुका"
+                                        placeholder="तालुका प्रविष्ट करा"
                                         required
                                     />
 
@@ -3231,15 +3441,9 @@ const TrainerDashboard = () => {
                                         name="district"
                                         value={formData.district}
                                         onChange={handleChange}
-                                        readOnly
-                                        className="bg-light"
-                                        placeholder="जिल्हा"
+                                        placeholder="जिल्हा प्रविष्ट करा"
                                         required
                                     />
-
-                                    <Form.Text className="text-muted">
-                                        BDO (business development officers), Taluka and District are locked to the logged-in account.
-                                    </Form.Text>
 
                                 </Form.Group>
 
@@ -3785,6 +3989,32 @@ const TrainerDashboard = () => {
                         }}
                     >
 
+                        {!editingId && (
+                            <Button
+                                variant="outline-danger"
+                                type="button"
+                                className="me-auto"
+                                onClick={() => {
+                                    const today =
+                                        new Date()
+                                            .toISOString()
+                                            .split("T")[0];
+                                    setFormData({
+                                        ...EMPTY_FORM,
+                                        name: trainerName,
+                                        designation: "Trainer",
+                                        taluka: talukaName || "",
+                                        district: districtName || "",
+                                        reportDate: today,
+                                    });
+                                    setModalError("");
+                                }}
+                                disabled={submitting}
+                            >
+                                Reset Form (फॉर्म रीसेट करा)
+                            </Button>
+                        )}
+
                         <Button
                             variant="secondary"
                             type="button"
@@ -4025,8 +4255,15 @@ const TrainerDashboard = () => {
                     .trainer-page .trainer-table {
                         min-width: 1900px;
                     }
+
+                    .navbar {
+                        padding-left: 12px !important;
+                        padding-right: 12px !important;
+                    }
                 }
             `}</style>
+
+            </div>
 
         </div>
 

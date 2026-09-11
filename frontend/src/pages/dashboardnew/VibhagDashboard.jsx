@@ -1767,19 +1767,16 @@ const VibhagDashboard = () => {
             }
 
 
-            if (
-                !formData.mobileNumber ||
-                !/^[0-9]{10}$/.test(
-                    formData.mobileNumber
-                )
-            ) {
+            const cleanMobile = String(formData.mobileNumber || "")
+                .trim()
+                .replace(/^(\+91|91)/, "")
+                .replace(/\D/g, "");
 
+            if (!cleanMobile || cleanMobile.length !== 10) {
                 alert(
                     "Please enter valid 10 digit mobile number."
                 );
-
                 return;
-
             }
 
 
@@ -1843,7 +1840,7 @@ const VibhagDashboard = () => {
 
                 body.append(
                     "mobile_number",
-                    formData.mobileNumber.trim()
+                    cleanMobile
                 );
 
 

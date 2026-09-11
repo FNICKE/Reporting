@@ -46,10 +46,9 @@ const talukaValidator = [
 
     // PASSWORD
     body("password")
-        .notEmpty()
-        .withMessage("Password is required")
-        .isLength({ min: 6, max: 255 })
-        .withMessage("Password must be at least 6 characters"),
+        .optional({ checkFalsy: true })
+        .isLength({ min: 1, max: 255 })
+        .withMessage("Password must be at least 1 character"),
 
     // ADDRESS
     body("address")
