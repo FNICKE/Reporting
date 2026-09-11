@@ -867,25 +867,37 @@ const Vibhag = () => {
         // ===============================================
 
         if (
-            name === "districtId"
+            name === "districtName" ||
+            name === "districtId" ||
+            name === "district"
         ) {
 
             const selectedDistrict =
                 districts.find(
                     (district) =>
                         safeString(
-                            district?.id
-                        ) ===
+                            district?.name
+                        ).trim().toLowerCase() ===
                         safeString(
                             value
-                        )
+                        ).trim().toLowerCase() ||
+                        safeString(
+                            district?.id
+                        ).trim() ===
+                        safeString(
+                            value
+                        ).trim()
                 );
 
             const districtName =
-                selectedDistrict?.name ||
-                selectedDistrict?.district_name ||
-                selectedDistrict?.districtName ||
-                "";
+                selectedDistrict
+                    ? (selectedDistrict?.name || selectedDistrict?.district_name || selectedDistrict?.districtName || value)
+                    : value;
+
+            const districtId =
+                selectedDistrict
+                    ? safeString(selectedDistrict.id)
+                    : "";
 
             setFormData(
                 (prev) => ({
@@ -893,32 +905,25 @@ const Vibhag = () => {
                     ...prev,
 
                     districtId:
-                        value,
+                        districtId || (name === "districtId" ? value : prev.districtId),
 
                     districtName:
                         districtName,
 
                     talukaId:
-                        "",
+                        districtId ? "" : prev.talukaId,
 
                     taluka:
-                        "",
+                        districtId ? "" : prev.taluka,
 
                 })
             );
 
-            setTalukas([]);
-
-            if (
-                safeString(
-                    value
-                ).trim()
-            ) {
-
+            if (districtId) {
+                setTalukas([]);
                 fetchTalukasByDistrict(
-                    value
+                    districtId
                 );
-
             }
 
             return;
@@ -1352,20 +1357,34 @@ const Vibhag = () => {
 
         }
 
-        if (!districtId) {
+        let finalDistrictId = districtId;
+        if (!finalDistrictId && districtName) {
+            const matched = districts.find(
+                (d) =>
+                    safeString(d?.name).trim().toLowerCase() ===
+                    districtName.toLowerCase() ||
+                    safeString(d?.district_name).trim().toLowerCase() ===
+                    districtName.toLowerCase()
+            );
+            if (matched) {
+                finalDistrictId = safeString(matched.id);
+            }
+        }
+
+        if (!finalDistrictId && !districtName) {
 
             alert(
-                "Please select District"
+                "Please enter District"
             );
 
             return;
 
         }
 
-        if (!talukaId) {
+        if (!talukaId && !taluka) {
 
             alert(
-                "Please select Taluka"
+                "Please enter Taluka"
             );
 
             return;
@@ -1435,8 +1454,8 @@ const Vibhag = () => {
 
             district_id:
                 Number(
-                    districtId
-                ),
+                    finalDistrictId
+                ) || 1,
 
             district_name:
                 districtName,
@@ -2856,37 +2875,20 @@ const Vibhag = () => {
                             {/* DISTRICT */}
                             <div className="col-md-6">
                                 <Form.Label className="fw-semibold">District (जिल्हा)</Form.Label>
-                                <Form.Select
-                                    name="districtId"
-                                    value={safeString(formData.districtId)}
+                                <Form.Control
+                                    type="text"
+                                    list="vibhagDistrictList"
+                                    name="districtName"
+                                    value={safeString(formData.districtName)}
                                     onChange={handleChange}
+                                    placeholder="Select or type District (जिल्हा निवडा किंवा टाईप करा)"
                                     disabled={formLoading}
-                                >
-                                    <option value="">जिल्हा निवडा</option>
+                                />
+                                <datalist id="vibhagDistrictList">
                                     {districts.map((district) => (
-                                        <option key={district.id} value={district.id}>
-                                            {district.name}
-                                        </option>
+                                        <option key={district.id} value={district.name} />
                                     ))}
-                                </Form.Select>
-                            </div>
-
-                            {/* DISTRICT ID */}
-                            <div className="col-md-6">
-                                <Form.Label className="fw-semibold">District ID (जिल्हा क्रमांक)</Form.Label>
-                                <Form.Select
-                                    name="districtId"
-                                    value={safeString(formData.districtId)}
-                                    onChange={handleChange}
-                                    disabled={formLoading}
-                                >
-                                    <option value="">जिल्हा क्रमांक निवडा</option>
-                                    {districts.map((district) => (
-                                        <option key={district.id} value={district.id}>
-                                            {district.id}
-                                        </option>
-                                    ))}
-                                </Form.Select>
+                                </datalist>
                             </div>
 
                             {/* TALUKA */}
@@ -2896,10 +2898,10 @@ const Vibhag = () => {
                                     name="talukaId"
                                     value={safeString(formData.talukaId)}
                                     onChange={handleChange}
-                                    disabled={!formData.districtId || formLoading}
+                                    disabled={formLoading}
                                 >
                                     <option value="">
-                                        {formData.districtId ? "तालुका निवडा" : "आधी जिल्हा निवडा"}
+                                        {talukas.length > 0 ? "तालुका निवडा" : "आधी जिल्हा निवडा / उपलब्ध नाही"}
                                     </option>
                                     {talukas.map((taluka) => (
                                         <option key={taluka.id} value={taluka.id}>
@@ -2907,18 +2909,6 @@ const Vibhag = () => {
                                         </option>
                                     ))}
                                 </Form.Select>
-                            </div>
-
-                            {/* TALUKA ID */}
-                            <div className="col-md-6">
-                                <Form.Label className="fw-semibold">Taluka ID (तालुका क्रमांक)</Form.Label>
-                                <Form.Control
-                                    type="text"
-                                    value={safeString(formData.talukaId)}
-                                    readOnly
-                                    placeholder="तालुका निवडा"
-                                    disabled={formLoading}
-                                />
                             </div>
 
                             {/* VIBHAG */}

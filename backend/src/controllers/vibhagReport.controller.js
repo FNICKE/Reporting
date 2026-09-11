@@ -111,17 +111,28 @@ const createVibhagReport = async (
             taluka,
             district,
             mobile_number,
+            mobileNumber,
             report_date,
+            reportDate,
 
             total_authorised_center_heads,
+            totalAuthorisedCenterHeads,
             total_active_center_heads,
+            totalActiveCenterHeads,
 
             today_visited_centers,
+            todayVisitedCenters,
             visited_center_head_name,
+            visited_center_heads_names,
+            names_of_center_heads_visited_today,
+            namesOfCenterHeadsVisitedToday,
 
             new_members_added_today,
 
             sanitary_pad_box_sales,
+            sanitary_pads_boxes_sold,
+            total_sanitary_pads_box_sold_today,
+            totalSanitaryPadsBoxSoldToday,
 
             health_atm_machine_details,
 
@@ -130,8 +141,11 @@ const createVibhagReport = async (
             accident_count,
 
             utr_number,
+            utrNumber,
 
             any_other_information,
+            additional_remarks,
+            additionalRemarks,
 
         } = req.body;
 
@@ -156,8 +170,9 @@ const createVibhagReport = async (
 
         }
 
+        const finalReportDate = report_date || reportDate;
 
-        if (!report_date) {
+        if (!finalReportDate) {
 
             return res.status(400).json({
 
@@ -208,6 +223,15 @@ const createVibhagReport = async (
             "MEETING PHOTO 2:",
             meetingPhoto2
         );
+
+        const finalMobile = mobile_number || mobileNumber || null;
+        const finalAuthorised = Number(total_authorised_center_heads ?? totalAuthorisedCenterHeads ?? req.body.total_center_heads ?? req.body.totalCenterHeads ?? 0) || 0;
+        const finalActive = Number(total_active_center_heads ?? totalActiveCenterHeads ?? 0) || 0;
+        const finalVisitedCenters = Number(today_visited_centers ?? todayVisitedCenters ?? 0) || 0;
+        const finalVisitedName = visited_center_head_name || visited_center_heads_names || names_of_center_heads_visited_today || namesOfCenterHeadsVisitedToday || null;
+        const finalPadSales = Number(sanitary_pad_box_sales ?? total_sanitary_pads_box_sold_today ?? sanitary_pads_boxes_sold ?? totalSanitaryPadsBoxSoldToday ?? 0) || 0;
+        const finalUtr = utr_number || utrNumber || null;
+        const finalRemarks = any_other_information || additional_remarks || additionalRemarks || null;
 
 
         // =================================================
@@ -295,29 +319,23 @@ const createVibhagReport = async (
                         ? String(district).trim()
                         : null,
 
-                    mobile_number
-                        ? String(mobile_number).trim()
+                    finalMobile
+                        ? String(finalMobile).trim()
                         : null,
 
-                    report_date,
+                    finalReportDate,
 
 
-                    Number(
-                        total_authorised_center_heads
-                    ) || 0,
+                    finalAuthorised,
 
-                    Number(
-                        total_active_center_heads
-                    ) || 0,
+                    finalActive,
 
 
-                    Number(
-                        today_visited_centers
-                    ) || 0,
+                    finalVisitedCenters,
 
-                    visited_center_head_name
+                    finalVisitedName
                         ? String(
-                            visited_center_head_name
+                            finalVisitedName
                           ).trim()
                         : null,
 
@@ -327,9 +345,7 @@ const createVibhagReport = async (
                     ) || 0,
 
 
-                    Number(
-                        sanitary_pad_box_sales
-                    ) || 0,
+                    finalPadSales,
 
 
                     health_atm_machine_details
@@ -352,14 +368,14 @@ const createVibhagReport = async (
                     ) || 0,
 
 
-                    utr_number
-                        ? String(utr_number).trim()
+                    finalUtr
+                        ? String(finalUtr).trim()
                         : null,
 
 
-                    any_other_information
+                    finalRemarks
                         ? String(
-                            any_other_information
+                            finalRemarks
                           ).trim()
                         : null,
 
@@ -620,17 +636,28 @@ const updateVibhagReport = async (
             taluka,
             district,
             mobile_number,
+            mobileNumber,
             report_date,
+            reportDate,
 
             total_authorised_center_heads,
+            totalAuthorisedCenterHeads,
             total_active_center_heads,
+            totalActiveCenterHeads,
 
             today_visited_centers,
+            todayVisitedCenters,
             visited_center_head_name,
+            visited_center_heads_names,
+            names_of_center_heads_visited_today,
+            namesOfCenterHeadsVisitedToday,
 
             new_members_added_today,
 
             sanitary_pad_box_sales,
+            sanitary_pads_boxes_sold,
+            total_sanitary_pads_box_sold_today,
+            totalSanitaryPadsBoxSoldToday,
 
             health_atm_machine_details,
 
@@ -639,8 +666,11 @@ const updateVibhagReport = async (
             accident_count,
 
             utr_number,
+            utrNumber,
 
             any_other_information,
+            additional_remarks,
+            additionalRemarks,
 
             status,
 
@@ -759,6 +789,20 @@ const updateVibhagReport = async (
             meetingPhoto2
         );
 
+        const finalName = name !== undefined ? (name ? String(name).trim() : null) : existing[0].name;
+        const finalDesignation = designation !== undefined ? (designation ? String(designation).trim() : null) : existing[0].designation;
+        const finalTaluka = taluka !== undefined ? (taluka ? String(taluka).trim() : null) : existing[0].taluka;
+        const finalDistrict = district !== undefined ? (district ? String(district).trim() : null) : existing[0].district;
+        const finalMobile = (mobile_number || mobileNumber) !== undefined ? String(mobile_number || mobileNumber || "").trim() || null : existing[0].mobile_number;
+        const finalReportDate = (report_date || reportDate) || existing[0].report_date;
+        const finalAuthorised = Number(total_authorised_center_heads ?? totalAuthorisedCenterHeads ?? req.body.total_center_heads ?? req.body.totalCenterHeads ?? existing[0].total_authorised_center_heads ?? 0) || 0;
+        const finalActive = Number(total_active_center_heads ?? totalActiveCenterHeads ?? existing[0].total_active_center_heads ?? 0) || 0;
+        const finalVisitedCenters = Number(today_visited_centers ?? todayVisitedCenters ?? existing[0].today_visited_centers ?? 0) || 0;
+        const finalVisitedName = visited_center_head_name || visited_center_heads_names || names_of_center_heads_visited_today || namesOfCenterHeadsVisitedToday || existing[0].visited_center_head_name || null;
+        const finalPadSales = Number(sanitary_pad_box_sales ?? total_sanitary_pads_box_sold_today ?? sanitary_pads_boxes_sold ?? totalSanitaryPadsBoxSoldToday ?? existing[0].sanitary_pad_box_sales ?? 0) || 0;
+        const finalUtr = utr_number || utrNumber || existing[0].utr_number || null;
+        const finalRemarks = any_other_information || additional_remarks || additionalRemarks || existing[0].any_other_information || null;
+
 
         // =================================================
         // UPDATE DATABASE
@@ -808,87 +852,67 @@ const updateVibhagReport = async (
 
             [
 
-                name
-                    ? String(name).trim()
-                    : null,
+                finalName,
 
-                designation
-                    ? String(designation).trim()
-                    : null,
+                finalDesignation,
 
-                taluka
-                    ? String(taluka).trim()
-                    : null,
+                finalTaluka,
 
-                district
-                    ? String(district).trim()
-                    : null,
+                finalDistrict,
 
-                mobile_number
-                    ? String(mobile_number).trim()
-                    : null,
+                finalMobile,
 
-                report_date,
+                finalReportDate,
 
 
-                Number(
-                    total_authorised_center_heads
-                ) || 0,
+                finalAuthorised,
 
-                Number(
-                    total_active_center_heads
-                ) || 0,
+                finalActive,
 
 
-                Number(
-                    today_visited_centers
-                ) || 0,
+                finalVisitedCenters,
 
-                visited_center_head_name
+                finalVisitedName
                     ? String(
-                        visited_center_head_name
+                        finalVisitedName
                       ).trim()
                     : null,
 
 
                 Number(
-                    new_members_added_today
+                    new_members_added_today ?? existing[0].new_members_added_today ?? 0
                 ) || 0,
+
+
+                finalPadSales,
+
+
+                health_atm_machine_details !== undefined
+                    ? (health_atm_machine_details ? String(health_atm_machine_details).trim() : null)
+                    : existing[0].health_atm_machine_details,
 
 
                 Number(
-                    sanitary_pad_box_sales
+                    birth_baby_girls ?? existing[0].birth_baby_girls ?? 0
+                ) || 0,
+
+                Number(
+                    death_count ?? existing[0].death_count ?? 0
+                ) || 0,
+
+                Number(
+                    accident_count ?? existing[0].accident_count ?? 0
                 ) || 0,
 
 
-                health_atm_machine_details
-                    ? String(
-                        health_atm_machine_details
-                      ).trim()
+                finalUtr
+                    ? String(finalUtr).trim()
                     : null,
 
 
-                Number(
-                    birth_baby_girls
-                ) || 0,
-
-                Number(
-                    death_count
-                ) || 0,
-
-                Number(
-                    accident_count
-                ) || 0,
-
-
-                utr_number
-                    ? String(utr_number).trim()
-                    : null,
-
-
-                any_other_information
+                finalRemarks
                     ? String(
-                        any_other_information
+                        finalRemarks
                       ).trim()
                     : null,
 
@@ -899,6 +923,7 @@ const updateVibhagReport = async (
 
 
                 status ||
+                    existing[0].status ||
                     "active",
 
 

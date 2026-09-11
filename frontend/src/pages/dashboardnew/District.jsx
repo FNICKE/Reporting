@@ -526,6 +526,14 @@
       return `DH-${String(index + 1).padStart(4, "0")}`;
     };
 
+    const getNextDistrictId = () => {
+      const ids = districts
+        .map((d) => Number(d.id))
+        .filter((id) => Number.isFinite(id) && id > 0);
+      const nextId = ids.length > 0 ? Math.max(...ids) + 1 : 1;
+      return `DH-${String(nextId).padStart(4, "0")}`;
+    };
+
 
 
       const handleChange = (
@@ -558,6 +566,7 @@
 
         setFormData({
           ...EMPTY_FORM,
+          districtCode: getNextDistrictId(),
         });
 
         setShowModal(true);
@@ -1867,14 +1876,18 @@
                   <div className="col-md-6">
                     <Form.Group>
                       <Form.Label className="fw-semibold">
-                        District ID (जिल्हा क्रमांक) <span className="text-danger">*</span>
+                        District ID (जिल्हा क्रमांक)
                       </Form.Label>
                       <Form.Control
                         type="text"
                         name="districtCode"
-                        value={formData.districtCode}
-                        onChange={handleChange}
-                        placeholder="जिल्हा क्रमांक प्रविष्ट करा"
+                        value={formData.districtCode || (editingId ? getDistrictHeadId({ id: editingId }) : getNextDistrictId())}
+                        readOnly
+                        style={{
+                          backgroundColor: "#f8f9fa",
+                          fontWeight: "600",
+                        }}
+                        placeholder="जिल्हा क्रमांक"
                         disabled={loading}
                       />
                     </Form.Group>

@@ -1249,11 +1249,6 @@ const getTalukas = async (req, res) => {
                 t.name,
                 t.district_id,
                 d.name AS district_name,
-                t.contact_number,
-                t.user_id,
-                t.email,
-                t.password,
-                t.address,
                 t.status,
                 t.created_at,
                 t.updated_at
@@ -1321,11 +1316,6 @@ const getTalukasByDistrict = async (
                 t.name,
                 t.district_id,
                 d.name AS district_name,
-                t.contact_number,
-                t.user_id,
-                t.email,
-                t.password,
-                t.address,
                 t.status,
                 t.created_at,
                 t.updated_at
@@ -1388,11 +1378,6 @@ const getTalukaById = async (
                 t.name,
                 t.district_id,
                 d.name AS district_name,
-                t.contact_number,
-                t.user_id,
-                t.email,
-                t.password,
-                t.address,
                 t.status,
                 t.created_at,
                 t.updated_at
@@ -1456,11 +1441,6 @@ const createTaluka = async (
         const {
             name,
             district_id,
-            contact_number,
-            user_id,
-            email,
-            password,
-            address,
         } = req.body;
 
 
@@ -1489,89 +1469,6 @@ const createTaluka = async (
                 success: false,
                 message:
                     "District is required",
-            });
-        }
-
-
-        if (
-            !contact_number ||
-            !String(contact_number).trim()
-        ) {
-
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Contact number is required",
-            });
-        }
-
-
-        // 10 digit mobile validation
-
-        if (
-            !/^[0-9]{10}$/.test(
-                String(
-                    contact_number
-                ).trim()
-            )
-        ) {
-
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Contact number must contain 10 digits",
-            });
-        }
-
-
-        if (
-            !user_id ||
-            !String(user_id).trim()
-        ) {
-
-            return res.status(400).json({
-                success: false,
-                message:
-                    "User ID is required",
-            });
-        }
-
-
-        if (
-            !email ||
-            !String(email).trim()
-        ) {
-
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Email is required",
-            });
-        }
-
-
-        if (
-            !password ||
-            !String(password).trim()
-        ) {
-
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Password is required",
-            });
-        }
-
-
-        if (
-            !address ||
-            !String(address).trim()
-        ) {
-
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Address is required",
             });
         }
 
@@ -1655,21 +1552,11 @@ const createTaluka = async (
             (
                 name,
                 district_id,
-                contact_number,
-                user_id,
-                email,
-                password,
-                address,
                 status
             )
 
             VALUES
             (
-                ?,
-                ?,
-                ?,
-                ?,
-                ?,
                 ?,
                 ?,
                 'active'
@@ -1679,26 +1566,6 @@ const createTaluka = async (
             String(name).trim(),
 
             district_id,
-
-            String(
-                contact_number
-            ).trim(),
-
-            String(
-                user_id
-            ).trim(),
-
-            String(
-                email
-            ).trim(),
-
-            String(
-                password
-            ).trim(),
-
-            String(
-                address
-            ).trim(),
 
         ]);
 
@@ -1715,11 +1582,6 @@ const createTaluka = async (
                 t.name,
                 t.district_id,
                 d.name AS district_name,
-                t.contact_number,
-                t.user_id,
-                t.email,
-                t.password,
-                t.address,
                 t.status,
                 t.created_at,
                 t.updated_at
@@ -1801,11 +1663,6 @@ const updateTaluka = async (
         const {
             name,
             district_id,
-            contact_number,
-            user_id,
-            email,
-            password,
-            address,
             status,
         } = req.body;
 
@@ -1835,74 +1692,6 @@ const updateTaluka = async (
                 success: false,
                 message:
                     "District is required",
-            });
-        }
-
-
-        if (
-            !contact_number ||
-            !String(contact_number).trim()
-        ) {
-
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Contact number is required",
-            });
-        }
-
-
-        if (
-            !/^[0-9]{10}$/.test(
-                String(
-                    contact_number
-                ).trim()
-            )
-        ) {
-
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Contact number must contain 10 digits",
-            });
-        }
-
-
-        if (
-            !user_id ||
-            !String(user_id).trim()
-        ) {
-
-            return res.status(400).json({
-                success: false,
-                message:
-                    "User ID is required",
-            });
-        }
-
-
-        if (
-            !email ||
-            !String(email).trim()
-        ) {
-
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Email is required",
-            });
-        }
-
-
-        if (
-            !address ||
-            !String(address).trim()
-        ) {
-
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Address is required",
             });
         }
 
@@ -2010,108 +1799,28 @@ const updateTaluka = async (
 
 
         // =================================================
-        // UPDATE WITH PASSWORD
+        // UPDATE
         // =================================================
 
-        if (
-            password &&
-            String(password).trim()
-        ) {
+        await db.query(`
+            UPDATE talukas
 
-            await db.query(`
-                UPDATE talukas
+            SET
+                name = ?,
+                district_id = ?,
+                status = COALESCE(?, status)
 
-                SET
-                    name = ?,
-                    district_id = ?,
-                    contact_number = ?,
-                    user_id = ?,
-                    email = ?,
-                    password = ?,
-                    address = ?,
-                    status = COALESCE(?, status)
+            WHERE id = ?
+        `, [
 
-                WHERE id = ?
-            `, [
+            String(name).trim(),
 
-                String(name).trim(),
+            district_id,
 
-                district_id,
+            status || null,
 
-                String(
-                    contact_number
-                ).trim(),
-
-                String(
-                    user_id
-                ).trim(),
-
-                String(
-                    email
-                ).trim(),
-
-                String(
-                    password
-                ).trim(),
-
-                String(
-                    address
-                ).trim(),
-
-                status || null,
-
-                id,
-            ]);
-
-        }
-
-
-        // =================================================
-        // UPDATE WITHOUT PASSWORD
-        // =================================================
-
-        else {
-
-            await db.query(`
-                UPDATE talukas
-
-                SET
-                    name = ?,
-                    district_id = ?,
-                    contact_number = ?,
-                    user_id = ?,
-                    email = ?,
-                    address = ?,
-                    status = COALESCE(?, status)
-
-                WHERE id = ?
-            `, [
-
-                String(name).trim(),
-
-                district_id,
-
-                String(
-                    contact_number
-                ).trim(),
-
-                String(
-                    user_id
-                ).trim(),
-
-                String(
-                    email
-                ).trim(),
-
-                String(
-                    address
-                ).trim(),
-
-                status || null,
-
-                id,
-            ]);
-        }
+            id,
+        ]);
 
 
         // =================================================
@@ -2126,11 +1835,6 @@ const updateTaluka = async (
                 t.name,
                 t.district_id,
                 d.name AS district_name,
-                t.contact_number,
-                t.user_id,
-                t.email,
-                t.password,
-                t.address,
                 t.status,
                 t.created_at,
                 t.updated_at

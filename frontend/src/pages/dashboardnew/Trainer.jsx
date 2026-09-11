@@ -855,91 +855,107 @@ const Trainer = () => {
 
 
     // =====================================================
-    // DISTRICT CHANGE
+    // DISTRICT INPUT CHANGE
     // =====================================================
 
-    const handleDistrictChange = (
+    const handleDistrictInputChange = (
         event
     ) => {
 
-        const districtId =
+        const value =
             event.target.value;
 
 
         const selectedDistrict =
             districts.find(
                 (item) =>
-                    String(item?.id) ===
-                    String(districtId)
+                    safeString(getDistrictName(item)).trim().toLowerCase() ===
+                    safeString(value).trim().toLowerCase() ||
+                    safeString(item?.id).trim() ===
+                    safeString(value).trim()
             );
 
+        const districtId =
+            selectedDistrict
+                ? String(selectedDistrict.id)
+                : "";
 
-        // Filter Talukas
+        const districtName =
+            selectedDistrict
+                ? getDistrictName(selectedDistrict)
+                : value;
 
-        const filteredTalukas =
-            allTalukas.filter(
-                (item) => {
 
-                    if (
-                        item?.district_id ===
-                            undefined ||
-                        item?.district_id ===
-                            null
-                    ) {
+        if (districtId) {
 
-                        return false;
+            // Filter Talukas
+
+            const filteredTalukas =
+                allTalukas.filter(
+                    (item) => {
+
+                        if (
+                            item?.district_id ===
+                                undefined ||
+                            item?.district_id ===
+                                null
+                        ) {
+
+                            return false;
+
+                        }
+
+
+                        return (
+                            String(
+                                item.district_id
+                            ) ===
+                            String(districtId)
+                        );
 
                     }
+                );
 
 
-                    return (
-                        String(
-                            item.district_id
-                        ) ===
-                        String(districtId)
-                    );
+            // Filter Vibhags by district
 
-                }
-            );
+            const filteredVibhags =
+                allVibhags.filter(
+                    (item) => {
+
+                        if (
+                            item?.district_id ===
+                                undefined ||
+                            item?.district_id ===
+                                null
+                        ) {
+
+                            return false;
+
+                        }
 
 
-        // Filter Vibhags by district
-
-        const filteredVibhags =
-            allVibhags.filter(
-                (item) => {
-
-                    if (
-                        item?.district_id ===
-                            undefined ||
-                        item?.district_id ===
-                            null
-                    ) {
-
-                        return false;
+                        return (
+                            String(
+                                item.district_id
+                            ) ===
+                            String(districtId)
+                        );
 
                     }
+                );
 
 
-                    return (
-                        String(
-                            item.district_id
-                        ) ===
-                        String(districtId)
-                    );
-
-                }
+            setTalukas(
+                filteredTalukas
             );
 
 
-        setTalukas(
-            filteredTalukas
-        );
+            setVibhags(
+                filteredVibhags
+            );
 
-
-        setVibhags(
-            filteredVibhags
-        );
+        }
 
 
         setFormData(
@@ -947,29 +963,30 @@ const Trainer = () => {
                 ...prev,
 
                 districtId:
-                    districtId,
+                    districtId || prev.districtId,
 
                 district:
-                    getDistrictName(
-                        selectedDistrict
-                    ),
+                    districtName,
 
                 talukaId:
-                    "",
+                    districtId ? "" : prev.talukaId,
 
                 taluka:
-                    "",
+                    districtId ? "" : prev.taluka,
 
                 vibhagId:
-                    "",
+                    districtId ? "" : prev.vibhagId,
 
                 vibhag:
-                    "",
+                    districtId ? "" : prev.vibhag,
 
             })
         );
 
     };
+
+    const handleDistrictChange =
+        handleDistrictInputChange;
 
 
     // =====================================================
@@ -1131,7 +1148,7 @@ const Trainer = () => {
                 ? Math.max(...ids) + 1
                 : 1;
 
-        return `${String(nextId).padStart(2, "0")}`;
+        return `BDO-${String(nextId).padStart(4, "0")}`;
     };
 
 
@@ -1521,12 +1538,27 @@ const Trainer = () => {
             }
 
 
+            let finalDistrictId = formData.districtId;
+            if (!finalDistrictId && formData.district) {
+                const matched = districts.find(
+                    (d) =>
+                        safeString(getDistrictName(d)).trim().toLowerCase() ===
+                        safeString(formData.district).trim().toLowerCase() ||
+                        safeString(d?.id).trim() ===
+                        safeString(formData.district).trim()
+                );
+                if (matched) {
+                    finalDistrictId = String(matched.id);
+                }
+            }
+
             if (
-                !formData.districtId
+                !finalDistrictId &&
+                !formData.district?.trim()
             ) {
 
                 alert(
-                    "Please select District"
+                    "Please enter District"
                 );
 
                 return;
@@ -1535,7 +1567,8 @@ const Trainer = () => {
 
 
             if (
-                !formData.talukaId
+                !formData.talukaId &&
+                !formData.taluka?.trim()
             ) {
 
                 alert(
@@ -1548,7 +1581,8 @@ const Trainer = () => {
 
 
             if (
-                !formData.vibhagId
+                !formData.vibhagId &&
+                !formData.vibhag?.trim()
             ) {
 
                 alert(
@@ -1632,18 +1666,27 @@ const Trainer = () => {
 
                 district_id:
                     Number(
-                        formData.districtId
-                    ),
+                        finalDistrictId
+                    ) || 1,
+
+                district_name:
+                    formData.district || "",
 
                 taluka_id:
                     Number(
                         formData.talukaId
-                    ),
+                    ) || 1,
+
+                taluka_name:
+                    formData.taluka || "",
 
                 vibhag_id:
                     Number(
                         formData.vibhagId
-                    ),
+                    ) || 1,
+
+                vibhag_name:
+                    formData.vibhag || "",
 
                 contact_number:
                     formData.contactNumber.trim(),
@@ -3519,11 +3562,11 @@ const Trainer = () => {
                                 </Form.Group>
                             </div>
 
-                            {/* 2. Head ID / BDO Officer ID */}
+                            {/* 2. BDO ID */}
                             <div className="col-md-6">
                                 <Form.Group>
                                     <Form.Label className="fw-semibold">
-                                        Head ID (हेड आयडी / BDO अधिकारी क्रमांक)
+                                        BDO ID (BDO अधिकारी क्रमांक)
                                     </Form.Label>
                                     <Form.Control
                                         type="text"
@@ -3536,7 +3579,7 @@ const Trainer = () => {
                                             fontWeight: "600",
                                             color: "#212529",
                                         }}
-                                        placeholder="हेड आयडी"
+                                        placeholder="BDO ID"
                                     />
                                 </Form.Group>
                             </div>
@@ -3563,18 +3606,19 @@ const Trainer = () => {
                                     <Form.Label className="fw-semibold">
                                         District (जिल्हा)
                                     </Form.Label>
-                                    <Form.Select
-                                        name="districtId"
-                                        value={formData.districtId}
-                                        onChange={handleDistrictChange}
-                                    >
-                                        <option value="">जिल्हा निवडा</option>
+                                    <Form.Control
+                                        type="text"
+                                        list="trainerDistrictList"
+                                        name="district"
+                                        value={formData.district || ""}
+                                        onChange={handleDistrictInputChange}
+                                        placeholder="Select or type District (जिल्हा निवडा किंवा टाईप करा)"
+                                    />
+                                    <datalist id="trainerDistrictList">
                                         {districts.map((district) => (
-                                            <option key={district.id} value={district.id}>
-                                                {getDistrictName(district)}
-                                            </option>
+                                            <option key={district.id} value={getDistrictName(district)} />
                                         ))}
-                                    </Form.Select>
+                                    </datalist>
                                 </Form.Group>
                             </div>
 
@@ -3588,7 +3632,7 @@ const Trainer = () => {
                                         name="talukaId"
                                         value={formData.talukaId}
                                         onChange={handleTalukaChange}
-                                        disabled={!formData.districtId}
+                                        disabled={!formData.districtId && !formData.district}
                                     >
                                         <option value="">तालुका निवडा</option>
                                         {talukas.map((taluka) => (

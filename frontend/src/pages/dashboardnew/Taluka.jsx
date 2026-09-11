@@ -638,6 +638,15 @@ const Taluka = () => {
   };
 
 
+  const getNextTalukaId = () => {
+    const ids = talukas
+      .map((item) => Number(item?.id))
+      .filter((id) => Number.isFinite(id) && id > 0);
+    const nextId = ids.length > 0 ? Math.max(...ids) + 1 : 1;
+    return `TH-${String(nextId).padStart(4, "0")}`;
+  };
+
+
   /* =======================================================
      INPUT CHANGE
   ======================================================= */
@@ -665,20 +674,14 @@ const Taluka = () => {
 
 
   /* =======================================================
-     DISTRICT DROPDOWN CHANGE
-     
-     District select केल्यावर:
-     districtId
-     districtName
-
-     दोन्ही automatically save होतील.
+     DISTRICT INPUT CHANGE
   ======================================================= */
 
-  const handleDistrictChange = (
+  const handleDistrictInputChange = (
     e
   ) => {
 
-    const selectedId =
+    const value =
       e.target.value;
 
 
@@ -686,49 +689,40 @@ const Taluka = () => {
       districts.find(
         (district) =>
           safeString(
-            district?.id
-          ) ===
+            district?.name
+          ).trim().toLowerCase() ===
           safeString(
-            selectedId
-          )
+            value
+          ).trim().toLowerCase() ||
+          safeString(
+            district?.id
+          ).trim() ===
+          safeString(
+            value
+          ).trim()
       );
-
-
-    if (!selectedDistrict) {
-
-      setFormData(
-        (previous) => ({
-          ...previous,
-
-          districtId:
-            selectedId,
-
-          districtName:
-            "",
-        })
-      );
-
-      return;
-    }
 
 
     setFormData(
       (previous) => ({
         ...previous,
 
-        districtId:
-          safeString(
-            selectedDistrict.id
-          ),
-
         districtName:
-          safeString(
-            selectedDistrict.name
-          ),
+          value,
+
+        districtId:
+          selectedDistrict
+            ? safeString(
+                selectedDistrict.id
+              )
+            : (previous.districtId || ""),
       })
     );
 
   };
+
+  const handleDistrictChange =
+    handleDistrictInputChange;
 
 
   /* =======================================================
@@ -941,65 +935,7 @@ const Taluka = () => {
     ) {
 
       alert(
-        "Please enter Full Name"
-      );
-
-      return;
-    }
-
-
-    if (
-      !safeString(
-        formData.contactNumber
-      ).trim()
-    ) {
-
-      alert(
-        "Please enter Mobile Number"
-      );
-
-      return;
-    }
-
-
-    if (
-      !/^[0-9]{10}$/.test(
-        safeString(
-          formData.contactNumber
-        ).trim()
-      )
-    ) {
-
-      alert(
-        "Mobile Number must contain 10 digits"
-      );
-
-      return;
-    }
-
-
-    if (
-      !safeString(
-        formData.reportDate
-      ).trim()
-    ) {
-
-      alert(
-        "Please enter Report Date"
-      );
-
-      return;
-    }
-
-
-    if (
-      !safeString(
-        formData.designation
-      ).trim()
-    ) {
-
-      alert(
-        "Please enter Designation"
+        "Please enter Taluka Name"
       );
 
       return;
@@ -1010,116 +946,41 @@ const Taluka = () => {
        DISTRICT REQUIRED
     ===================================================== */
 
-    if (
-      !safeString(
+    let districtIdValue =
+      safeString(
         formData.districtId
-      ).trim()
-    ) {
+      ).trim();
 
-      alert(
-        "Please select District"
-      );
+    const districtNameValue =
+      safeString(
+        formData.districtName
+      ).trim();
 
-      return;
+    if (!districtIdValue && districtNameValue) {
+      const matched =
+        districts.find(
+          (d) =>
+            safeString(
+              d?.name
+            ).trim().toLowerCase() ===
+            districtNameValue.toLowerCase()
+        );
+
+      if (matched) {
+        districtIdValue =
+          safeString(
+            matched.id
+          );
+      }
     }
 
-
     if (
-      !safeString(
-        formData.taluka
-      ).trim()
+      !districtIdValue &&
+      !districtNameValue
     ) {
 
       alert(
-        "Please enter Taluka"
-      );
-
-      return;
-    }
-
-
-    if (
-      !safeString(
-        formData.joiningDate
-      ).trim()
-    ) {
-
-      alert(
-        "Please enter Joining Date"
-      );
-
-      return;
-    }
-
-
-    if (
-      !safeString(
-        formData.accountNumber
-      ).trim()
-    ) {
-
-      alert(
-        "Please enter Account Number"
-      );
-
-      return;
-    }
-
-
-    if (
-      !safeString(
-        formData.ifscCode
-      ).trim()
-    ) {
-
-      alert(
-        "Please enter IFSC Code"
-      );
-
-      return;
-    }
-
-
-    if (
-      !safeString(
-        formData.bankName
-      ).trim()
-    ) {
-
-      alert(
-        "Please enter Bank Name"
-      );
-
-      return;
-    }
-
-
-
-
-
-    if (
-      !safeString(
-        formData.userId
-      ).trim()
-    ) {
-
-      alert(
-        "Please enter User ID"
-      );
-
-      return;
-    }
-
-
-    if (
-      !editingId &&
-      !safeString(
-        formData.password
-      ).trim()
-    ) {
-
-      alert(
-        "Please enter Password"
+        "Please enter District"
       );
 
       return;
@@ -1129,18 +990,6 @@ const Taluka = () => {
     try {
 
       setLoading(true);
-
-
-      /* =================================================
-         IMPORTANT
-
-         districtId number/string दोन्ही safe.
-      ================================================= */
-
-      const districtIdValue =
-        safeString(
-          formData.districtId
-        ).trim();
 
 
       /* =================================================
@@ -1160,51 +1009,15 @@ const Taluka = () => {
         district_id:
           Number(
             districtIdValue
-          ),
+          ) || 1,
 
-
-        contact_number:
-          safeString(
-            formData.contactNumber
-          ).trim(),
-
-
-        user_id:
-          safeString(
-            formData.userId
-          ).trim(),
-
-
-        email:
-          safeString(
-            formData.email
-          ).trim(),
-
-
-        address:
-          safeString(
-            formData.taluka
-          ).trim(),
+        district_name:
+          districtNameValue,
 
       };
 
 
-      /* =================================================
-         PASSWORD
-      ================================================= */
 
-      if (
-        safeString(
-          formData.password
-        ).trim()
-      ) {
-
-        payload.password =
-          safeString(
-            formData.password
-          ).trim();
-
-      }
 
 
       console.log(
@@ -2638,70 +2451,51 @@ const Taluka = () => {
 
                   <Form.Label className="fw-semibold">District (जिल्हा)</Form.Label>
 
-                  <Form.Select
-                    name="districtId"
+                  <Form.Control
+                    type="text"
+                    list="talukaDistrictList"
+                    name="districtName"
                     value={
                       safeString(
-                        formData.districtId
+                        formData.districtName
                       )
                     }
                     onChange={
-                      handleDistrictChange
+                      handleDistrictInputChange
                     }
+                    placeholder="Select or type District (जिल्हा निवडा किंवा टाईप करा)"
                     disabled={
                       loading
                     }
-                  >
+                  />
 
-                    <option value="">
-                      Select District
-                    </option>
+                  <datalist id="talukaDistrictList">
 
+                    {districts.map(
+                      (
+                        district
+                      ) => (
 
-                    {districts.length > 0 ? (
+                        <option
+                          key={
+                            district.id
+                          }
+                          value={
+                            district.name
+                          }
+                        />
 
-                      districts.map(
-                        (
-                          district
-                        ) => (
-
-                          <option
-                            key={
-                              district.id
-                            }
-                            value={
-                              district.id
-                            }
-                          >
-
-                            {
-                              district.name
-                            }
-
-                          </option>
-
-                        )
                       )
-
-                    ) : (
-
-                      <option
-                        value=""
-                        disabled
-                      >
-                        No District Found
-                      </option>
-
                     )}
 
-                  </Form.Select>
+                  </datalist>
 
                 </Form.Group>
 
               </div>
 
 
-              {/* DISTRICT ID */}
+              {/* TALUKA ID */}
 
               <div
                 className="col-md-6"
@@ -2709,17 +2503,21 @@ const Taluka = () => {
 
                 <Form.Group>
 
-                  <Form.Label className="fw-semibold">District ID (जिल्हा क्रमांक)</Form.Label>
+                  <Form.Label className="fw-semibold">Taluka ID (तालुका क्रमांक)</Form.Label>
 
                   <Form.Control
                     type="text"
                     value={
-                      safeString(
-                        formData.districtId
-                      )
+                      editingId
+                        ? getTalukaHeadId({ id: editingId })
+                        : getNextTalukaId()
                     }
                     readOnly
-                    placeholder="Select District"
+                    style={{
+                      backgroundColor: "#f8f9fa",
+                      fontWeight: "600",
+                    }}
+                    placeholder="Taluka ID"
                     disabled={
                       loading
                     }

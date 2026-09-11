@@ -629,20 +629,14 @@ const VibhagReport = () => {
             "Report Date",
             "Total Authorised Center Heads",
             "Total Active Center Heads",
-            "Today Visited Centers",
-            "Visited Center Head Name",
-            "New Members Added Today",
-            "Sanitary Pad Box Sales",
-            "Today's Health ATM Machine Details",
-            "Birth (Baby Girls)",
-            "Death Count",
-            "Accident Count",
+            "Today's Visited Center Heads Name",
+            "Total Sanitary Pads Box Sold Today",
+            "Total Amount From Sanitary Pad Box Sales Today",
             "UTR Number",
-            "Any Other Information",
+            "Additional Remarks",
             "Meeting Photo 1",
             "Meeting Photo 2",
             "Status",
-            "Action",
         ];
 
         const rows =
@@ -699,7 +693,12 @@ const VibhagReport = () => {
                         report,
                         "total_authorised_center_heads",
                         "totalAuthorisedCenterHeads",
-                        "0"
+                        getValue(
+                            report,
+                            "total_center_heads",
+                            "totalCenterHeads",
+                            "0"
+                        )
                     ),
 
                     getValue(
@@ -711,58 +710,37 @@ const VibhagReport = () => {
 
                     getValue(
                         report,
-                        "today_visited_centers",
-                        "todayVisitedCenters",
-                        "0"
+                        "visited_center_heads_names",
+                        "names_of_center_heads_visited_today",
+                        getValue(
+                            report,
+                            "visited_center_head_name",
+                            "visitedCenterHeadName",
+                            ""
+                        )
                     ),
 
                     getValue(
                         report,
-                        "visited_center_head_name",
-                        "visitedCenterHeadName",
-                        ""
+                        "total_sanitary_pads_box_sold_today",
+                        "sanitary_pads_boxes_sold",
+                        getValue(
+                            report,
+                            "sanitary_pad_box_sales",
+                            "sanitaryPadBoxSales",
+                            "0"
+                        )
                     ),
 
                     getValue(
                         report,
-                        "new_members_added_today",
-                        "newMembersAddedToday",
-                        "0"
-                    ),
-
-                    getValue(
-                        report,
-                        "sanitary_pad_box_sales",
-                        "sanitaryPadBoxSales",
-                        "0"
-                    ),
-
-                    getValue(
-                        report,
-                        "health_atm_machine_details",
-                        "healthAtmMachineDetails",
-                        ""
-                    ),
-
-                    getValue(
-                        report,
-                        "birth_baby_girls",
-                        "birthBabyGirls",
-                        "0"
-                    ),
-
-                    getValue(
-                        report,
-                        "death_count",
-                        "deathCount",
-                        "0"
-                    ),
-
-                    getValue(
-                        report,
-                        "accident_count",
-                        "accidentCount",
-                        "0"
+                        "total_amount_from_sanitary_pad_box_sales_today",
+                        "sanitary_pads_sales_amount",
+                        getValue(
+                            report,
+                            "totalAmountFromSanitaryPadBoxSalesToday",
+                            "0"
+                        )
                     ),
 
                     getValue(
@@ -774,9 +752,14 @@ const VibhagReport = () => {
 
                     getValue(
                         report,
-                        "any_other_information",
-                        "anyOtherInformation",
-                        ""
+                        "additional_remarks",
+                        "additionalRemarks",
+                        getValue(
+                            report,
+                            "any_other_information",
+                            "anyOtherInformation",
+                            ""
+                        )
                     ),
 
                     getPhotoUrl(
@@ -803,8 +786,6 @@ const VibhagReport = () => {
                         "status",
                         "active"
                     ),
-
-                    "View",
                 ]
             );
 
@@ -1490,7 +1471,7 @@ const VibhagReport = () => {
                                             minWidth: "180px",
                                         }}
                                     >
-                                        Name
+                                        Name (नाव)
                                     </th>
 
                                     <th
@@ -1498,7 +1479,7 @@ const VibhagReport = () => {
                                             minWidth: "150px",
                                         }}
                                     >
-                                        Designation
+                                        Designation (पद)
                                     </th>
 
                                     <th
@@ -1506,7 +1487,7 @@ const VibhagReport = () => {
                                             minWidth: "130px",
                                         }}
                                     >
-                                        Taluka
+                                        Taluka (तालुका)
                                     </th>
 
                                     <th
@@ -1514,7 +1495,7 @@ const VibhagReport = () => {
                                             minWidth: "130px",
                                         }}
                                     >
-                                        District
+                                        District (जिल्हा)
                                     </th>
 
                                     <th
@@ -1522,7 +1503,7 @@ const VibhagReport = () => {
                                             minWidth: "150px",
                                         }}
                                     >
-                                        Mobile Number
+                                        Mobile Number (मोबाईल क्रमांक)
                                     </th>
 
                                     <th
@@ -1530,7 +1511,7 @@ const VibhagReport = () => {
                                             minWidth: "130px",
                                         }}
                                     >
-                                        Report Date
+                                        Report Date (अहवालाची तारीख)
                                     </th>
 
                                     <th
@@ -1539,7 +1520,7 @@ const VibhagReport = () => {
                                             minWidth: "180px",
                                         }}
                                     >
-                                        Total Authorised Center Heads
+                                        Total Authorised Center Head (अधिकृत केंद्र प्रमुखांची एकूण संख्या)
                                     </th>
 
                                     <th
@@ -1548,68 +1529,49 @@ const VibhagReport = () => {
                                             minWidth: "170px",
                                         }}
                                     >
-                                        Total Active Center Heads
+                                        Total Active Center Head (सक्रिय केंद्र प्रमुखांची एकूण संख्या)
+                                    </th>
+
+                                    <th
+                                        style={{
+                                            minWidth: "250px",
+                                        }}
+                                    >
+                                        Today's Visited Center Heads Name (आज भेट दिलेल्या केंद्र प्रमुखांची नावे)
                                     </th>
 
                                     <th
                                         className="text-center"
                                         style={{
-                                            minWidth: "160px",
+                                            minWidth: "180px",
                                         }}
                                     >
-                                        Today Visited Centers
+                                        Total Sanitary Pads Box Sold Today (आज विकलेले एकूण सॅनिटरी पॅड बॉक्स)
                                     </th>
 
                                     <th
+                                        className="text-end"
                                         style={{
                                             minWidth: "200px",
                                         }}
                                     >
-                                        Visited Center Head Name
+                                        Total Amount From Sanitary Pad Box Sales Today (आजच्या सॅनिटरी पॅड बॉक्स विक्रीतून एकूण रक्कम)
                                     </th>
 
                                     <th
-                                        className="text-center"
-                                        style={{
-                                            minWidth: "180px",
-                                        }}
-                                    >
-                                        New Members Added Today
-                                    </th>
-
-                                    <th
-                                        className="text-center"
                                         style={{
                                             minWidth: "160px",
                                         }}
                                     >
-                                        Sanitary Pad Box Sales
+                                        UTR Number (युटीआर क्रमांक)
                                     </th>
 
                                     <th
                                         style={{
-                                            minWidth: "300px",
+                                            minWidth: "280px",
                                         }}
                                     >
-                                        Today's Health ATM Machine Details
-                                    </th>
-
-                                    <th
-                                        className="text-center"
-                                        style={{
-                                            minWidth: "140px",
-                                        }}
-                                    >
-                                        Birth (Baby Girls)
-                                    </th>
-
-                                    <th
-                                        className="text-center"
-                                        style={{
-                                            minWidth: "120px",
-                                        }}
-                                    >
-                                        Death Count
+                                        Additional Remarks (इतर माहिती / शेरा)
                                     </th>
 
                                     <th
@@ -1618,23 +1580,7 @@ const VibhagReport = () => {
                                             minWidth: "140px",
                                         }}
                                     >
-                                        Accident Count
-                                    </th>
-
-                                    <th
-                                        style={{
-                                            minWidth: "180px",
-                                        }}
-                                    >
-                                        UTR Number
-                                    </th>
-
-                                    <th
-                                        style={{
-                                            minWidth: "300px",
-                                        }}
-                                    >
-                                        Any Other Information
+                                        Meeting Photo 1 (बैठक फोटो १)
                                     </th>
 
                                     <th
@@ -1643,16 +1589,7 @@ const VibhagReport = () => {
                                             minWidth: "140px",
                                         }}
                                     >
-                                        Meeting Photo 1
-                                    </th>
-
-                                    <th
-                                        className="text-center"
-                                        style={{
-                                            minWidth: "140px",
-                                        }}
-                                    >
-                                        Meeting Photo 2
+                                        Meeting Photo 2 (बैठक फोटो २)
                                     </th>
 
                                     <th
@@ -1661,7 +1598,7 @@ const VibhagReport = () => {
                                             minWidth: "110px",
                                         }}
                                     >
-                                        Status
+                                        Status (स्थिती)
                                     </th>
 
                                     <th
@@ -1670,7 +1607,7 @@ const VibhagReport = () => {
                                             minWidth: "120px",
                                         }}
                                     >
-                                        Action
+                                        Action (कृती)
                                     </th>
 
                                 </tr>
@@ -1690,7 +1627,7 @@ const VibhagReport = () => {
                                     <tr>
 
                                         <td
-                                            colSpan="24"
+                                            colSpan="18"
                                             className="
                                                 text-center
                                                 py-5
@@ -1720,7 +1657,7 @@ const VibhagReport = () => {
                                         <tr>
 
                                             <td
-                                                colSpan="24"
+                                                colSpan="18"
                                                 className="
                                                     text-center
                                                     py-5
@@ -1907,7 +1844,12 @@ const VibhagReport = () => {
                                                             report,
                                                             "totalAuthorisedCenterHeads",
                                                             "total_authorised_center_heads",
-                                                            "0"
+                                                            getValue(
+                                                                report,
+                                                                "totalCenterHeads",
+                                                                "total_center_heads",
+                                                                "0"
+                                                            )
                                                         )}
                                                     </td>
 
@@ -1927,75 +1869,23 @@ const VibhagReport = () => {
                                                         )}
                                                     </td>
 
-                                                    {/* VISITED */}
-
-                                                    <td
-                                                        className="
-                                                            text-center
-                                                            fw-semibold
-                                                        "
-                                                    >
-                                                        {getValue(
-                                                            report,
-                                                            "todayVisitedCenters",
-                                                            "today_visited_centers",
-                                                            "0"
-                                                        )}
-                                                    </td>
-
-                                                    {/* VISITED HEAD */}
-
-                                                    <td>
-                                                        {getValue(
-                                                            report,
-                                                            "visitedCenterHeadName",
-                                                            "visited_center_head_name"
-                                                        )}
-                                                    </td>
-
-                                                    {/* NEW MEMBERS */}
-
-                                                    <td
-                                                        className="
-                                                            text-center
-                                                            fw-semibold
-                                                        "
-                                                    >
-                                                        {getValue(
-                                                            report,
-                                                            "newMembersAddedToday",
-                                                            "new_members_added_today",
-                                                            "0"
-                                                        )}
-                                                    </td>
-
-                                                    {/* SANITARY */}
-
-                                                    <td
-                                                        className="
-                                                            text-center
-                                                            fw-semibold
-                                                        "
-                                                    >
-                                                        {getValue(
-                                                            report,
-                                                            "sanitaryPadBoxSales",
-                                                            "sanitary_pad_box_sales",
-                                                            "0"
-                                                        )}
-                                                    </td>
-
-                                                    {/* HEALTH ATM */}
+                                                    {/* TODAY VISITED CENTER HEADS NAME */}
 
                                                     <td className="report-long-text">
                                                         {getValue(
                                                             report,
-                                                            "healthAtmMachineDetails",
-                                                            "health_atm_machine_details"
+                                                            "visited_center_heads_names",
+                                                            "names_of_center_heads_visited_today",
+                                                            getValue(
+                                                                report,
+                                                                "visitedCenterHeadName",
+                                                                "visited_center_head_name",
+                                                                "-"
+                                                            )
                                                         )}
                                                     </td>
 
-                                                    {/* BIRTH */}
+                                                    {/* SANITARY BOX SOLD */}
 
                                                     <td
                                                         className="
@@ -2005,41 +1895,29 @@ const VibhagReport = () => {
                                                     >
                                                         {getValue(
                                                             report,
-                                                            "birthBabyGirls",
-                                                            "birth_baby_girls",
-                                                            "0"
+                                                            "totalSanitaryPadsBoxSoldToday",
+                                                            "total_sanitary_pads_box_sold_today",
+                                                            getValue(
+                                                                report,
+                                                                "sanitary_pads_boxes_sold",
+                                                                "sanitary_pad_box_sales",
+                                                                "0"
+                                                            )
                                                         )}
                                                     </td>
 
-                                                    {/* DEATH */}
+                                                    {/* SANITARY SALES AMOUNT */}
 
-                                                    <td
-                                                        className="
-                                                            text-center
-                                                            fw-semibold
-                                                        "
-                                                    >
-                                                        {getValue(
+                                                    <td className="text-end fw-semibold">
+                                                        ₹ {getValue(
                                                             report,
-                                                            "deathCount",
-                                                            "death_count",
-                                                            "0"
-                                                        )}
-                                                    </td>
-
-                                                    {/* ACCIDENT */}
-
-                                                    <td
-                                                        className="
-                                                            text-center
-                                                            fw-semibold
-                                                        "
-                                                    >
-                                                        {getValue(
-                                                            report,
-                                                            "accidentCount",
-                                                            "accident_count",
-                                                            "0"
+                                                            "totalAmountFromSanitaryPadBoxSalesToday",
+                                                            "total_amount_from_sanitary_pad_box_sales_today",
+                                                            getValue(
+                                                                report,
+                                                                "sanitary_pads_sales_amount",
+                                                                "0.00"
+                                                            )
                                                         )}
                                                     </td>
 
@@ -2053,13 +1931,19 @@ const VibhagReport = () => {
                                                         )}
                                                     </td>
 
-                                                    {/* OTHER */}
+                                                    {/* REMARKS */}
 
                                                     <td className="report-long-text">
                                                         {getValue(
                                                             report,
-                                                            "anyOtherInformation",
-                                                            "any_other_information"
+                                                            "additionalRemarks",
+                                                            "additional_remarks",
+                                                            getValue(
+                                                                report,
+                                                                "anyOtherInformation",
+                                                                "any_other_information",
+                                                                "-"
+                                                            )
                                                         )}
                                                     </td>
 
@@ -2504,7 +2388,7 @@ const VibhagReport = () => {
 
                 .trainer-report-table {
                     width: max-content !important;
-                    min-width: 3300px !important;
+                    min-width: 2600px !important;
                     margin: 0 !important;
                     border-collapse: collapse;
                     table-layout: auto;
@@ -2548,112 +2432,88 @@ const VibhagReport = () => {
 
                 .trainer-report-table th:nth-child(2),
                 .trainer-report-table td:nth-child(2) {
-                    min-width: 220px;
+                    min-width: 180px;
                 }
 
                 .trainer-report-table th:nth-child(3),
                 .trainer-report-table td:nth-child(3) {
-                    min-width: 170px;
+                    min-width: 150px;
                 }
 
                 .trainer-report-table th:nth-child(4),
                 .trainer-report-table td:nth-child(4),
                 .trainer-report-table th:nth-child(5),
                 .trainer-report-table td:nth-child(5) {
-                    min-width: 150px;
+                    min-width: 130px;
                 }
 
                 .trainer-report-table th:nth-child(6),
-                .trainer-report-table td:nth-child(6),
+                .trainer-report-table td:nth-child(6) {
+                    min-width: 150px;
+                }
+
                 .trainer-report-table th:nth-child(7),
                 .trainer-report-table td:nth-child(7) {
-                    min-width: 150px;
+                    min-width: 130px;
                 }
 
                 .trainer-report-table th:nth-child(8),
                 .trainer-report-table td:nth-child(8) {
-                    min-width: 230px;
+                    min-width: 180px;
                     text-align: center;
                 }
 
                 .trainer-report-table th:nth-child(9),
                 .trainer-report-table td:nth-child(9) {
-                    min-width: 220px;
+                    min-width: 170px;
                     text-align: center;
                 }
 
                 .trainer-report-table th:nth-child(10),
                 .trainer-report-table td:nth-child(10) {
-                    min-width: 220px;
-                    text-align: center;
+                    min-width: 250px;
                 }
 
                 .trainer-report-table th:nth-child(11),
                 .trainer-report-table td:nth-child(11) {
-                    min-width: 280px;
+                    min-width: 180px;
+                    text-align: center;
                 }
 
                 .trainer-report-table th:nth-child(12),
                 .trainer-report-table td:nth-child(12) {
-                    min-width: 230px;
-                    text-align: center;
+                    min-width: 200px;
+                    text-align: right;
                 }
 
                 .trainer-report-table th:nth-child(13),
                 .trainer-report-table td:nth-child(13) {
-                    min-width: 220px;
-                    text-align: center;
+                    min-width: 160px;
                 }
 
                 .trainer-report-table th:nth-child(14),
                 .trainer-report-table td:nth-child(14) {
-                    min-width: 360px;
+                    min-width: 280px;
                 }
 
                 .trainer-report-table th:nth-child(15),
                 .trainer-report-table td:nth-child(15),
                 .trainer-report-table th:nth-child(16),
-                .trainer-report-table td:nth-child(16),
+                .trainer-report-table td:nth-child(16) {
+                    min-width: 140px;
+                    width: 140px;
+                    text-align: center;
+                }
+
                 .trainer-report-table th:nth-child(17),
                 .trainer-report-table td:nth-child(17) {
-                    min-width: 150px;
+                    min-width: 110px;
                     text-align: center;
                 }
 
                 .trainer-report-table th:nth-child(18),
                 .trainer-report-table td:nth-child(18) {
-                    min-width: 180px;
-                }
-
-                .trainer-report-table th:nth-child(19),
-                .trainer-report-table td:nth-child(19) {
-                    min-width: 360px;
-                }
-
-                .trainer-report-table th:nth-child(20),
-                .trainer-report-table td:nth-child(20),
-                .trainer-report-table th:nth-child(21),
-                .trainer-report-table td:nth-child(21) {
-                    min-width: 150px;
-                    width: 150px;
-                    text-align: center;
-                }
-
-                .trainer-report-table th:nth-child(22),
-                .trainer-report-table td:nth-child(22) {
                     min-width: 120px;
-                    text-align: center;
-                }
-
-                .trainer-report-table th:nth-child(23),
-                .trainer-report-table td:nth-child(23) {
-                    min-width: 140px;
-                    text-align: center;
-                }
-
-                .trainer-report-table th:nth-child(24),
-                .trainer-report-table td:nth-child(24) {
-                    min-width: 140px;
                     text-align: center;
                 }
 
