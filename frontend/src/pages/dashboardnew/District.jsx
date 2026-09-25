@@ -801,7 +801,6 @@
               designation: formData.designation.trim(),
               district_name: formData.districtName.trim(),
               district_code: formData.districtCode.trim(),
-              taluka: formData.taluka.trim(),
               joining_date: formData.joiningDate,
               account_number: formData.accountNumber.trim(),
               ifsc_code: formData.ifscCode.trim().toUpperCase(),
@@ -899,7 +898,6 @@
             designation: formData.designation.trim(),
             district_name: formData.districtName.trim(),
             district_code: formData.districtCode.trim(),
-            taluka: formData.taluka.trim(),
             joining_date: formData.joiningDate,
             account_number: formData.accountNumber.trim(),
             ifsc_code: formData.ifscCode.trim().toUpperCase(),
@@ -1112,6 +1110,7 @@
               "Mobile Number": district.contactNumber || "",
               Designation: district.designation || "",
               District: district.districtName || "",
+              Taluka: district.taluka || "",
               "Joining Date": district.joiningDate || "",
               Status: district.status || "",
               "Account No.": district.accountNumber || "",
@@ -1515,6 +1514,7 @@
                       <th>Mobile Number</th>
                       <th>Designation</th>
                       <th>District</th>
+                      <th>Taluka</th>
                       <th>Joining Date</th>
                       <th>Status</th>
                       <th>Account No.</th>
@@ -1529,7 +1529,7 @@
                   <tbody>
                     {loading && (
                       <tr>
-                        <td colSpan="14" className="text-center py-5">
+                        <td colSpan="15" className="text-center py-5">
                           Loading districts...
                         </td>
                       </tr>
@@ -1537,7 +1537,7 @@
 
                     {!loading && filteredDistricts.length === 0 && (
                       <tr>
-                        <td colSpan="14" className="text-center py-5 text-muted">
+                        <td colSpan="15" className="text-center py-5 text-muted">
                           No districts found.
                         </td>
                       </tr>
@@ -1552,6 +1552,7 @@
                           <td>{district.contactNumber || "-"}</td>
                           <td>{district.designation || "-"}</td>
                           <td>{district.districtName || "-"}</td>
+                          <td>{district.taluka || "-"}</td>
                           <td>{district.joiningDate || "-"}</td>
                           <td>
                             <span

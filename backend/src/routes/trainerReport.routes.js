@@ -55,14 +55,9 @@ router.get(
 router.post(
     "/",
     trainerUpload.fields([
-        {
-            name: "meeting_photo_1",
-            maxCount: 1,
-        },
-        {
-            name: "meeting_photo_2",
-            maxCount: 1,
-        },
+        { name: "shop_photo", maxCount: 1 },
+        { name: "shopkeeper_registration_photo", maxCount: 1 },
+        { name: "work_photo_video", maxCount: 1 },
     ]),
     createTrainerReport
 );
@@ -76,14 +71,9 @@ router.post(
 router.put(
     "/:id",
     trainerUpload.fields([
-        {
-            name: "meeting_photo_1",
-            maxCount: 1,
-        },
-        {
-            name: "meeting_photo_2",
-            maxCount: 1,
-        },
+        { name: "shop_photo", maxCount: 1 },
+        { name: "shopkeeper_registration_photo", maxCount: 1 },
+        { name: "work_photo_video", maxCount: 1 },
     ]),
     updateTrainerReport
 );

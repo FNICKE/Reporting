@@ -15,61 +15,26 @@ const PORT =
 // =====================================================
 
 const startServer = async () => {
-
     try {
+        const server = app.listen(PORT, () => {
+            console.log("");
+            console.log("=================================");
+            console.log(`🚀 Server running on port ${PORT}`);
+            console.log("=================================");
+            console.log("");
+        });
 
-        // =================================================
-        // DATABASE CONNECTION
-        // =================================================
-
-        await testDatabaseConnection();
-
-
-        // =================================================
-        // START EXPRESS SERVER
-        // =================================================
-
-        app.listen(
-            PORT,
-            () => {
-
-                console.log("");
-                console.log(
-                    "================================="
-                );
-
-                console.log(
-                    "✅ MySQL Database Connected"
-                );
-
-                console.log(
-                    `🚀 Server running on http://localhost:${PORT}`
-                );
-
-                console.log(
-                    "================================="
-                );
-
-                console.log("");
-
-            }
-        );
-
+        // Test DB connection non-critically
+        try {
+            await testDatabaseConnection();
+            console.log("✅ MySQL Database Connected successfully");
+        } catch (dbError) {
+            console.error("⚠️ MySQL Database connection warning:", dbError.message);
+            console.error("Check your DB credentials in .env");
+        }
     } catch (error) {
-
-        console.error("");
-
-        console.error(
-            "❌ Server failed:",
-            error.message
-        );
-
-        console.error("");
-
-        process.exit(1);
-
+        console.error("❌ Server startup error:", error.message);
     }
-
 };
 
 

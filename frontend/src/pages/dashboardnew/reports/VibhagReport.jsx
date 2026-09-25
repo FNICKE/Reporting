@@ -1,2680 +1,1281 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Button, Spinner, Modal } from "react-bootstrap";
+import React, { useEffect, useState } from "react";
+import { Alert, Button, Spinner, Modal, Form, Row, Col } from "react-bootstrap";
+import * as XLSX from "xlsx";
 import { API_BASE_URL as ROOT_API_URL, BACKEND_ROOT_URL } from "../../../config/api";
 
-// =====================================================
-// API
-// =====================================================
+// =========================================================
+// API CONFIG
+// =========================================================
 
+const API_BASE_URL = `${ROOT_API_URL}/vibhag-reports`;
 const BACKEND_BASE_URL = BACKEND_ROOT_URL;
 
-const API_BASE_URL =
-    `${ROOT_API_URL}/vibhag-reports`;
-
-// =====================================================
-// DATE FORMAT
-// =====================================================
-
-const formatDate = (date) => {
-    if (!date) return "-";
-
-    const value = String(date).substring(0, 10);
-
-    const parts = value.split("-");
-
-    if (parts.length !== 3) {
-        return date;
-    }
-
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-};
-
-// =====================================================
-// GET VALUE
-// =====================================================
-
-const getValue = (
-    report,
-    camelCase,
-    snakeCase,
-    defaultValue = "-"
-) => {
-    const value =
-        report?.[camelCase] ??
-        report?.[snakeCase];
-
-    if (
-        value === null ||
-        value === undefined ||
-        value === ""
-    ) {
-        return defaultValue;
-    }
-
-    return value;
-};
-
-// =====================================================
-// PHOTO URL
-// =====================================================
+// =========================================================
+// PHOTO URL HELPER
+// =========================================================
 
 const getPhotoUrl = (photo) => {
-    if (!photo) {
-        return "";
-    }
+  if (!photo) return "";
+  const value = String(photo).trim();
+  if (!value) return "";
 
-    const photoString = String(photo).trim();
+  if (value.startsWith("http://") || value.startsWith("https://") || value.startsWith("data:")) {
+    return value;
+  }
 
-    if (!photoString) {
-        return "";
-    }
+  if (value.startsWith("/uploads/")) {
+    return `${BACKEND_BASE_URL}${value}`;
+  }
 
-    if (
-        photoString.startsWith("http://") ||
-        photoString.startsWith("https://")
-    ) {
-        return photoString;
-    }
+  if (value.startsWith("uploads/")) {
+    return `${BACKEND_BASE_URL}/${value}`;
+  }
 
-    if (
-        photoString.startsWith("/uploads/")
-    ) {
-        return `${BACKEND_BASE_URL}${photoString}`;
-    }
+  if (value.startsWith("vibhag-reports/")) {
+    return `${BACKEND_BASE_URL}/uploads/${value}`;
+  }
 
-    if (
-        photoString.includes("vibhag-reports/")
-    ) {
-        return `${BACKEND_BASE_URL}/uploads/${photoString.replace(
-            /^\/+/,
-            ""
-        )}`;
-    }
-
-    return `${BACKEND_BASE_URL}/uploads/vibhag-reports/${encodeURIComponent(
-        photoString
-    )}`;
+  return `${BACKEND_BASE_URL}/uploads/vibhag-reports/${encodeURIComponent(value)}`;
 };
 
-// =====================================================
-// COMPONENT
-// =====================================================
+// =========================================================
+// DATE FORMATTERS
+// =========================================================
+
+const formatDate = (date) => {
+  if (!date) return "-";
+  const value = String(date).split("T")[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split("-");
+    return `${day}/${month}/${year}`;
+  }
+  return value;
+};
+
+// =========================================================
+// GET VALUE HELPER
+// =========================================================
+
+const getValue = (report, camelCase, snakeCase, defaultValue = "-") => {
+  const value = report?.[camelCase] ?? report?.[snakeCase];
+  if (value === null || value === undefined || value === "") {
+    return defaultValue;
+  }
+  return value;
+};
+
+const getReportDateValue = (report) => {
+  const raw = report?.report_date ?? report?.reportDate ?? "";
+  return String(raw).split("T")[0];
+};
+
+// =========================================================
+// MAIN COMPONENT: SSWF VIBHAG PRAMUKH DAILY REPORT (ADMIN)
+// =========================================================
 
 const VibhagReport = () => {
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-    // =================================================
-    // STATE
-    // =================================================
+  // Filters
+  const [nameFilter, setNameFilter] = useState("");
+  const [talukaFilter, setTalukaFilter] = useState("");
+  const [districtFilter, setDistrictFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
 
-    const [reports, setReports] = useState([]);
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 10;
 
-    const [loading, setLoading] = useState(true);
+  // View Modal
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedReport, setSelectedReport] = useState(null);
 
-    const [error, setError] = useState("");
+  // Edit Modal
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
 
-    const [success, setSuccess] = useState("");
+  const [editForm, setEditForm] = useState({
+    name: "",
+    designation: "",
+    taluka: "",
+    district: "",
+    mobile_number: "",
+    report_date: "",
+    total_authorised_center_heads: "",
+    total_active_center_heads: "",
+    today_visited_centers: "",
+    visited_center_head_name: "",
+    new_members_added_today: "",
+    sanitary_pad_box_sales: "",
+    health_atm_machine_details: "",
+    birth_baby_girls: "",
+    death_count: "",
+    accident_count: "",
+    utr_number: "",
+    any_other_information: "",
+  });
 
-    // =================================================
-    // FILTERS
-    // =================================================
+  const [editPhoto1, setEditPhoto1] = useState(null);
+  const [editPhoto2, setEditPhoto2] = useState(null);
+  const [previewPhoto1, setPreviewPhoto1] = useState(null);
+  const [previewPhoto2, setPreviewPhoto2] = useState(null);
 
-    const [filters, setFilters] = useState({
-        name: "",
-        taluka: "",
-        district: "",
-        report_date: "",
+  // Fetch Reports
+  const fetchReports = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const res = await fetch(API_BASE_URL);
+      const data = await res.json();
+
+      if (!res.ok || data.success === false) {
+        throw new Error(data.message || "Failed to load Vibhag reports");
+      }
+
+      const rows = data.reports || data.data || [];
+      setReports(Array.isArray(rows) ? rows : []);
+    } catch (err) {
+      console.error("VIBHAG REPORT FETCH ERROR:", err);
+      setError(err.message || "Failed to load Vibhag reports.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
+  const handleRefresh = async () => {
+    setError("");
+    setSuccess("");
+    await fetchReports();
+    setCurrentPage(1);
+    setSuccess("Vibhag reports refreshed successfully.");
+  };
+
+  const filteredReports = reports.filter((report) => {
+    const name = String(getValue(report, "name", "name", "")).toLowerCase();
+    const taluka = String(getValue(report, "taluka", "taluka", "")).toLowerCase();
+    const district = String(getValue(report, "district", "district", "")).toLowerCase();
+    const reportDate = getReportDateValue(report);
+
+    const matchesName = !nameFilter.trim() || name.includes(nameFilter.trim().toLowerCase());
+    const matchesTaluka = !talukaFilter.trim() || taluka.includes(talukaFilter.trim().toLowerCase());
+    const matchesDistrict = !districtFilter.trim() || district.includes(districtFilter.trim().toLowerCase());
+    const matchesDate = !dateFilter || reportDate === dateFilter;
+
+    return matchesName && matchesTaluka && matchesDistrict && matchesDate;
+  });
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [nameFilter, talukaFilter, districtFilter, dateFilter]);
+
+  const totalRecords = filteredReports.length;
+  const totalPages = Math.ceil(totalRecords / recordsPerPage);
+  const startIndex = (currentPage - 1) * recordsPerPage;
+  const endIndex = startIndex + recordsPerPage;
+  const currentReports = filteredReports.slice(startIndex, endIndex);
+
+  const clearFilters = () => {
+    setNameFilter("");
+    setTalukaFilter("");
+    setDistrictFilter("");
+    setDateFilter("");
+    setCurrentPage(1);
+  };
+
+  const isFilterActive =
+    nameFilter.trim() !== "" ||
+    talukaFilter.trim() !== "" ||
+    districtFilter.trim() !== "" ||
+    dateFilter !== "";
+
+  // View Report
+  const handleViewReport = (report) => {
+    setSelectedReport(report);
+    setShowDetailModal(true);
+  };
+
+  // Edit Report
+  const handleEditReport = (report) => {
+    setEditingId(report.id);
+    setEditForm({
+      name: getValue(report, "name", "name", ""),
+      designation: getValue(report, "designation", "designation", ""),
+      taluka: getValue(report, "taluka", "taluka", ""),
+      district: getValue(report, "district", "district", ""),
+      mobile_number: getValue(report, "mobileNumber", "mobile_number", ""),
+      report_date: getReportDateValue(report),
+      total_authorised_center_heads: getValue(
+        report,
+        "totalAuthorisedCenterHeads",
+        "total_authorised_center_heads",
+        ""
+      ),
+      total_active_center_heads: getValue(
+        report,
+        "totalActiveCenterHeads",
+        "total_active_center_heads",
+        ""
+      ),
+      today_visited_centers: getValue(
+        report,
+        "todayVisitedCenters",
+        "today_visited_centers",
+        ""
+      ),
+      visited_center_head_name: getValue(
+        report,
+        "visitedCenterHeadName",
+        "visited_center_head_name",
+        ""
+      ),
+      new_members_added_today: getValue(
+        report,
+        "newMembersAddedToday",
+        "new_members_added_today",
+        ""
+      ),
+      sanitary_pad_box_sales: getValue(
+        report,
+        "sanitaryPadBoxSales",
+        "sanitary_pad_box_sales",
+        ""
+      ),
+      health_atm_machine_details: getValue(
+        report,
+        "healthAtmMachineDetails",
+        "health_atm_machine_details",
+        ""
+      ),
+      birth_baby_girls: getValue(
+        report,
+        "birthBabyGirls",
+        "birth_baby_girls",
+        ""
+      ),
+      death_count: getValue(report, "deathCount", "death_count", ""),
+      accident_count: getValue(report, "accidentCount", "accident_count", ""),
+      utr_number: getValue(report, "utrNumber", "utr_number", ""),
+      any_other_information: getValue(
+        report,
+        "anyOtherInformation",
+        "any_other_information",
+        ""
+      ),
     });
 
-    const [search, setSearch] = useState("");
-
-    // =================================================
-    // PAGINATION
-    // =================================================
-
-    const RECORDS_PER_PAGE = 20;
-
-    const [currentPage, setCurrentPage] =
-        useState(1);
-
-    // =================================================
-    // IMAGE MODAL
-    // =================================================
-
-    const [showImageModal, setShowImageModal] =
-        useState(false);
-
-    const [selectedImage, setSelectedImage] =
-        useState("");
-
-    const [selectedImageTitle, setSelectedImageTitle] =
-        useState("");
-
-    // =================================================
-    // LOAD REPORTS
-    // =================================================
-
-    const loadReports = async () => {
-
-        try {
-
-            setLoading(true);
-            setError("");
-
-            const response =
-                await fetch(API_BASE_URL, {
-                    method: "GET",
-                    headers: {
-                        Accept:
-                            "application/json",
-                    },
-                    cache: "no-store",
-                });
-
-            const data =
-                await response.json();
-
-            console.log(
-                "VIBHAG REPORT API:",
-                data
-            );
-
-            if (
-                !response.ok ||
-                data.success === false
-            ) {
-                throw new Error(
-                    data.message ||
-                    "Failed to load Vibhag reports"
-                );
-            }
-
-            const rows =
-                Array.isArray(data.reports)
-                    ? data.reports
-                    : Array.isArray(data.data)
-                    ? data.data
-                    : [];
-
-            setReports(rows);
-
-        } catch (err) {
-
-            console.error(
-                "VIBHAG REPORT ERROR:",
-                err
-            );
-
-            setError(
-                err.message ||
-                "Unable to load Vibhag reports."
-            );
-
-            setReports([]);
-
-        } finally {
-
-            setLoading(false);
-
-        }
-    };
-
-    // =================================================
-    // INITIAL LOAD
-    // =================================================
-
-    useEffect(() => {
-        loadReports();
-    }, []);
-
-    // =================================================
-    // REFRESH
-    // =================================================
-
-    const handleRefresh = async () => {
-
-        setError("");
-        setSuccess("");
-
-        await loadReports();
-
-        setCurrentPage(1);
-
-        setSuccess(
-            "Vibhag reports refreshed successfully."
-        );
-    };
-
-    // =================================================
-    // FILTER CHANGE
-    // =================================================
-
-    const handleFilterChange = (e) => {
-
-        const {
-            name,
-            value,
-        } = e.target;
-
-        setFilters((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
-    };
-
-    // =================================================
-    // FILTER REPORTS
-    // =================================================
-
-    const filteredReports = useMemo(() => {
-
-        const globalSearch =
-            search
-                .trim()
-                .toLowerCase();
-
-        const nameSearch =
-            filters.name
-                .trim()
-                .toLowerCase();
-
-        const talukaSearch =
-            filters.taluka
-                .trim()
-                .toLowerCase();
-
-        const districtSearch =
-            filters.district
-                .trim()
-                .toLowerCase();
-
-        const dateSearch =
-            filters.report_date.trim();
-
-        return reports.filter((report) => {
-
-            const name =
-                String(
-                    getValue(
-                        report,
-                        "name",
-                        "name",
-                        ""
-                    )
-                ).toLowerCase();
-
-            const designation =
-                String(
-                    getValue(
-                        report,
-                        "designation",
-                        "designation",
-                        ""
-                    )
-                ).toLowerCase();
-
-            const taluka =
-                String(
-                    getValue(
-                        report,
-                        "taluka",
-                        "taluka",
-                        ""
-                    )
-                ).toLowerCase();
-
-            const district =
-                String(
-                    getValue(
-                        report,
-                        "district",
-                        "district",
-                        ""
-                    )
-                ).toLowerCase();
-
-            const mobile =
-                String(
-                    getValue(
-                        report,
-                        "mobileNumber",
-                        "mobile_number",
-                        ""
-                    )
-                ).toLowerCase();
-
-            const utr =
-                String(
-                    getValue(
-                        report,
-                        "utr_number",
-                        "utrNumber",
-                        ""
-                    )
-                ).toLowerCase();
-
-            const reportDate =
-                String(
-                    getValue(
-                        report,
-                        "report_date",
-                        "reportDate",
-                        ""
-                    )
-                ).substring(0, 10);
-
-            // =========================================
-            // GLOBAL SEARCH
-            // =========================================
-
-            const globalMatch =
-                !globalSearch ||
-                name.includes(globalSearch) ||
-                designation.includes(globalSearch) ||
-                taluka.includes(globalSearch) ||
-                district.includes(globalSearch) ||
-                mobile.includes(globalSearch) ||
-                utr.includes(globalSearch) ||
-                reportDate.includes(
-                    globalSearch
-                );
-
-            // =========================================
-            // NAME
-            // =========================================
-
-            const nameMatch =
-                !nameSearch ||
-                name.includes(nameSearch);
-
-            // =========================================
-            // TALUKA
-            // =========================================
-
-            const talukaMatch =
-                !talukaSearch ||
-                taluka.includes(talukaSearch);
-
-            // =========================================
-            // DISTRICT
-            // =========================================
-
-            const districtMatch =
-                !districtSearch ||
-                district.includes(
-                    districtSearch
-                );
-
-            // =========================================
-            // DATE
-            // =========================================
-
-            const dateMatch =
-                !dateSearch ||
-                reportDate === dateSearch;
-
-            return (
-                globalMatch &&
-                nameMatch &&
-                talukaMatch &&
-                districtMatch &&
-                dateMatch
-            );
-        });
-
-    }, [
-        reports,
-        search,
-        filters,
-    ]);
-
-    // =================================================
-    // RESET PAGE WHEN FILTER CHANGES
-    // =================================================
-
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [
-        search,
-        filters,
-    ]);
-
-    // =================================================
-    // PAGINATION
-    // =================================================
-
-    const totalRecords =
-        filteredReports.length;
-
-    const totalPages =
-        Math.ceil(
-            totalRecords /
-            RECORDS_PER_PAGE
-        );
-
-    const startIndex =
-        (currentPage - 1) *
-        RECORDS_PER_PAGE;
-
-    const endIndex =
-        startIndex +
-        RECORDS_PER_PAGE;
-
-    const currentReports =
-        filteredReports.slice(
-            startIndex,
-            endIndex
-        );
-
-    // =================================================
-    // PAGE FIX
-    // =================================================
-
-    useEffect(() => {
-
-        if (
-            totalPages > 0 &&
-            currentPage > totalPages
-        ) {
-            setCurrentPage(totalPages);
-        }
-
-        if (
-            totalPages === 0 &&
-            currentPage !== 1
-        ) {
-            setCurrentPage(1);
-        }
-
-    }, [
-        totalPages,
-        currentPage,
-    ]);
-
-    // =================================================
-    // PAGE NUMBERS
-    // =================================================
-
-    const getPageNumbers = () => {
-
-        const pages = [];
-
-        if (totalPages <= 7) {
-
-            for (
-                let i = 1;
-                i <= totalPages;
-                i++
-            ) {
-                pages.push(i);
-            }
-
-            return pages;
-        }
-
-        pages.push(1);
-
-        if (currentPage > 4) {
-            pages.push("...");
-        }
-
-        const start =
-            Math.max(
-                2,
-                currentPage - 1
-            );
-
-        const end =
-            Math.min(
-                totalPages - 1,
-                currentPage + 1
-            );
-
-        for (
-            let i = start;
-            i <= end;
-            i++
-        ) {
-            pages.push(i);
-        }
-
-        if (
-            currentPage <
-            totalPages - 3
-        ) {
-            pages.push("...");
-        }
-
-        pages.push(totalPages);
-
-        return pages;
-    };
-
-    // =================================================
-    // GO TO PAGE
-    // =================================================
-
-    const goToPage = (page) => {
-
-        if (
-            page < 1 ||
-            page > totalPages
-        ) {
-            return;
-        }
-
-        setCurrentPage(page);
-
-        window.scrollTo({
-            top: 0,
-            behavior: "smooth",
-        });
-    };
-
-    // =================================================
-    // CLEAR FILTERS
-    // =================================================
-
-    const clearFilters = () => {
-
-        setSearch("");
-
-        setFilters({
-            name: "",
-            taluka: "",
-            district: "",
-            report_date: "",
-        });
-
-        setCurrentPage(1);
-    };
-
-    // =================================================
-    // FILTER ACTIVE
-    // =================================================
-
-    const isFilterActive =
-        search.trim() !== "" ||
-        filters.name.trim() !== "" ||
-        filters.taluka.trim() !== "" ||
-        filters.district.trim() !== "" ||
-        filters.report_date !== "";
-
-    // =================================================
-    // EXCEL / CSV DOWNLOAD
-    // =================================================
-
-    const downloadCSV = () => {
-
-        if (
-            filteredReports.length === 0
-        ) {
-
-            setError(
-                "Download करण्यासाठी कोणताही report उपलब्ध नाही."
-            );
-
-            return;
-        }
-
-        setError("");
-        setSuccess("");
-
-        const headers = [
-            "SR",
-            "Name",
-            "Designation",
-            "Taluka",
-            "District",
-            "Mobile Number",
-            "Report Date",
-            "Total Authorised Center Heads",
-            "Total Active Center Heads",
-            "Today's Visited Center Heads Name",
-            "Total Sanitary Pads Box Sold Today",
-            "Total Amount From Sanitary Pad Box Sales Today",
-            "UTR Number",
-            "Additional Remarks",
-            "Meeting Photo 1",
-            "Meeting Photo 2",
-            "Status",
-        ];
-
-        const rows =
-            filteredReports.map(
-                (report, index) => [
-
-                    index + 1,
-
-                    getValue(
-                        report,
-                        "name",
-                        "name",
-                        ""
-                    ),
-
-                    getValue(
-                        report,
-                        "designation",
-                        "designation",
-                        ""
-                    ),
-
-                    getValue(
-                        report,
-                        "taluka",
-                        "taluka",
-                        ""
-                    ),
-
-                    getValue(
-                        report,
-                        "district",
-                        "district",
-                        ""
-                    ),
-
-                    getValue(
-                        report,
-                        "mobileNumber",
-                        "mobile_number",
-                        ""
-                    ),
-
-                    formatDate(
-                        getValue(
-                            report,
-                            "report_date",
-                            "reportDate",
-                            ""
-                        )
-                    ),
-
-                    getValue(
-                        report,
-                        "total_authorised_center_heads",
-                        "totalAuthorisedCenterHeads",
-                        getValue(
-                            report,
-                            "total_center_heads",
-                            "totalCenterHeads",
-                            "0"
-                        )
-                    ),
-
-                    getValue(
-                        report,
-                        "total_active_center_heads",
-                        "totalActiveCenterHeads",
-                        "0"
-                    ),
-
-                    getValue(
-                        report,
-                        "visited_center_heads_names",
-                        "names_of_center_heads_visited_today",
-                        getValue(
-                            report,
-                            "visited_center_head_name",
-                            "visitedCenterHeadName",
-                            ""
-                        )
-                    ),
-
-                    getValue(
-                        report,
-                        "total_sanitary_pads_box_sold_today",
-                        "sanitary_pads_boxes_sold",
-                        getValue(
-                            report,
-                            "sanitary_pad_box_sales",
-                            "sanitaryPadBoxSales",
-                            "0"
-                        )
-                    ),
-
-                    getValue(
-                        report,
-                        "total_amount_from_sanitary_pad_box_sales_today",
-                        "sanitary_pads_sales_amount",
-                        getValue(
-                            report,
-                            "totalAmountFromSanitaryPadBoxSalesToday",
-                            "0"
-                        )
-                    ),
-
-                    getValue(
-                        report,
-                        "utr_number",
-                        "utrNumber",
-                        ""
-                    ),
-
-                    getValue(
-                        report,
-                        "additional_remarks",
-                        "additionalRemarks",
-                        getValue(
-                            report,
-                            "any_other_information",
-                            "anyOtherInformation",
-                            ""
-                        )
-                    ),
-
-                    getPhotoUrl(
-                        getValue(
-                            report,
-                            "meeting_photo_1",
-                            "meetingPhoto1",
-                            ""
-                        )
-                    ),
-
-                    getPhotoUrl(
-                        getValue(
-                            report,
-                            "meeting_photo_2",
-                            "meetingPhoto2",
-                            ""
-                        )
-                    ),
-
-                    getValue(
-                        report,
-                        "status",
-                        "status",
-                        "active"
-                    ),
-                ]
-            );
-
-        const escapeCSV = (value) => {
-
-            const stringValue =
-                String(value ?? "");
-
-            if (
-                stringValue.includes(",") ||
-                stringValue.includes('"') ||
-                stringValue.includes("\n") ||
-                stringValue.includes("\r")
-            ) {
-                return `"${stringValue.replace(
-                    /"/g,
-                    '""'
-                )}"`;
-            }
-
-            return stringValue;
-        };
-
-        const csvContent = [
-            headers
-                .map(escapeCSV)
-                .join(","),
-
-            ...rows.map((row) =>
-                row
-                    .map(escapeCSV)
-                    .join(",")
-            ),
-        ].join("\r\n");
-
-        const blob = new Blob(
-            [
-                "\uFEFF",
-                csvContent,
-            ],
-            {
-                type:
-                    "text/csv;charset=utf-8;",
-            }
-        );
-
-        const url =
-            URL.createObjectURL(blob);
-
-        const today =
-            new Date()
-                .toISOString()
-                .split("T")[0];
-
-        const link =
-            document.createElement("a");
-
-        link.href = url;
-
-        link.download =
-            `vibhag-reports-${today}.csv`;
-
-        document.body.appendChild(link);
-
-        link.click();
-
-        document.body.removeChild(link);
-
-        URL.revokeObjectURL(url);
-
-        setSuccess(
-            `${filteredReports.length} records downloaded successfully.`
-        );
-    };
-
-    // =================================================
-    // VIEW PHOTO
-    // =================================================
-
-    const viewImage = (photo, title) => {
-
-        const url = getPhotoUrl(photo);
-
-        if (!url) {
-            return;
-        }
-
-        setSelectedImage(url);
-        setSelectedImageTitle(title);
-        setShowImageModal(true);
-    };
-
-    // =================================================
-    // RETURN
-    // =================================================
-
-    return (
-
-        <div
-            className="container-fluid px-0 trainer-page"
-            style={{
-                maxWidth: "100%",
-                overflowX: "hidden",
-            }}
-        >
-
-            {/* =================================================
-                HEADER
-            ================================================= */}
-
-            <div
-                className="
-                    d-flex
-                    flex-column
-                    flex-md-row
-                    justify-content-between
-                    align-items-start
-                    align-items-md-center
-                    gap-3
-                    mb-4
-                "
-            >
-
-                <div>
-
-                    <h3
-                        className="fw-bold mb-1"
-                        style={{
-                            fontSize:
-                                "clamp(22px, 2vw, 30px)",
-                        }}
-                    >
-                        Vibhag Reports
-                    </h3>
-
-                    <p className="text-muted mb-0">
-                        Manage and view all Vibhag reports
-                    </p>
-
-                </div>
-
-                <div
-                    className="
-                        d-flex
-                        flex-wrap
-                        gap-2
-                    "
-                >
-
-                    <Button
-                        variant="success"
-                        onClick={downloadCSV}
-                        disabled={
-                            loading ||
-                            filteredReports.length === 0
-                        }
-                        className="px-3"
-                    >
-                        ⬇ Download Excel
-                    </Button>
-
-                    <Button
-                        variant="dark"
-                        onClick={handleRefresh}
-                        disabled={loading}
-                        className="px-3"
-                    >
-
-                        {loading ? (
-                            <>
-                                <Spinner
-                                    animation="border"
-                                    size="sm"
-                                    className="me-2"
-                                />
-
-                                Loading...
-                            </>
-                        ) : (
-                            <>
-                                ↻ Refresh
-                            </>
-                        )}
-
-                    </Button>
-
-                </div>
-
-            </div>
-
-            {/* =================================================
-                ERROR
-            ================================================= */}
-
-            {error && (
-
-                <Alert
-                    variant="danger"
-                    dismissible
-                    onClose={() =>
-                        setError("")
-                    }
-                >
-                    {error}
-                </Alert>
-
-            )}
-
-            {/* =================================================
-                SUCCESS
-            ================================================= */}
-
-            {success && (
-
-                <Alert
-                    variant="success"
-                    dismissible
-                    onClose={() =>
-                        setSuccess("")
-                    }
-                >
-                    {success}
-                </Alert>
-
-            )}
-
-            {/* =================================================
-                TOTAL REPORT CARD
-            ================================================= */}
-
-            <div
-                className="
-                    card
-                    border-0
-                    shadow-sm
-                    mb-4
-                "
-            >
-
-                <div
-                    className="
-                        card-body
-                        p-3
-                        p-md-4
-                    "
-                >
-
-                    <div
-                        className="
-                            d-flex
-                            align-items-center
-                            gap-3
-                        "
-                    >
-
-                        <div
-                            className="
-                                bg-dark
-                                text-white
-                                rounded
-                                d-flex
-                                align-items-center
-                                justify-content-center
-                                fw-bold
-                                flex-shrink-0
-                            "
-                            style={{
-                                width: "60px",
-                                height: "60px",
-                                fontSize: "20px",
-                            }}
-                        >
-                            {loading
-                                ? "..."
-                                : totalRecords}
-                        </div>
-
-                        <div>
-
-                            <small
-                                className="
-                                    text-muted
-                                    d-block
-                                "
-                            >
-                                {isFilterActive
-                                    ? "Filtered Vibhag Reports"
-                                    : "Total Vibhag Reports"}
-                            </small>
-
-                            <h4
-                                className="
-                                    fw-bold
-                                    mb-0
-                                "
-                            >
-                                {loading
-                                    ? "..."
-                                    : totalRecords}
-                            </h4>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-            {/* =================================================
-                FILTER CARD
-            ================================================= */}
-
-            <div
-                className="
-                    card
-                    border-0
-                    shadow-sm
-                    mb-4
-                "
-            >
-
-                <div className="card-body">
-
-                    <div
-                        className="
-                            row
-                            g-3
-                            align-items-end
-                        "
-                    >
-
-                        {/* NAME */}
-
-                        <div
-                            className="
-                                col-xl-3
-                                col-lg-3
-                                col-md-6
-                                col-12
-                            "
-                        >
-
-                            <label
-                                className="
-                                    form-label
-                                    fw-semibold
-                                    mb-1
-                                "
-                            >
-                                Name
-                            </label>
-
-                            <input
-                                type="text"
-                                name="name"
-                                className="
-                                    form-control
-                                    form-control-sm
-                                "
-                                placeholder="Search Name..."
-                                value={
-                                    filters.name
-                                }
-                                onChange={
-                                    handleFilterChange
-                                }
-                            />
-
-                        </div>
-
-                        {/* TALUKA */}
-
-                        <div
-                            className="
-                                col-xl-3
-                                col-lg-3
-                                col-md-6
-                                col-12
-                            "
-                        >
-
-                            <label
-                                className="
-                                    form-label
-                                    fw-semibold
-                                    mb-1
-                                "
-                            >
-                                Taluka
-                            </label>
-
-                            <input
-                                type="text"
-                                name="taluka"
-                                className="
-                                    form-control
-                                    form-control-sm
-                                "
-                                placeholder="Search Taluka..."
-                                value={
-                                    filters.taluka
-                                }
-                                onChange={
-                                    handleFilterChange
-                                }
-                            />
-
-                        </div>
-
-                        {/* DISTRICT */}
-
-                        <div
-                            className="
-                                col-xl-2
-                                col-lg-2
-                                col-md-6
-                                col-12
-                            "
-                        >
-
-                            <label
-                                className="
-                                    form-label
-                                    fw-semibold
-                                    mb-1
-                                "
-                            >
-                                District
-                            </label>
-
-                            <input
-                                type="text"
-                                name="district"
-                                className="
-                                    form-control
-                                    form-control-sm
-                                "
-                                placeholder="District..."
-                                value={
-                                    filters.district
-                                }
-                                onChange={
-                                    handleFilterChange
-                                }
-                            />
-
-                        </div>
-
-                        {/* DATE */}
-
-                        <div
-                            className="
-                                col-xl-2
-                                col-lg-2
-                                col-md-6
-                                col-12
-                            "
-                        >
-
-                            <label
-                                className="
-                                    form-label
-                                    fw-semibold
-                                    mb-1
-                                "
-                            >
-                                Report Date
-                            </label>
-
-                            <input
-                                type="date"
-                                name="report_date"
-                                className="
-                                    form-control
-                                    form-control-sm
-                                "
-                                value={
-                                    filters.report_date
-                                }
-                                onChange={
-                                    handleFilterChange
-                                }
-                            />
-
-                        </div>
-
-                        {/* CLEAR */}
-
-                        <div
-                            className="
-                                col-xl-2
-                                col-lg-2
-                                col-md-12
-                                col-12
-                            "
-                        >
-
-                            <button
-                                type="button"
-                                className="
-                                    btn
-                                    btn-sm
-                                    btn-dark
-                                    w-100
-                                "
-                                onClick={
-                                    clearFilters
-                                }
-                                disabled={
-                                    !isFilterActive
-                                }
-                            >
-                                Clear
-                            </button>
-
-                        </div>
-
-                    </div>
-
-                    {/* GLOBAL SEARCH */}
-
-                    <div className="row mt-3">
-
-                        <div className="col-12">
-
-                            <label
-                                className="
-                                    form-label
-                                    fw-semibold
-                                    mb-1
-                                "
-                            >
-                                Search
-                            </label>
-
-                          
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-            {/* =================================================
-                TABLE
-            ================================================= */}
-
-            <div
-                className="
-                    card
-                    border-0
-                    shadow-sm
-                "
-            >
-
-                {/* TABLE HEADER */}
-
-                <div
-                    className="
-                        card-header
-                        bg-white
-                        border-bottom
-                        py-3
-                        px-3
-                        px-md-4
-                    "
-                >
-
-                    <div
-                        className="
-                            d-flex
-                            flex-column
-                            flex-md-row
-                            justify-content-between
-                            align-items-start
-                            align-items-md-center
-                            gap-2
-                        "
-                    >
-
-                        <div>
-
-                            <h6
-                                className="
-                                    fw-bold
-                                    mb-1
-                                "
-                            >
-                                Vibhag Report List
-                            </h6>
-
-                            <small className="text-muted">
-
-                                Showing{" "}
-
-                                <strong>
-                                    {totalRecords === 0
-                                        ? 0
-                                        : startIndex + 1}
-                                </strong>
-
-                                {" - "}
-
-                                <strong>
-                                    {Math.min(
-                                        endIndex,
-                                        totalRecords
-                                    )}
-                                </strong>
-
-                                {" "}of{" "}
-
-                                <strong>
-                                    {totalRecords}
-                                </strong>
-
-                                {" "}records
-
-                            </small>
-
-                        </div>
-
-                        <span
-                            className="
-                                badge
-                                bg-dark
-                            "
-                        >
-                            {totalRecords} Records
-                        </span>
-
-                    </div>
-
-                </div>
-
-                {/* TABLE */}
-
-                <div className="card-body p-0">
-
-                    <div className="trainer-table-scroll">
-
-                        <table
-                            className="
-                                table
-                                table-hover
-                                table-bordered
-                                align-middle
-                                mb-0
-                                trainer-report-table
-                            "
-                        >
-
-                            {/* =================================================
-                                TABLE HEAD
-                            ================================================= */}
-
-                            <thead
-                                className="table-light"
-                                style={{
-                                    position:
-                                        "sticky",
-                                    top: 0,
-                                    zIndex: 5,
-                                }}
-                            >
-
-                                <tr>
-
-                                    <th
-                                        className="text-center"
-                                        style={{
-                                            width: "60px",
-                                        }}
-                                    >
-                                        SR
-                                    </th>
-
-                                    <th
-                                        style={{
-                                            minWidth: "180px",
-                                        }}
-                                    >
-                                        Name (नाव)
-                                    </th>
-
-                                    <th
-                                        style={{
-                                            minWidth: "150px",
-                                        }}
-                                    >
-                                        Designation (पद)
-                                    </th>
-
-                                    <th
-                                        style={{
-                                            minWidth: "130px",
-                                        }}
-                                    >
-                                        Taluka (तालुका)
-                                    </th>
-
-                                    <th
-                                        style={{
-                                            minWidth: "130px",
-                                        }}
-                                    >
-                                        District (जिल्हा)
-                                    </th>
-
-                                    <th
-                                        style={{
-                                            minWidth: "150px",
-                                        }}
-                                    >
-                                        Mobile Number (मोबाईल क्रमांक)
-                                    </th>
-
-                                    <th
-                                        style={{
-                                            minWidth: "130px",
-                                        }}
-                                    >
-                                        Report Date (अहवालाची तारीख)
-                                    </th>
-
-                                    <th
-                                        className="text-center"
-                                        style={{
-                                            minWidth: "180px",
-                                        }}
-                                    >
-                                        Total Authorised Center Head (अधिकृत केंद्र प्रमुखांची एकूण संख्या)
-                                    </th>
-
-                                    <th
-                                        className="text-center"
-                                        style={{
-                                            minWidth: "170px",
-                                        }}
-                                    >
-                                        Total Active Center Head (सक्रिय केंद्र प्रमुखांची एकूण संख्या)
-                                    </th>
-
-                                    <th
-                                        style={{
-                                            minWidth: "250px",
-                                        }}
-                                    >
-                                        Today's Visited Center Heads Name (आज भेट दिलेल्या केंद्र प्रमुखांची नावे)
-                                    </th>
-
-                                    <th
-                                        className="text-center"
-                                        style={{
-                                            minWidth: "180px",
-                                        }}
-                                    >
-                                        Total Sanitary Pads Box Sold Today (आज विकलेले एकूण सॅनिटरी पॅड बॉक्स)
-                                    </th>
-
-                                    <th
-                                        className="text-end"
-                                        style={{
-                                            minWidth: "200px",
-                                        }}
-                                    >
-                                        Total Amount From Sanitary Pad Box Sales Today (आजच्या सॅनिटरी पॅड बॉक्स विक्रीतून एकूण रक्कम)
-                                    </th>
-
-                                    <th
-                                        style={{
-                                            minWidth: "160px",
-                                        }}
-                                    >
-                                        UTR Number (युटीआर क्रमांक)
-                                    </th>
-
-                                    <th
-                                        style={{
-                                            minWidth: "280px",
-                                        }}
-                                    >
-                                        Additional Remarks (इतर माहिती / शेरा)
-                                    </th>
-
-                                    <th
-                                        className="text-center"
-                                        style={{
-                                            minWidth: "140px",
-                                        }}
-                                    >
-                                        Meeting Photo 1 (बैठक फोटो १)
-                                    </th>
-
-                                    <th
-                                        className="text-center"
-                                        style={{
-                                            minWidth: "140px",
-                                        }}
-                                    >
-                                        Meeting Photo 2 (बैठक फोटो २)
-                                    </th>
-
-                                    <th
-                                        className="text-center"
-                                        style={{
-                                            minWidth: "110px",
-                                        }}
-                                    >
-                                        Status (स्थिती)
-                                    </th>
-
-                                    <th
-                                        className="text-center"
-                                        style={{
-                                            minWidth: "120px",
-                                        }}
-                                    >
-                                        Action (कृती)
-                                    </th>
-
-                                </tr>
-
-                            </thead>
-
-                            {/* =================================================
-                                TABLE BODY
-                            ================================================= */}
-
-                            <tbody>
-
-                                {/* LOADING */}
-
-                                {loading && (
-
-                                    <tr>
-
-                                        <td
-                                            colSpan="18"
-                                            className="
-                                                text-center
-                                                py-5
-                                            "
-                                        >
-
-                                            <Spinner
-                                                animation="border"
-                                                size="sm"
-                                                className="me-2"
-                                            />
-
-                                            Loading Vibhag reports...
-
-                                        </td>
-
-                                    </tr>
-
-                                )}
-
-                                {/* NO DATA */}
-
-                                {!loading &&
-                                    filteredReports.length ===
-                                        0 && (
-
-                                        <tr>
-
-                                            <td
-                                                colSpan="18"
-                                                className="
-                                                    text-center
-                                                    py-5
-                                                    text-muted
-                                                "
-                                            >
-
-                                                <div
-                                                    style={{
-                                                        fontSize:
-                                                            "35px",
-                                                    }}
-                                                >
-                                                    🔍
-                                                </div>
-
-                                                <div
-                                                    className="
-                                                        fw-semibold
-                                                        mt-2
-                                                    "
-                                                >
-                                                    No Vibhag
-                                                    Reports Found
-                                                </div>
-
-                                                <small>
-                                                    {reports.length > 0
-                                                        ? "No reports match the selected filters."
-                                                        : "No reports returned by API."}
-                                                </small>
-
-                                                {isFilterActive && (
-
-                                                    <div>
-
-                                                        <Button
-                                                            size="sm"
-                                                            variant="dark"
-                                                            className="mt-3"
-                                                            onClick={
-                                                                clearFilters
-                                                            }
-                                                        >
-                                                            Clear Filters
-                                                        </Button>
-
-                                                    </div>
-
-                                                )}
-
-                                            </td>
-
-                                        </tr>
-
-                                    )}
-
-                                {/* =================================================
-                                    REPORT ROWS
-                                ================================================= */}
-
-                                {!loading &&
-                                    currentReports.length >
-                                        0 &&
-                                    currentReports.map(
-                                        (
-                                            report,
-                                            index
-                                        ) => {
-
-                                            const photo1 =
-                                                getValue(
-                                                    report,
-                                                    "meeting_photo_1",
-                                                    "meetingPhoto1",
-                                                    ""
-                                                );
-
-                                            const photo2 =
-                                                getValue(
-                                                    report,
-                                                    "meeting_photo_2",
-                                                    "meetingPhoto2",
-                                                    ""
-                                                );
-
-                                            return (
-
-                                                <tr
-                                                    key={
-                                                        report.id ||
-                                                        `${index}-${report.name}`
-                                                    }
-                                                >
-
-                                                    {/* SR */}
-
-                                                    <td
-                                                        className="
-                                                            text-center
-                                                        "
-                                                    >
-                                                        {startIndex +
-                                                            index +
-                                                            1}
-                                                    </td>
-
-                                                    {/* NAME */}
-
-                                                    <td
-                                                        className="
-                                                            fw-semibold
-                                                        "
-                                                    >
-                                                        {getValue(
-                                                            report,
-                                                            "name",
-                                                            "name"
-                                                        )}
-                                                    </td>
-
-                                                    {/* DESIGNATION */}
-
-                                                    <td>
-                                                        {getValue(
-                                                            report,
-                                                            "designation",
-                                                            "designation"
-                                                        )}
-                                                    </td>
-
-                                                    {/* TALUKA */}
-
-                                                    <td>
-                                                        {getValue(
-                                                            report,
-                                                            "taluka",
-                                                            "taluka"
-                                                        )}
-                                                    </td>
-
-                                                    {/* DISTRICT */}
-
-                                                    <td>
-                                                        {getValue(
-                                                            report,
-                                                            "district",
-                                                            "district"
-                                                        )}
-                                                    </td>
-
-                                                    {/* MOBILE */}
-
-                                                    <td>
-                                                        {getValue(
-                                                            report,
-                                                            "mobile_number",
-                                                            "mobileNumber"
-                                                        )}
-                                                    </td>
-
-                                                    {/* DATE */}
-
-                                                    <td>
-                                                        {formatDate(
-                                                            getValue(
-                                                                report,
-                                                                "reportDate",
-                                                                "report_date",
-                                                                ""
-                                                            )
-                                                        )}
-                                                    </td>
-
-                                                    {/* AUTHORISED */}
-
-                                                    <td
-                                                        className="
-                                                            text-center
-                                                            fw-semibold
-                                                        "
-                                                    >
-                                                        {getValue(
-                                                            report,
-                                                            "totalAuthorisedCenterHeads",
-                                                            "total_authorised_center_heads",
-                                                            getValue(
-                                                                report,
-                                                                "totalCenterHeads",
-                                                                "total_center_heads",
-                                                                "0"
-                                                            )
-                                                        )}
-                                                    </td>
-
-                                                    {/* ACTIVE */}
-
-                                                    <td
-                                                        className="
-                                                            text-center
-                                                            fw-semibold
-                                                        "
-                                                    >
-                                                        {getValue(
-                                                            report,
-                                                            "totalActiveCenterHeads",
-                                                            "total_active_center_heads",
-                                                            "0"
-                                                        )}
-                                                    </td>
-
-                                                    {/* TODAY VISITED CENTER HEADS NAME */}
-
-                                                    <td className="report-long-text">
-                                                        {getValue(
-                                                            report,
-                                                            "visited_center_heads_names",
-                                                            "names_of_center_heads_visited_today",
-                                                            getValue(
-                                                                report,
-                                                                "visitedCenterHeadName",
-                                                                "visited_center_head_name",
-                                                                "-"
-                                                            )
-                                                        )}
-                                                    </td>
-
-                                                    {/* SANITARY BOX SOLD */}
-
-                                                    <td
-                                                        className="
-                                                            text-center
-                                                            fw-semibold
-                                                        "
-                                                    >
-                                                        {getValue(
-                                                            report,
-                                                            "totalSanitaryPadsBoxSoldToday",
-                                                            "total_sanitary_pads_box_sold_today",
-                                                            getValue(
-                                                                report,
-                                                                "sanitary_pads_boxes_sold",
-                                                                "sanitary_pad_box_sales",
-                                                                "0"
-                                                            )
-                                                        )}
-                                                    </td>
-
-                                                    {/* SANITARY SALES AMOUNT */}
-
-                                                    <td className="text-end fw-semibold">
-                                                        ₹ {getValue(
-                                                            report,
-                                                            "totalAmountFromSanitaryPadBoxSalesToday",
-                                                            "total_amount_from_sanitary_pad_box_sales_today",
-                                                            getValue(
-                                                                report,
-                                                                "sanitary_pads_sales_amount",
-                                                                "0.00"
-                                                            )
-                                                        )}
-                                                    </td>
-
-                                                    {/* UTR */}
-
-                                                    <td>
-                                                        {getValue(
-                                                            report,
-                                                            "utrNumber",
-                                                            "utr_number"
-                                                        )}
-                                                    </td>
-
-                                                    {/* REMARKS */}
-
-                                                    <td className="report-long-text">
-                                                        {getValue(
-                                                            report,
-                                                            "additionalRemarks",
-                                                            "additional_remarks",
-                                                            getValue(
-                                                                report,
-                                                                "anyOtherInformation",
-                                                                "any_other_information",
-                                                                "-"
-                                                            )
-                                                        )}
-                                                    </td>
-
-                                                    {/* PHOTO 1 */}
-
-                                                    <td className="text-center">
-
-                                                        {getPhotoUrl(photo1) ? (
-
-                                                            <div>
-
-                                                                <img
-                                                                    src={getPhotoUrl(photo1)}
-                                                                    alt="Meeting Photo 1"
-                                                                    className="trainer-report-photo"
-                                                                    onClick={() =>
-                                                                        viewImage(
-                                                                            photo1,
-                                                                            "Meeting Photo 1"
-                                                                        )
-                                                                    }
-                                                                    onError={(e) => {
-                                                                        e.currentTarget.style.display =
-                                                                            "none";
-                                                                    }}
-                                                                />
-
-                                                                <div className="mt-1">
-
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="link"
-                                                                        className="p-0"
-                                                                        onClick={() =>
-                                                                            viewImage(
-                                                                                photo1,
-                                                                                "Meeting Photo 1"
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        View
-                                                                    </Button>
-
-                                                                </div>
-
-                                                            </div>
-
-                                                        ) : (
-                                                            <span className="text-muted">
-                                                                -
-                                                            </span>
-                                                        )}
-
-                                                    </td>
-
-                                                    {/* PHOTO 2 */}
-
-                                                    <td className="text-center">
-
-                                                        {getPhotoUrl(photo2) ? (
-
-                                                            <div>
-
-                                                                <img
-                                                                    src={getPhotoUrl(photo2)}
-                                                                    alt="Meeting Photo 2"
-                                                                    className="trainer-report-photo"
-                                                                    onClick={() =>
-                                                                        viewImage(
-                                                                            photo2,
-                                                                            "Meeting Photo 2"
-                                                                        )
-                                                                    }
-                                                                    onError={(e) => {
-                                                                        e.currentTarget.style.display =
-                                                                            "none";
-                                                                    }}
-                                                                />
-
-                                                                <div className="mt-1">
-
-                                                                    <Button
-                                                                        size="sm"
-                                                                        variant="link"
-                                                                        className="p-0"
-                                                                        onClick={() =>
-                                                                            viewImage(
-                                                                                photo2,
-                                                                                "Meeting Photo 2"
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        View
-                                                                    </Button>
-
-                                                                </div>
-
-                                                            </div>
-
-                                                        ) : (
-                                                            <span className="text-muted">
-                                                                -
-                                                            </span>
-                                                        )}
-
-                                                    </td>
-
-                                                    {/* STATUS */}
-
-                                                    <td
-                                                        className="
-                                                            text-center
-                                                        "
-                                                    >
-
-                                                        <span
-                                                            className="
-                                                                badge
-                                                                bg-success
-                                                            "
-                                                        >
-                                                            {getValue(
-                                                                report,
-                                                                "status",
-                                                                "status",
-                                                                "active"
-                                                            )}
-                                                        </span>
-
-                                                    </td>
-
-                                                    {/* ACTION */}
-
-                                                    <td
-                                                        className="
-                                                            text-center
-                                                        "
-                                                    >
-
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline-dark"
-                                                            onClick={() =>
-                                                                viewImage(
-                                                                    photo1,
-                                                                    "Meeting Photo 1"
-                                                                )
-                                                            }
-                                                            disabled={!getPhotoUrl(photo1)}
-                                                        >
-                                                            View
-                                                        </Button>
-
-                                                    </td>
-
-                                                </tr>
-
-                                            );
-                                        }
-                                    )}
-
-                            </tbody>
-
-                        </table>
-
-                    </div>
-
-                </div>
-
-                {/* =================================================
-                    PAGINATION
-                ================================================= */}
-
-                {!loading &&
-                    totalPages > 1 && (
-
-                        <div
-                            className="
-                                card-footer
-                                bg-white
-                                border-top
-                                px-3
-                                py-3
-                            "
-                        >
-
-                            <div
-                                className="
-                                    d-flex
-                                    flex-column
-                                    flex-md-row
-                                    justify-content-between
-                                    align-items-center
-                                    gap-3
-                                "
-                            >
-
-                                <div>
-
-                                    <small
-                                        className="
-                                            text-muted
-                                        "
-                                    >
-
-                                        Page{" "}
-
-                                        <strong>
-                                            {currentPage}
-                                        </strong>
-
-                                        {" "}of{" "}
-
-                                        <strong>
-                                            {totalPages}
-                                        </strong>
-
-                                    </small>
-
-                                </div>
-
-                                <nav>
-
-                                    <ul
-                                        className="
-                                            pagination
-                                            pagination-sm
-                                            mb-0
-                                        "
-                                    >
-
-                                        {/* PREVIOUS */}
-
-                                        <li
-                                            className={`
-                                                page-item
-                                                ${
-                                                    currentPage === 1
-                                                        ? "disabled"
-                                                        : ""
-                                                }
-                                            `}
-                                        >
-
-                                            <button
-                                                type="button"
-                                                className="
-                                                    page-link
-                                                "
-                                                onClick={() =>
-                                                    goToPage(
-                                                        currentPage -
-                                                            1
-                                                    )
-                                                }
-                                                disabled={
-                                                    currentPage ===
-                                                    1
-                                                }
-                                            >
-                                                Previous
-                                            </button>
-
-                                        </li>
-
-                                        {/* NUMBERS */}
-
-                                        {getPageNumbers().map(
-                                            (
-                                                page,
-                                                index
-                                            ) => {
-
-                                                if (
-                                                    page ===
-                                                    "..."
-                                                ) {
-
-                                                    return (
-
-                                                        <li
-                                                            key={
-                                                                `dots-${index}`
-                                                            }
-                                                            className="
-                                                                page-item
-                                                                disabled
-                                                            "
-                                                        >
-
-                                                            <span
-                                                                className="
-                                                                    page-link
-                                                                "
-                                                            >
-                                                                ...
-                                                            </span>
-
-                                                        </li>
-
-                                                    );
-                                                }
-
-                                                return (
-
-                                                    <li
-                                                        key={
-                                                            page
-                                                        }
-                                                        className={`
-                                                            page-item
-                                                            ${
-                                                                currentPage ===
-                                                                page
-                                                                    ? "active"
-                                                                    : ""
-                                                            }
-                                                        `}
-                                                    >
-
-                                                        <button
-                                                            type="button"
-                                                            className="
-                                                                page-link
-                                                            "
-                                                            onClick={() =>
-                                                                goToPage(
-                                                                    page
-                                                                )
-                                                            }
-                                                        >
-                                                            {page}
-                                                        </button>
-
-                                                    </li>
-
-                                                );
-
-                                            }
-                                        )}
-
-                                        {/* NEXT */}
-
-                                        <li
-                                            className={`
-                                                page-item
-                                                ${
-                                                    currentPage ===
-                                                    totalPages
-                                                        ? "disabled"
-                                                        : ""
-                                                }
-                                            `}
-                                        >
-
-                                            <button
-                                                type="button"
-                                                className="
-                                                    page-link
-                                                "
-                                                onClick={() =>
-                                                    goToPage(
-                                                        currentPage +
-                                                            1
-                                                    )
-                                                }
-                                                disabled={
-                                                    currentPage ===
-                                                    totalPages
-                                                }
-                                            >
-                                                Next
-                                            </button>
-
-                                        </li>
-
-                                    </ul>
-
-                                </nav>
-
-                            </div>
-
-                        </div>
-
-                    )}
-
-            </div>
-
-            {/* =================================================
-                CSS
-            ================================================= */}
-
-                {/* =================================================
-                    IMAGE MODAL
-                ================================================= */}
-
-                <Modal
-                    show={showImageModal}
-                    onHide={() =>
-                        setShowImageModal(false)
-                    }
-                    centered
-                    size="lg"
-                >
-                    <Modal.Header closeButton>
-                        <Modal.Title>
-                            {selectedImageTitle}
-                        </Modal.Title>
-                    </Modal.Header>
-
-                    <Modal.Body className="text-center">
-                        {selectedImage && (
-                            <img
-                                src={selectedImage}
-                                alt={selectedImageTitle}
-                                style={{
-                                    maxWidth: "100%",
-                                    maxHeight: "70vh",
-                                    objectFit: "contain",
-                                }}
-                            />
-                        )}
-                    </Modal.Body>
-                </Modal>
-
-            <style>{`
-                .trainer-page {
-                    width: 100%;
-                    min-width: 0;
-                }
-
-                .trainer-table-scroll {
-                    width: 100%;
-                    max-width: 100%;
-                    max-height: calc(100vh - 390px);
-                    overflow-x: auto !important;
-                    overflow-y: auto !important;
-                    -webkit-overflow-scrolling: touch;
-                    position: relative;
-                    scrollbar-width: auto;
-                }
-
-                .trainer-report-table {
-                    width: max-content !important;
-                    min-width: 2600px !important;
-                    margin: 0 !important;
-                    border-collapse: collapse;
-                    table-layout: auto;
-                }
-
-                .trainer-report-table th,
-                .trainer-report-table td {
-                    white-space: nowrap !important;
-                    font-size: 12px !important;
-                    padding: 9px 10px !important;
-                    vertical-align: middle !important;
-                    border: 1px solid #dee2e6 !important;
-                    line-height: 1.4;
-                }
-
-                .trainer-report-table thead th {
-                    position: sticky !important;
-                    top: 0 !important;
-                    z-index: 20 !important;
-                    background: #f8f9fa !important;
-                    color: #212529 !important;
-                    font-weight: 700 !important;
-                    line-height: 1.35;
-                    box-shadow: inset 0 -1px 0 #dee2e6;
-                }
-
-                .trainer-report-table tbody td {
-                    background: #fff;
-                }
-
-                .trainer-report-table tbody tr:hover td {
-                    background: #f8f9fa !important;
-                }
-
-                .trainer-report-table th:nth-child(1),
-                .trainer-report-table td:nth-child(1) {
-                    min-width: 60px;
-                    width: 60px;
-                    text-align: center;
-                }
-
-                .trainer-report-table th:nth-child(2),
-                .trainer-report-table td:nth-child(2) {
-                    min-width: 180px;
-                }
-
-                .trainer-report-table th:nth-child(3),
-                .trainer-report-table td:nth-child(3) {
-                    min-width: 150px;
-                }
-
-                .trainer-report-table th:nth-child(4),
-                .trainer-report-table td:nth-child(4),
-                .trainer-report-table th:nth-child(5),
-                .trainer-report-table td:nth-child(5) {
-                    min-width: 130px;
-                }
-
-                .trainer-report-table th:nth-child(6),
-                .trainer-report-table td:nth-child(6) {
-                    min-width: 150px;
-                }
-
-                .trainer-report-table th:nth-child(7),
-                .trainer-report-table td:nth-child(7) {
-                    min-width: 130px;
-                }
-
-                .trainer-report-table th:nth-child(8),
-                .trainer-report-table td:nth-child(8) {
-                    min-width: 180px;
-                    text-align: center;
-                }
-
-                .trainer-report-table th:nth-child(9),
-                .trainer-report-table td:nth-child(9) {
-                    min-width: 170px;
-                    text-align: center;
-                }
-
-                .trainer-report-table th:nth-child(10),
-                .trainer-report-table td:nth-child(10) {
-                    min-width: 250px;
-                }
-
-                .trainer-report-table th:nth-child(11),
-                .trainer-report-table td:nth-child(11) {
-                    min-width: 180px;
-                    text-align: center;
-                }
-
-                .trainer-report-table th:nth-child(12),
-                .trainer-report-table td:nth-child(12) {
-                    min-width: 200px;
-                    text-align: right;
-                }
-
-                .trainer-report-table th:nth-child(13),
-                .trainer-report-table td:nth-child(13) {
-                    min-width: 160px;
-                }
-
-                .trainer-report-table th:nth-child(14),
-                .trainer-report-table td:nth-child(14) {
-                    min-width: 280px;
-                }
-
-                .trainer-report-table th:nth-child(15),
-                .trainer-report-table td:nth-child(15),
-                .trainer-report-table th:nth-child(16),
-                .trainer-report-table td:nth-child(16) {
-                    min-width: 140px;
-                    width: 140px;
-                    text-align: center;
-                }
-
-                .trainer-report-table th:nth-child(17),
-                .trainer-report-table td:nth-child(17) {
-                    min-width: 110px;
-                    text-align: center;
-                }
-
-                .trainer-report-table th:nth-child(18),
-                .trainer-report-table td:nth-child(18) {
-                    min-width: 120px;
-                    text-align: center;
-                }
-
-                .report-long-text {
-                    white-space: normal !important;
-                    min-width: 320px;
-                    max-width: 550px;
-                    line-height: 1.5 !important;
-                    word-break: break-word;
-                }
-
-                .trainer-report-photo {
-                    width: 90px;
-                    height: 70px;
-                    object-fit: cover;
-                    display: block;
-                    margin: 0 auto;
-                    border-radius: 6px;
-                    border: 1px solid #dee2e6;
-                    background: #f8f9fa;
-                    cursor: pointer;
-                    transition:
-                        transform 0.2s ease,
-                        box-shadow 0.2s ease;
-                }
-
-                .trainer-report-photo:hover {
-                    transform: scale(1.04);
-                    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
-                }
-
-                .trainer-table-scroll::-webkit-scrollbar {
-                    width: 8px;
-                    height: 10px;
-                }
-
-                .trainer-table-scroll::-webkit-scrollbar-track {
-                    background: #f1f3f5;
-                    border-radius: 10px;
-                }
-
-                .trainer-table-scroll::-webkit-scrollbar-thumb {
-                    background: #adb5bd;
-                    border-radius: 10px;
-                    border: 2px solid #f1f3f5;
-                }
-
-                .trainer-table-scroll::-webkit-scrollbar-thumb:hover {
-                    background: #6c757d;
-                }
-
-                .pagination {
-                    gap: 3px;
-                }
-
-                .pagination .page-link {
-                    min-width: 34px;
-                    height: 34px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 12px;
-                    color: #212529;
-                    border-radius: 5px !important;
-                }
-
-                .pagination .page-item.active .page-link {
-                    background-color: #212529;
-                    border-color: #212529;
-                    color: #fff;
-                }
-
-                .pagination .page-link:hover {
-                    background-color: #e9ecef;
-                    color: #212529;
-                }
-
-                .pagination .page-item.active .page-link:hover {
-                    background-color: #212529;
-                    border-color: #212529;
-                    color: #fff;
-                }
-
-                .modal-dialog {
-                    max-width: 1200px;
-                }
-
-                .modal-content {
-                    border: 0;
-                    border-radius: 12px;
-                    overflow: hidden;
-                }
-
-                .modal-body {
-                    background: #fff;
-                }
-
-                @media (max-width: 992px) {
-                    .trainer-table-scroll {
-                        max-height: calc(100vh - 410px);
-                    }
-
-                    .trainer-report-table th,
-                    .trainer-report-table td {
-                        font-size: 11.5px !important;
-                        padding: 8px 9px !important;
-                    }
-                }
-
-                @media (max-width: 768px) {
-                    .trainer-table-scroll {
-                        max-height: calc(100vh - 430px);
-                    }
-
-                    .trainer-report-table {
-                        min-width: 3300px !important;
-                    }
-
-                    .trainer-report-table th,
-                    .trainer-report-table td {
-                        font-size: 11px !important;
-                        padding: 8px !important;
-                    }
-
-                    .trainer-report-photo {
-                        width: 80px;
-                        height: 65px;
-                    }
-
-                    .modal-dialog {
-                        margin: 8px;
-                    }
-
-                    .modal-body {
-                        padding: 16px;
-                    }
-                }
-
-                @media (max-width: 576px) {
-                    .trainer-table-scroll {
-                        max-height: calc(100vh - 460px);
-                    }
-
-                    .trainer-report-table {
-                        min-width: 3300px !important;
-                    }
-
-                    .trainer-report-table th,
-                    .trainer-report-table td {
-                        font-size: 10.5px !important;
-                        padding: 7px 8px !important;
-                    }
-
-                    .trainer-report-table thead th {
-                        font-size: 10.5px !important;
-                    }
-                }
-            `}</style>
-
-        </div>
+    setEditPhoto1(null);
+    setEditPhoto2(null);
+    setPreviewPhoto1(
+      getPhotoUrl(report.meeting_photo_1 || report.meetingPhoto1)
     );
+    setPreviewPhoto2(
+      getPhotoUrl(report.meeting_photo_2 || report.meetingPhoto2)
+    );
+    setShowEditModal(true);
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileChange = (e, field) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (field === "meeting_photo_1") {
+      setEditPhoto1(file);
+      setPreviewPhoto1(URL.createObjectURL(file));
+    } else if (field === "meeting_photo_2") {
+      setEditPhoto2(file);
+      setPreviewPhoto2(URL.createObjectURL(file));
+    }
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    try {
+      setSaving(true);
+      setError("");
+
+      const fd = new FormData();
+      Object.keys(editForm).forEach((key) => {
+        if (editForm[key] !== null && editForm[key] !== undefined) {
+          fd.append(key, editForm[key]);
+        }
+      });
+
+      if (editPhoto1) fd.append("meeting_photo_1", editPhoto1);
+      if (editPhoto2) fd.append("meeting_photo_2", editPhoto2);
+
+      const res = await fetch(`${API_BASE_URL}/${editingId}`, {
+        method: "PUT",
+        body: fd,
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.success === false) {
+        throw new Error(data.message || "Failed to update Vibhag report");
+      }
+
+      setSuccess("Vibhag report updated successfully.");
+      setShowEditModal(false);
+      await fetchReports();
+    } catch (err) {
+      console.error("EDIT VIBHAG REPORT ERROR:", err);
+      setError(err.message || "Failed to update Vibhag report.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteReport = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this Vibhag report?")) return;
+
+    try {
+      setDeletingId(id);
+      setError("");
+      setSuccess("");
+
+      const res = await fetch(`${API_BASE_URL}/${id}`, { method: "DELETE" });
+      const data = await res.json();
+
+      if (!res.ok || data.success === false) {
+        throw new Error(data.message || "Failed to delete report");
+      }
+
+      setSuccess("Vibhag report deleted successfully.");
+      await fetchReports();
+    } catch (err) {
+      console.error("DELETE VIBHAG REPORT ERROR:", err);
+      setError(err.message || "Failed to delete Vibhag report.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const handleDownloadExcel = () => {
+    if (filteredReports.length === 0) {
+      setError("Download करण्यासाठी कोणताही report उपलब्ध नाही.");
+      return;
+    }
+
+    setError("");
+    setSuccess("");
+
+    const headers = [
+      "SR",
+      "Name (नाव)",
+      "Designation ( पद)",
+      "Taluka (तालुका)",
+      "District (जिल्हा)",
+      "Mobile Number (मोबाईल क्रमांक)",
+      "Report Date (अहवालाची तारीख)",
+      "Total authourised center Head -10(अधिकृत केंद्र प्रमुखांची एकूण संख्या -10)",
+      "Total Active center Head (सक्रिय केंद्र प्रमुखांची एकूण संख्या)",
+      "Today Visited Centers (आज भेट दिलेली केंद्रे)",
+      "Visited Center Head Name (केंद्र प्रमुख यांची नावे )",
+      "New Members Added Today(आज नव्याने जोडलेले सदस्य )",
+      "Sanitary Pad box Sales (पॅड बॉक्स विक्री)",
+      "Today’s health ATM Machine details (एटीएम मशीन बुकिंग)",
+      "Birth (Baby Girls)  (जन्मलेल्या मुलींची संख्या)",
+      "Death Count  (मृत्यू संख्या)",
+      "Accident Count (अपघात संख्या)",
+      "UTR Number",
+      "Any Other Information(इतर माहिती)",
+      "Meeting Photo 1 (बैठकीचे फोटो १)",
+      "Meeting Photo 2 (बैठकीचे फोटो २ )",
+      "Status",
+    ];
+
+    const rows = filteredReports.map((report, index) => [
+      index + 1,
+      getValue(report, "name", "name", ""),
+      getValue(report, "designation", "designation", ""),
+      getValue(report, "taluka", "taluka", ""),
+      getValue(report, "district", "district", ""),
+      getValue(report, "mobileNumber", "mobile_number", ""),
+      formatDate(getReportDateValue(report)),
+      getValue(report, "totalAuthorisedCenterHeads", "total_authorised_center_heads", "0"),
+      getValue(report, "totalActiveCenterHeads", "total_active_center_heads", "0"),
+      getValue(report, "todayVisitedCenters", "today_visited_centers", "0"),
+      getValue(report, "visitedCenterHeadName", "visited_center_head_name", ""),
+      getValue(report, "newMembersAddedToday", "new_members_added_today", "0"),
+      getValue(report, "sanitaryPadBoxSales", "sanitary_pad_box_sales", "0"),
+      getValue(report, "healthAtmMachineDetails", "health_atm_machine_details", ""),
+      getValue(report, "birthBabyGirls", "birth_baby_girls", "0"),
+      getValue(report, "deathCount", "death_count", "0"),
+      getValue(report, "accidentCount", "accident_count", "0"),
+      getValue(report, "utrNumber", "utr_number", ""),
+      getValue(report, "anyOtherInformation", "any_other_information", ""),
+      getPhotoUrl(report.meeting_photo_1 || report.meetingPhoto1) || "",
+      getPhotoUrl(report.meeting_photo_2 || report.meetingPhoto2) || "",
+      getValue(report, "status", "status", "active"),
+    ]);
+
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Vibhag Reports");
+    XLSX.writeFile(
+      workbook,
+      `Vibhag_Reports_${new Date().toISOString().split("T")[0]}.xlsx`
+    );
+
+    setSuccess("Vibhag reports exported to Excel successfully.");
+  };
+
+  return (
+    <div className="vibhag-report-page">
+      {/* HEADER */}
+      <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+        <div>
+          <h4 className="fw-bold mb-1">
+            SSWF Vibhag Pramukh Daily Report (एसएसडब्ल्यूएफ विभाग प्रमुख दैनंदिन अहवाल)
+          </h4>
+          <p className="text-muted mb-0">View, search, and manage all Vibhag reports</p>
+        </div>
+
+        <div className="d-flex gap-2">
+          <Button variant="outline-dark" onClick={handleRefresh} disabled={loading}>
+            Refresh
+          </Button>
+
+          <Button
+            variant="success"
+            onClick={handleDownloadExcel}
+            disabled={loading || totalRecords === 0}
+          >
+            Download Excel
+          </Button>
+        </div>
+      </div>
+
+      {error && (
+        <Alert variant="danger" dismissible onClose={() => setError("")} className="mb-4">
+          {error}
+        </Alert>
+      )}
+
+      {success && (
+        <Alert variant="success" dismissible onClose={() => setSuccess("")} className="mb-4">
+          {success}
+        </Alert>
+      )}
+
+      {/* TOTAL COUNTER */}
+      <div className="card border-0 shadow-sm mb-4">
+        <div className="card-body p-3 p-md-4">
+          <div className="d-flex align-items-center gap-3">
+            <div
+              className="bg-dark text-white rounded d-flex align-items-center justify-content-center fw-bold"
+              style={{ width: "56px", height: "56px", fontSize: "20px" }}
+            >
+              {loading ? "..." : totalRecords}
+            </div>
+
+            <div>
+              <small className="text-muted">Total Filtered Vibhag Reports</small>
+              <h4 className="fw-bold mb-0">
+                {loading ? "Loading..." : `${totalRecords} Records`}
+              </h4>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* FILTER CARD */}
+      <div className="card border-0 shadow-sm mb-4">
+        <div className="card-body p-3 p-md-4">
+          <div className="row g-3">
+            <div className="col-12 col-md-6 col-xl-3">
+              <label className="form-label fw-semibold">Name (नाव)</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Search Name..."
+                value={nameFilter}
+                onChange={(e) => setNameFilter(e.target.value)}
+              />
+            </div>
+
+            <div className="col-12 col-md-6 col-xl-3">
+              <label className="form-label fw-semibold">Taluka (तालुका)</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Search Taluka..."
+                value={talukaFilter}
+                onChange={(e) => setTalukaFilter(e.target.value)}
+              />
+            </div>
+
+            <div className="col-12 col-md-6 col-xl-3">
+              <label className="form-label fw-semibold">District (जिल्हा)</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Search District..."
+                value={districtFilter}
+                onChange={(e) => setDistrictFilter(e.target.value)}
+              />
+            </div>
+
+            <div className="col-12 col-md-6 col-xl-3">
+              <label className="form-label fw-semibold">Report Date (तारीख)</label>
+              <input
+                type="date"
+                className="form-control"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+              />
+            </div>
+
+            {isFilterActive && (
+              <div className="col-12 text-end">
+                <Button variant="outline-secondary" size="sm" onClick={clearFilters}>
+                  Clear Filters
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* TABLE */}
+      <div className="card border-0 shadow-sm">
+        <div className="card-body p-0">
+          <div className="table-responsive">
+            <table
+              className="table table-hover table-bordered align-middle mb-0"
+              style={{ minWidth: "3200px" }}
+            >
+              <thead className="table-light">
+                <tr>
+                  <th className="text-center" style={{ width: "60px" }}>
+                    SR
+                  </th>
+                  <th style={{ minWidth: "180px" }}>Name (नाव)</th>
+                  <th style={{ minWidth: "150px" }}>Designation ( पद)</th>
+                  <th style={{ minWidth: "140px" }}>Taluka (तालुका)</th>
+                  <th style={{ minWidth: "140px" }}>District (जिल्हा)</th>
+                  <th style={{ minWidth: "150px" }}>Mobile Number (मोबाईल क्रमांक)</th>
+                  <th style={{ minWidth: "140px" }}>Report Date (अहवालाची तारीख)</th>
+                  <th className="text-center" style={{ minWidth: "240px" }}>
+                    Total authourised center Head -10(अधिकृत केंद्र प्रमुखांची एकूण संख्या -10)
+                  </th>
+                  <th className="text-center" style={{ minWidth: "180px" }}>
+                    Total Active center Head (सक्रिय केंद्र प्रमुखांची एकूण संख्या)
+                  </th>
+                  <th className="text-center" style={{ minWidth: "160px" }}>
+                    Today Visited Centers (आज भेट दिलेली केंद्रे)
+                  </th>
+                  <th style={{ minWidth: "200px" }}>
+                    Visited Center Head Name (केंद्र प्रमुख यांची नावे )
+                  </th>
+                  <th className="text-center" style={{ minWidth: "180px" }}>
+                    New Members Added Today(आज नव्याने जोडलेले सदस्य )
+                  </th>
+                  <th className="text-center" style={{ minWidth: "160px" }}>
+                    Sanitary Pad box Sales (पॅड बॉक्स विक्री)
+                  </th>
+                  <th style={{ minWidth: "260px" }}>
+                    Today’s health ATM Machine details (एटीएम मशीन बुकिंग)
+                  </th>
+                  <th className="text-center" style={{ minWidth: "160px" }}>
+                    Birth (Baby Girls)  (जन्मलेल्या मुलींची संख्या)
+                  </th>
+                  <th className="text-center" style={{ minWidth: "140px" }}>
+                    Death Count  (मृत्यू संख्या)
+                  </th>
+                  <th className="text-center" style={{ minWidth: "140px" }}>
+                    Accident Count (अपघात संख्या)
+                  </th>
+                  <th style={{ minWidth: "160px" }}>UTR Number</th>
+                  <th style={{ minWidth: "260px" }}>
+                    Any Other Information(इतर माहिती)
+                  </th>
+                  <th className="text-center" style={{ minWidth: "140px" }}>
+                    Meeting Photo 1 (बैठकीचे फोटो १)
+                  </th>
+                  <th className="text-center" style={{ minWidth: "140px" }}>
+                    Meeting Photo 2 (बैठकीचे फोटो २ )
+                  </th>
+                  <th className="text-center" style={{ minWidth: "100px" }}>
+                    Status
+                  </th>
+                  <th className="text-center" style={{ minWidth: "200px" }}>
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan="23" className="text-center py-5">
+                      <Spinner animation="border" size="sm" className="me-2" />
+                      Loading Vibhag reports...
+                    </td>
+                  </tr>
+                ) : totalRecords === 0 ? (
+                  <tr>
+                    <td colSpan="23" className="text-center py-5 text-muted">
+                      No Vibhag reports found.
+                    </td>
+                  </tr>
+                ) : (
+                  currentReports.map((report, index) => {
+                    const photo1 = getPhotoUrl(report.meeting_photo_1 || report.meetingPhoto1);
+                    const photo2 = getPhotoUrl(report.meeting_photo_2 || report.meetingPhoto2);
+
+                    return (
+                      <tr key={report.id || index}>
+                        <td className="text-center">{startIndex + index + 1}</td>
+                        <td className="fw-semibold">{getValue(report, "name", "name")}</td>
+                        <td>{getValue(report, "designation", "designation")}</td>
+                        <td>{getValue(report, "taluka", "taluka")}</td>
+                        <td>{getValue(report, "district", "district")}</td>
+                        <td>{getValue(report, "mobileNumber", "mobile_number")}</td>
+                        <td>{formatDate(getReportDateValue(report))}</td>
+                        <td className="text-center">
+                          {getValue(report, "totalAuthorisedCenterHeads", "total_authorised_center_heads", "0")}
+                        </td>
+                        <td className="text-center">
+                          {getValue(report, "totalActiveCenterHeads", "total_active_center_heads", "0")}
+                        </td>
+                        <td className="text-center">
+                          {getValue(report, "todayVisitedCenters", "today_visited_centers", "0")}
+                        </td>
+                        <td>{getValue(report, "visitedCenterHeadName", "visited_center_head_name")}</td>
+                        <td className="text-center">
+                          {getValue(report, "newMembersAddedToday", "new_members_added_today", "0")}
+                        </td>
+                        <td className="text-center">
+                          {getValue(report, "sanitaryPadBoxSales", "sanitary_pad_box_sales", "0")}
+                        </td>
+                        <td>{getValue(report, "healthAtmMachineDetails", "health_atm_machine_details")}</td>
+                        <td className="text-center">
+                          {getValue(report, "birthBabyGirls", "birth_baby_girls", "0")}
+                        </td>
+                        <td className="text-center">
+                          {getValue(report, "deathCount", "death_count", "0")}
+                        </td>
+                        <td className="text-center">
+                          {getValue(report, "accidentCount", "accident_count", "0")}
+                        </td>
+                        <td>{getValue(report, "utrNumber", "utr_number")}</td>
+                        <td>{getValue(report, "anyOtherInformation", "any_other_information")}</td>
+                        <td className="text-center">
+                          {photo1 ? (
+                            <a href={photo1} target="_blank" rel="noreferrer">
+                              <img
+                                src={photo1}
+                                alt="Photo 1"
+                                style={{
+                                  width: "50px",
+                                  height: "50px",
+                                  objectFit: "cover",
+                                  borderRadius: "6px",
+                                }}
+                              />
+                            </a>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+                        <td className="text-center">
+                          {photo2 ? (
+                            <a href={photo2} target="_blank" rel="noreferrer">
+                              <img
+                                src={photo2}
+                                alt="Photo 2"
+                                style={{
+                                  width: "50px",
+                                  height: "50px",
+                                  objectFit: "cover",
+                                  borderRadius: "6px",
+                                }}
+                              />
+                            </a>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+                        <td className="text-center">
+                          <span className="badge bg-success-subtle text-success">
+                            {getValue(report, "status", "status", "active")}
+                          </span>
+                        </td>
+                        <td className="text-center">
+                          <div className="d-flex justify-content-center align-items-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="dark"
+                              onClick={() => handleViewReport(report)}
+                              title="View Details"
+                            >
+                              View
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              onClick={() => handleEditReport(report)}
+                              title="Edit Report"
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline-danger"
+                              disabled={deletingId === report.id}
+                              onClick={() => handleDeleteReport(report.id)}
+                              title="Delete Report"
+                            >
+                              {deletingId === report.id ? (
+                                <Spinner animation="border" size="sm" />
+                              ) : (
+                                "Delete"
+                              )}
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* PAGINATION */}
+        {totalPages > 1 && (
+          <div className="card-footer bg-white py-3 d-flex justify-content-between align-items-center">
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </Button>
+            <span className="text-muted small">
+              Page {currentPage} of {totalPages}
+            </span>
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            >
+              Next
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* DETAIL MODAL WITH EXACT 20 MARATHI LABELS */}
+      <Modal show={showDetailModal} onHide={() => setShowDetailModal(false)} size="lg" centered>
+        <Modal.Header closeButton>
+          <Modal.Title className="fw-bold">
+            Vibhag Report Details (विभाग अहवाल तपशील)
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ maxHeight: "75vh", overflowY: "auto" }}>
+          {selectedReport && (
+            <div className="row g-3">
+              <div className="col-md-6">
+                <strong>Name (नाव):</strong>
+                <div>{getValue(selectedReport, "name", "name")}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>Designation ( पद):</strong>
+                <div>{getValue(selectedReport, "designation", "designation")}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>Taluka (तालुका):</strong>
+                <div>{getValue(selectedReport, "taluka", "taluka")}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>District (जिल्हा):</strong>
+                <div>{getValue(selectedReport, "district", "district")}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>Mobile Number (मोबाईल क्रमांक):</strong>
+                <div>{getValue(selectedReport, "mobileNumber", "mobile_number")}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>Report Date (अहवालाची तारीख):</strong>
+                <div>{formatDate(getReportDateValue(selectedReport))}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>Total authourised center Head -10(अधिकृत केंद्र प्रमुखांची एकूण संख्या -10):</strong>
+                <div>
+                  {getValue(
+                    selectedReport,
+                    "totalAuthorisedCenterHeads",
+                    "total_authorised_center_heads",
+                    "0"
+                  )}
+                </div>
+              </div>
+              <div className="col-md-6">
+                <strong>Total Active center Head (सक्रिय केंद्र प्रमुखांची एकूण संख्या):</strong>
+                <div>
+                  {getValue(
+                    selectedReport,
+                    "totalActiveCenterHeads",
+                    "total_active_center_heads",
+                    "0"
+                  )}
+                </div>
+              </div>
+              <div className="col-md-6">
+                <strong>Today Visited Centers (आज भेट दिलेली केंद्रे):</strong>
+                <div>
+                  {getValue(
+                    selectedReport,
+                    "todayVisitedCenters",
+                    "today_visited_centers",
+                    "0"
+                  )}
+                </div>
+              </div>
+              <div className="col-md-6">
+                <strong>Visited Center Head Name (केंद्र प्रमुख यांची नावे ):</strong>
+                <div>{getValue(selectedReport, "visitedCenterHeadName", "visited_center_head_name")}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>New Members Added Today(आज नव्याने जोडलेले सदस्य ):</strong>
+                <div>
+                  {getValue(
+                    selectedReport,
+                    "newMembersAddedToday",
+                    "new_members_added_today",
+                    "0"
+                  )}
+                </div>
+              </div>
+              <div className="col-md-6">
+                <strong>Sanitary Pad box Sales (पॅड बॉक्स विक्री):</strong>
+                <div>
+                  {getValue(
+                    selectedReport,
+                    "sanitaryPadBoxSales",
+                    "sanitary_pad_box_sales",
+                    "0"
+                  )}
+                </div>
+              </div>
+              <div className="col-12">
+                <strong>Today’s health ATM Machine details (एटीएम मशीन बुकिंग):</strong>
+                <div>{getValue(selectedReport, "healthAtmMachineDetails", "health_atm_machine_details")}</div>
+              </div>
+              <div className="col-md-4">
+                <strong>Birth (Baby Girls)  (जन्मलेल्या मुलींची संख्या):</strong>
+                <div>{getValue(selectedReport, "birthBabyGirls", "birth_baby_girls", "0")}</div>
+              </div>
+              <div className="col-md-4">
+                <strong>Death Count  (मृत्यू संख्या):</strong>
+                <div>{getValue(selectedReport, "deathCount", "death_count", "0")}</div>
+              </div>
+              <div className="col-md-4">
+                <strong>Accident Count (अपघात संख्या):</strong>
+                <div>{getValue(selectedReport, "accidentCount", "accident_count", "0")}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>UTR Number:</strong>
+                <div>{getValue(selectedReport, "utrNumber", "utr_number")}</div>
+              </div>
+              <div className="col-12">
+                <strong>Any Other Information(इतर माहिती):</strong>
+                <div>{getValue(selectedReport, "anyOtherInformation", "any_other_information")}</div>
+              </div>
+              <div className="col-md-6">
+                <strong>Meeting Photo 1 (बैठकीचे फोटो १):</strong>
+                <div className="mt-2">
+                  {getPhotoUrl(selectedReport.meeting_photo_1 || selectedReport.meetingPhoto1) ? (
+                    <a
+                      href={getPhotoUrl(selectedReport.meeting_photo_1 || selectedReport.meetingPhoto1)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <img
+                        src={getPhotoUrl(selectedReport.meeting_photo_1 || selectedReport.meetingPhoto1)}
+                        alt="Meeting Photo 1"
+                        style={{
+                          maxWidth: "100%",
+                          maxHeight: "200px",
+                          objectFit: "cover",
+                          borderRadius: "8px",
+                        }}
+                      />
+                    </a>
+                  ) : (
+                    "No photo uploaded"
+                  )}
+                </div>
+              </div>
+              <div className="col-md-6">
+                <strong>Meeting Photo 2 (बैठकीचे फोटो २ ):</strong>
+                <div className="mt-2">
+                  {getPhotoUrl(selectedReport.meeting_photo_2 || selectedReport.meetingPhoto2) ? (
+                    <a
+                      href={getPhotoUrl(selectedReport.meeting_photo_2 || selectedReport.meetingPhoto2)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <img
+                        src={getPhotoUrl(selectedReport.meeting_photo_2 || selectedReport.meetingPhoto2)}
+                        alt="Meeting Photo 2"
+                        style={{
+                          maxWidth: "100%",
+                          maxHeight: "200px",
+                          objectFit: "cover",
+                          borderRadius: "8px",
+                        }}
+                      />
+                    </a>
+                  ) : (
+                    "No photo uploaded"
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDetailModal(false)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* EDIT MODAL WITH EXACT 20 FIELDS */}
+      <Modal
+        show={showEditModal}
+        onHide={() => {
+          if (!saving) setShowEditModal(false);
+        }}
+        size="lg"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title className="fw-bold">
+            Edit Vibhag Report (विभाग अहवाल संपादित करा)
+          </Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleSaveEdit}>
+          <Modal.Body style={{ maxHeight: "75vh", overflowY: "auto" }}>
+            {error && <Alert variant="danger" className="mb-3">{error}</Alert>}
+            <Row className="g-3">
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">Name (नाव)</Form.Label>
+                  <Form.Control
+                    name="name"
+                    value={editForm.name}
+                    onChange={handleEditChange}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">Designation ( पद)</Form.Label>
+                  <Form.Control
+                    name="designation"
+                    value={editForm.designation}
+                    onChange={handleEditChange}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">Taluka (तालुका)</Form.Label>
+                  <Form.Control
+                    name="taluka"
+                    value={editForm.taluka}
+                    onChange={handleEditChange}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">District (जिल्हा)</Form.Label>
+                  <Form.Control
+                    name="district"
+                    value={editForm.district}
+                    onChange={handleEditChange}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">Mobile Number (मोबाईल क्रमांक)</Form.Label>
+                  <Form.Control
+                    name="mobile_number"
+                    value={editForm.mobile_number}
+                    onChange={handleEditChange}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">Report Date (अहवालाची तारीख)</Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="report_date"
+                    value={editForm.report_date}
+                    onChange={handleEditChange}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    Total authourised center Head -10(अधिकृत केंद्र प्रमुखांची एकूण संख्या -10)
+                  </Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="total_authorised_center_heads"
+                    value={editForm.total_authorised_center_heads}
+                    onChange={handleEditChange}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    Total Active center Head (सक्रिय केंद्र प्रमुखांची एकूण संख्या)
+                  </Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="total_active_center_heads"
+                    value={editForm.total_active_center_heads}
+                    onChange={handleEditChange}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    Today Visited Centers (आज भेट दिलेली केंद्रे)
+                  </Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="today_visited_centers"
+                    value={editForm.today_visited_centers}
+                    onChange={handleEditChange}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    Visited Center Head Name (केंद्र प्रमुख यांची नावे )
+                  </Form.Label>
+                  <Form.Control
+                    name="visited_center_head_name"
+                    value={editForm.visited_center_head_name}
+                    onChange={handleEditChange}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    New Members Added Today(आज नव्याने जोडलेले सदस्य )
+                  </Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="new_members_added_today"
+                    value={editForm.new_members_added_today}
+                    onChange={handleEditChange}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    Sanitary Pad box Sales (पॅड बॉक्स विक्री)
+                  </Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="sanitary_pad_box_sales"
+                    value={editForm.sanitary_pad_box_sales}
+                    onChange={handleEditChange}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={12}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    Today’s health ATM Machine details (एटीएम मशीन बुकिंग)
+                  </Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={2}
+                    name="health_atm_machine_details"
+                    value={editForm.health_atm_machine_details}
+                    onChange={handleEditChange}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    Birth (Baby Girls)  (जन्मलेल्या मुलींची संख्या)
+                  </Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="birth_baby_girls"
+                    value={editForm.birth_baby_girls}
+                    onChange={handleEditChange}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    Death Count  (मृत्यू संख्या)
+                  </Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="death_count"
+                    value={editForm.death_count}
+                    onChange={handleEditChange}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    Accident Count (अपघात संख्या)
+                  </Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="accident_count"
+                    value={editForm.accident_count}
+                    onChange={handleEditChange}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">UTR Number</Form.Label>
+                  <Form.Control
+                    name="utr_number"
+                    value={editForm.utr_number}
+                    onChange={handleEditChange}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={12}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    Any Other Information(इतर माहिती)
+                  </Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={2}
+                    name="any_other_information"
+                    value={editForm.any_other_information}
+                    onChange={handleEditChange}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    Meeting Photo 1 (बैठकीचे फोटो १)
+                  </Form.Label>
+                  {previewPhoto1 && (
+                    <div className="mb-2">
+                      <img
+                        src={previewPhoto1}
+                        alt="Photo 1"
+                        style={{
+                          maxWidth: "100%",
+                          maxHeight: "120px",
+                          objectFit: "cover",
+                          borderRadius: "6px",
+                        }}
+                      />
+                    </div>
+                  )}
+                  <Form.Control
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileChange(e, "meeting_photo_1")}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    Meeting Photo 2 (बैठकीचे फोटो २ )
+                  </Form.Label>
+                  {previewPhoto2 && (
+                    <div className="mb-2">
+                      <img
+                        src={previewPhoto2}
+                        alt="Photo 2"
+                        style={{
+                          maxWidth: "100%",
+                          maxHeight: "120px",
+                          objectFit: "cover",
+                          borderRadius: "6px",
+                        }}
+                      />
+                    </div>
+                  )}
+                  <Form.Control
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleFileChange(e, "meeting_photo_2")}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button
+              variant="secondary"
+              onClick={() => setShowEditModal(false)}
+              disabled={saving}
+            >
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" disabled={saving}>
+              {saving ? (
+                <>
+                  <Spinner animation="border" size="sm" className="me-2" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+    </div>
+  );
 };
 
 export default VibhagReport;

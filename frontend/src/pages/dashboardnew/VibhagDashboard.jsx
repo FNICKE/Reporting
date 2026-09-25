@@ -131,15 +131,21 @@ const EMPTY_FORM = {
     // TODAY VISITED
     // =================================================
 
+    todayVisitedCenters: "",
+
     namesOfCenterHeadsVisitedToday: "",
 
-    // =================================================
-    // SANITARY PAD DETAILS
-    // =================================================
+    newMembersAddedToday: "",
 
-    totalSanitaryPadsBoxSoldToday: "",
+    sanitaryPadBoxSales: "",
 
-    totalAmountFromSanitaryPadBoxSalesToday: "",
+    healthAtmMachineDetails: "",
+
+    birthBabyGirls: "",
+
+    deathCount: "",
+
+    accidentCount: "",
 
     // =================================================
     // OTHER
@@ -459,19 +465,18 @@ const isReportForCurrentVibhag = (report, user) => {
     if (!report || !user) return false;
 
     const reportVibhagId = String(
+        report?.user_id ??
         report?.vibhag_user_id ??
         report?.vibhagUserId ??
+        report?.created_by_id ??
         report?.vibhag_id ??
         report?.vibhagId ??
-        report?.user_id ??
-        report?.userId ??
         ""
     ).trim();
 
     const currentVibhagId = String(
-        user?.vibhagUserId ??
-        user?.vibhagId ??
         user?.userId ??
+        user?.vibhagUserId ??
         user?.id ??
         ""
     ).trim();
@@ -480,41 +485,36 @@ const isReportForCurrentVibhag = (report, user) => {
         return reportVibhagId === currentVibhagId;
     }
 
-    const reportName = normalize(
-        report?.vibhag_name ??
-        report?.vibhagName ??
-        report?.created_by ??
-        report?.createdBy ??
-        ""
-    );
+    // Only if report has no user_id (legacy row)
+    if (!reportVibhagId) {
+        const reportMobile = normalize(report?.mobile_number ?? report?.mobileNumber);
+        const currentMobile = normalize(user?.mobileNumber || user?.contactNumber || localStorage.getItem("logged_in_mobile"));
+        if (reportMobile && currentMobile && reportMobile === currentMobile) {
+            return true;
+        }
 
-    const currentName = normalize(
-        user?.vibhag ??
-        user?.name ??
-        ""
-    );
-
-    if (reportName && currentName) {
-        return (
-            reportName === currentName ||
-            reportName.includes(currentName) ||
-            currentName.includes(reportName)
+        const reportName = normalize(
+            report?.name ??
+            report?.created_by ??
+            report?.createdBy ??
+            report?.vibhag_name ??
+            report?.vibhagName ??
+            ""
         );
+
+        const currentName = normalize(
+            user?.name ??
+            user?.head ??
+            user?.vibhag ??
+            ""
+        );
+
+        if (reportName && currentName && reportName === currentName) {
+            return true;
+        }
     }
 
-    const reportTaluka = normalize(report?.taluka);
-    const reportDistrict = normalize(report?.district);
-    const currentTaluka = normalize(user?.taluka);
-    const currentDistrict = normalize(user?.district);
-
-    return Boolean(
-        reportTaluka &&
-        reportDistrict &&
-        currentTaluka &&
-        currentDistrict &&
-        reportTaluka === currentTaluka &&
-        reportDistrict === currentDistrict
-    );
+    return false;
 };
 
 
@@ -720,17 +720,33 @@ const VibhagDashboard = () => {
 
             setErrorMessage("");
 
+            // Build role-based query params so backend filters by logged-in user
+            const loggedRole   = (localStorage.getItem("logged_in_role") || "").toLowerCase();
+            const loggedUserId = localStorage.getItem("logged_in_user_id") || localStorage.getItem("user_id") || "";
+            const loggedMobile = localStorage.getItem("logged_in_mobile")  || "";
+            const loggedName   = localStorage.getItem("logged_in_name")    || "";
+            const isAdmin      = loggedRole === "admin" || loggedRole === "superadmin";
+
+            let queryPath = "";
+            if (!isAdmin && loggedUserId) {
+                const params = new URLSearchParams();
+                params.set("role", loggedRole);
+                params.set("user_id", loggedUserId);
+                if (loggedMobile) params.set("mobile_number", loggedMobile);
+                if (loggedName) params.set("user_name", loggedName);
+                queryPath = `?${params.toString()}`;
+            }
 
             const {
                 response,
                 data,
                 url,
             } =
-                await requestVibhagReport();
+                await requestVibhagReport(queryPath);
 
 
             console.log(
-                "GET TALUKA REPORTS:",
+                "GET VIBHAG REPORTS:",
                 url
             );
 
@@ -742,7 +758,7 @@ const VibhagDashboard = () => {
 
                 throw new Error(
                     data.message ||
-                    "Failed to load Taluka reports."
+                    "Failed to load Vibhag reports."
                 );
 
             }
@@ -765,48 +781,29 @@ const VibhagDashboard = () => {
 
             setCurrentUser(activeUser);
 
-            const myVibhagReports =
-                list.filter(
-                    (report) =>
-                        isReportForCurrentVibhag(
-                            report,
-                            activeUser
-                        )
-                );
-
-            console.log(
-                "ALL VIBHAG REPORTS COUNT:",
-                list.length
+            const matched = list.filter(
+                (report) =>
+                    isReportForCurrentVibhag(
+                        report,
+                        activeUser
+                    )
             );
 
-            console.log(
-                "CURRENT VIBHAG USER:",
-                activeUser
-            );
-
-            console.log(
-                "MY VIBHAG REPORTS COUNT:",
-                myVibhagReports.length
-            );
-
-            console.log(
-                "MY VIBHAG REPORTS:",
-                myVibhagReports
-            );
+            const myVibhagReports = isAdmin ? list : matched;
 
             setReports(myVibhagReports);
 
         } catch (error) {
 
             console.error(
-                "LOAD TALUKA REPORTS:",
+                "LOAD VIBHAG REPORTS:",
                 error
             );
 
 
             setErrorMessage(
                 error.message ||
-                "Failed to load reports."
+                "Failed to load Vibhag reports."
             );
 
         } finally {
@@ -881,7 +878,7 @@ const VibhagDashboard = () => {
 
 
     // =================================================
-    // TALUKA REPORTS
+    // VIBHAG REPORTS
     // =================================================
 
     const talukaReports =
@@ -1009,7 +1006,7 @@ const VibhagDashboard = () => {
                     const matchesDate =
                         !dateKeyword ||
                         reportDate ===
-                            dateKeyword;
+                        dateKeyword;
 
 
                     return (
@@ -1557,14 +1554,22 @@ const VibhagDashboard = () => {
 
 
                 // =================================================
-                // VISITED CENTER HEADS
+                // VISITED CENTER DETAILS
                 // =================================================
+
+                todayVisitedCenters:
+
+                    report.today_visited_centers ??
+
+                    report.todayVisitedCenters ??
+
+                    "",
 
                 namesOfCenterHeadsVisitedToday:
 
-                    report.visited_center_heads_names ||
+                    report.visited_center_head_name ||
 
-                    report.names_of_center_heads_visited_today ||
+                    report.visited_center_heads_names ||
 
                     report.namesOfCenterHeadsVisitedToday ||
 
@@ -1572,34 +1577,56 @@ const VibhagDashboard = () => {
 
 
                 // =================================================
-                // SANITARY PADS
+                // VIBHAG-SPECIFIC DETAILS
                 // =================================================
 
-                totalSanitaryPadsBoxSoldToday:
+                newMembersAddedToday:
 
-                    report.sanitary_pads_boxes_sold ??
+                    report.new_members_added_today ??
 
-                    report.total_sanitary_pads_box_sold_today ??
-
-                    report.totalSanitaryPadsBoxSoldToday ??
+                    report.newMembersAddedToday ??
 
                     "",
 
+                sanitaryPadBoxSales:
 
-                // =================================================
-                // SALES AMOUNT
-                // =================================================
+                    report.sanitary_pad_box_sales ??
 
-                totalAmountFromSanitaryPadBoxSalesToday:
-
-                    report.sanitary_pads_sales_amount ??
-
-                    report.total_amount_from_sanitary_pad_box_sales_today ??
-
-                    report.totalAmountFromSanitaryPadBoxSalesToday ??
+                    report.sanitaryPadBoxSales ??
 
                     "",
 
+                healthAtmMachineDetails:
+
+                    report.health_atm_machine_details ||
+
+                    report.healthAtmMachineDetails ||
+
+                    "",
+
+                birthBabyGirls:
+
+                    report.birth_baby_girls ??
+
+                    report.birthBabyGirls ??
+
+                    "",
+
+                deathCount:
+
+                    report.death_count ??
+
+                    report.deathCount ??
+
+                    "",
+
+                accidentCount:
+
+                    report.accident_count ??
+
+                    report.accidentCount ??
+
+                    "",
 
                 // =================================================
                 // UTR
@@ -1877,11 +1904,19 @@ const VibhagDashboard = () => {
 
 
                 // =================================================
-                // TODAY'S VISITED CENTER HEADS
+                // TODAY'S VISITED CENTERS
                 // =================================================
 
                 body.append(
-                    "visited_center_heads_names",
+                    "today_visited_centers",
+                    String(
+                        formData.todayVisitedCenters ||
+                        "0"
+                    )
+                );
+
+                body.append(
+                    "visited_center_head_name",
                     String(
                         formData.namesOfCenterHeadsVisitedToday ||
                         ""
@@ -1890,26 +1925,53 @@ const VibhagDashboard = () => {
 
 
                 // =================================================
-                // SANITARY PADS BOX SOLD
+                // VIBHAG-SPECIFIC DETAILS
                 // =================================================
 
                 body.append(
-                    "sanitary_pads_boxes_sold",
+                    "new_members_added_today",
                     String(
-                        formData.totalSanitaryPadsBoxSoldToday ||
+                        formData.newMembersAddedToday ||
                         "0"
                     )
                 );
 
-
-                // =================================================
-                // SANITARY PAD SALES AMOUNT
-                // =================================================
+                body.append(
+                    "sanitary_pad_box_sales",
+                    String(
+                        formData.sanitaryPadBoxSales ||
+                        "0"
+                    )
+                );
 
                 body.append(
-                    "sanitary_pads_sales_amount",
+                    "health_atm_machine_details",
                     String(
-                        formData.totalAmountFromSanitaryPadBoxSalesToday ||
+                        formData.healthAtmMachineDetails ||
+                        ""
+                    ).trim()
+                );
+
+                body.append(
+                    "birth_baby_girls",
+                    String(
+                        formData.birthBabyGirls ||
+                        "0"
+                    )
+                );
+
+                body.append(
+                    "death_count",
+                    String(
+                        formData.deathCount ||
+                        "0"
+                    )
+                );
+
+                body.append(
+                    "accident_count",
+                    String(
+                        formData.accidentCount ||
                         "0"
                     )
                 );
@@ -2084,7 +2146,7 @@ const VibhagDashboard = () => {
 
 
                 console.log(
-                    "SAVE TALUKA REPORT:",
+                    "SAVE VIBHAG REPORT:",
                     url
                 );
 
@@ -2096,7 +2158,7 @@ const VibhagDashboard = () => {
 
                     throw new Error(
                         data.message ||
-                        "Failed to save Taluka report."
+                        "Failed to save Vibhag report."
                     );
 
                 }
@@ -2156,9 +2218,9 @@ const VibhagDashboard = () => {
 
                     wasEditing
 
-                        ? "Taluka report updated successfully."
+                        ? "Vibhag report updated successfully."
 
-                        : "Taluka report added successfully."
+                        : "Vibhag report added successfully."
 
                 );
 
@@ -2166,7 +2228,7 @@ const VibhagDashboard = () => {
             } catch (error) {
 
                 console.error(
-                    "SAVE TALUKA REPORT:",
+                    "SAVE VIBHAG REPORT:",
                     error
                 );
 
@@ -2203,7 +2265,7 @@ const VibhagDashboard = () => {
 
             const confirmed =
                 window.confirm(
-                    "Are you sure you want to delete this Taluka report?"
+                    "Are you sure you want to delete this Vibhag report?"
                 );
 
 
@@ -2240,7 +2302,7 @@ const VibhagDashboard = () => {
 
 
                 console.log(
-                    "DELETE TALUKA REPORT:",
+                    "DELETE VIBHAG REPORT:",
                     url
                 );
 
@@ -2269,14 +2331,14 @@ const VibhagDashboard = () => {
 
 
                 setSuccessMessage(
-                    "Taluka report deleted successfully."
+                    "Vibhag report deleted successfully."
                 );
 
 
             } catch (error) {
 
                 console.error(
-                    "DELETE TALUKA REPORT:",
+                    "DELETE VIBHAG REPORT:",
                     error
                 );
 
@@ -2305,7 +2367,7 @@ const VibhagDashboard = () => {
 
         const stringValue =
             value === null ||
-            value === undefined
+                value === undefined
                 ? ""
                 : String(value);
 
@@ -2404,132 +2466,132 @@ const VibhagDashboard = () => {
                     index
                 ) => [
 
-                    index + 1,
+                        index + 1,
 
-                    report?.name ||
-                    "",
+                        report?.name ||
+                        "",
 
-                    report?.designation ||
-                    "",
+                        report?.designation ||
+                        "",
 
-                    report?.taluka ||
-                    "",
+                        report?.taluka ||
+                        "",
 
-                    report?.district ||
-                    "",
+                        report?.district ||
+                        "",
 
-                    report?.mobile_number ||
+                        report?.mobile_number ||
 
-                    report?.mobileNumber ||
+                        report?.mobileNumber ||
 
-                    "",
+                        "",
 
-                    formatDate(
+                        formatDate(
 
-                        report?.report_date ||
+                            report?.report_date ||
 
-                        report?.reportDate
+                            report?.reportDate
 
-                    ),
-
-
-                    // AUTHORISED
-
-                    report?.total_authorised_center_heads ??
-
-                    report?.total_authorised_center_heads_50 ??
-
-                    report?.total_center_heads ??
-
-                    report?.totalCenterHeads ??
-
-                    0,
+                        ),
 
 
-                    // ACTIVE
+                        // AUTHORISED
 
-                    report?.total_active_center_heads ??
+                        report?.total_authorised_center_heads ??
 
-                    report?.totalActiveCenterHeads ??
+                        report?.total_authorised_center_heads_50 ??
 
-                    0,
+                        report?.total_center_heads ??
 
+                        report?.totalCenterHeads ??
 
-                    // VISITED
-
-                    report?.visited_center_heads_names ||
-
-                    report?.names_of_center_heads_visited_today ||
-
-                    report?.namesOfCenterHeadsVisitedToday ||
-
-                    "",
+                        0,
 
 
-                    // BOXES
+                        // ACTIVE
 
-                    report?.sanitary_pads_boxes_sold ??
+                        report?.total_active_center_heads ??
 
-                    report?.total_sanitary_pads_box_sold_today ??
+                        report?.totalActiveCenterHeads ??
 
-                    report?.totalSanitaryPadsBoxSoldToday ??
-
-                    0,
+                        0,
 
 
-                    // AMOUNT
+                        // VISITED
 
-                    report?.sanitary_pads_sales_amount ??
+                        report?.visited_center_heads_names ||
 
-                    report?.total_amount_from_sanitary_pad_box_sales_today ??
+                        report?.names_of_center_heads_visited_today ||
 
-                    report?.totalAmountFromSanitaryPadBoxSalesToday ??
+                        report?.namesOfCenterHeadsVisitedToday ||
 
-                    0,
-
-
-                    // UTR
-
-                    report?.utr_number ||
-
-                    report?.utrNumber ||
-
-                    "",
+                        "",
 
 
-                    // REMARKS
+                        // BOXES
 
-                    report?.additional_remarks ||
+                        report?.sanitary_pads_boxes_sold ??
 
-                    report?.additionalRemarks ||
+                        report?.total_sanitary_pads_box_sold_today ??
 
-                    "",
+                        report?.totalSanitaryPadsBoxSoldToday ??
 
-
-                    // PHOTO 1
-
-                    getImageUrl(
-                        getPhoto1(
-                            report
-                        )
-                    ),
+                        0,
 
 
-                    // PHOTO 2
+                        // AMOUNT
 
-                    getImageUrl(
-                        getPhoto2(
-                            report
-                        )
-                    ),
+                        report?.sanitary_pads_sales_amount ??
+
+                        report?.total_amount_from_sanitary_pad_box_sales_today ??
+
+                        report?.totalAmountFromSanitaryPadBoxSalesToday ??
+
+                        0,
 
 
-                    // STATUS
+                        // UTR
 
-                    report?.status ||
-                    "active",
+                        report?.utr_number ||
 
-                ]
+                        report?.utrNumber ||
+
+                        "",
+
+
+                        // REMARKS
+
+                        report?.additional_remarks ||
+
+                        report?.additionalRemarks ||
+
+                        "",
+
+
+                        // PHOTO 1
+
+                        getImageUrl(
+                            getPhoto1(
+                                report
+                            )
+                        ),
+
+
+                        // PHOTO 2
+
+                        getImageUrl(
+                            getPhoto2(
+                                report
+                            )
+                        ),
+
+
+                        // STATUS
+
+                        report?.status ||
+                        "active",
+
+                    ]
             );
 
 
@@ -3302,7 +3364,7 @@ const VibhagDashboard = () => {
                         "
                     >
 
-                   
+
 
 
                         <div
@@ -3382,7 +3444,7 @@ const VibhagDashboard = () => {
                         COUNT
                     ================================================= */}
 
-                    
+
 
 
 
@@ -3985,7 +4047,7 @@ const VibhagDashboard = () => {
 
                                     {!loading &&
                                         filteredReports.length ===
-                                            0 && (
+                                        0 && (
 
                                             <tr>
 
@@ -4521,7 +4583,7 @@ const VibhagDashboard = () => {
 
                                                                     {
                                                                         deletingId ===
-                                                                        report.id
+                                                                            report.id
 
                                                                             ? "Deleting..."
 
@@ -4685,9 +4747,7 @@ const VibhagDashboard = () => {
                                             name="taluka"
                                             value={formData.taluka}
                                             onChange={handleChange}
-                                            readOnly
-                                            className="bg-light"
-                                            placeholder="तालुका"
+                                            placeholder="तालुका प्रविष्ट करा"
                                             required
                                         />
 
@@ -4710,9 +4770,7 @@ const VibhagDashboard = () => {
                                             name="district"
                                             value={formData.district}
                                             onChange={handleChange}
-                                            readOnly
-                                            className="bg-light"
-                                            placeholder="जिल्हा"
+                                            placeholder="जिल्हा प्रविष्ट करा"
                                             required
                                         />
 
@@ -4794,7 +4852,7 @@ const VibhagDashboard = () => {
                                     <Form.Group>
 
                                         <Form.Label className="fw-semibold">
-                                            Total Authorised Center Head (अधिकृत केंद्र प्रमुखांची एकूण संख्या) *
+                                            Total Authorised Center Head - 10 (अधिकृत केंद्र प्रमुखांची एकूण संख्या - 10) *
                                         </Form.Label>
 
                                         <Form.Control
@@ -4837,23 +4895,48 @@ const VibhagDashboard = () => {
                                 </div>
 
 
-                                {/* TODAY VISITED CENTER HEADS */}
+                                {/* TODAY VISITED CENTERS */}
 
                                 <div className="col-12">
 
                                     <Form.Group>
 
                                         <Form.Label className="fw-semibold">
-                                            Today's Visited Center Heads Name (आज भेट दिलेल्या केंद्र प्रमुखांची नावे) *
+                                            Today Visited Centers (आज भेट दिलेली केंद्रे) *
+                                        </Form.Label>
+
+                                        <Form.Control
+                                            type="number"
+                                            min="0"
+                                            name="todayVisitedCenters"
+                                            value={formData.todayVisitedCenters}
+                                            onChange={handleChange}
+                                            placeholder="आज भेट दिलेल्या केंद्रांची संख्या"
+                                            required
+                                        />
+
+                                    </Form.Group>
+
+                                </div>
+
+
+                                {/* VISITED CENTER HEAD NAMES */}
+
+                                <div className="col-12">
+
+                                    <Form.Group>
+
+                                        <Form.Label className="fw-semibold">
+                                            Visited Center Head Name (केंद्र प्रमुख यांची नावे) *
                                         </Form.Label>
 
                                         <Form.Control
                                             as="textarea"
-                                            rows="4"
+                                            rows="3"
                                             name="namesOfCenterHeadsVisitedToday"
                                             value={formData.namesOfCenterHeadsVisitedToday}
                                             onChange={handleChange}
-                                            placeholder="आज भेट दिलेल्या केंद्र प्रमुखांची नावे प्रविष्ट करा..."
+                                            placeholder="भेट दिलेल्या केंद्र प्रमुखांची नावे"
                                             required
                                         />
 
@@ -4862,23 +4945,23 @@ const VibhagDashboard = () => {
                                 </div>
 
 
-                                {/* SANITARY PADS BOX SOLD */}
+                                {/* NEW MEMBERS */}
 
                                 <div className="col-12 col-md-6">
 
                                     <Form.Group>
 
                                         <Form.Label className="fw-semibold">
-                                            Total Sanitary Pads Box Sold Today (आज विकलेले एकूण सॅनिटरी पॅड बॉक्स) *
+                                            New Members Added Today (आज नव्याने जोडलेले सदस्य) *
                                         </Form.Label>
 
                                         <Form.Control
                                             type="number"
                                             min="0"
-                                            name="totalSanitaryPadsBoxSoldToday"
-                                            value={formData.totalSanitaryPadsBoxSoldToday}
+                                            name="newMembersAddedToday"
+                                            value={formData.newMembersAddedToday}
                                             onChange={handleChange}
-                                            placeholder="पॅड बॉक्स संख्या"
+                                            placeholder="नवीन सदस्यांची संख्या"
                                             required
                                         />
 
@@ -4887,24 +4970,23 @@ const VibhagDashboard = () => {
                                 </div>
 
 
-                                {/* SALES AMOUNT */}
+                                {/* SANITARY PAD SALES */}
 
                                 <div className="col-12 col-md-6">
 
                                     <Form.Group>
 
                                         <Form.Label className="fw-semibold">
-                                            Total Amount From Sanitary Pad Box Sales Today (आजच्या सॅनिटरी पॅड बॉक्स विक्रीतून एकूण रक्कम) *
+                                            Sanitary Pad Box Sales (पॅड बॉक्स विक्री) *
                                         </Form.Label>
 
                                         <Form.Control
                                             type="number"
                                             min="0"
-                                            step="0.01"
-                                            name="totalAmountFromSanitaryPadBoxSalesToday"
-                                            value={formData.totalAmountFromSanitaryPadBoxSalesToday}
+                                            name="sanitaryPadBoxSales"
+                                            value={formData.sanitaryPadBoxSales}
                                             onChange={handleChange}
-                                            placeholder="एकूण रक्कम"
+                                            placeholder="पॅड बॉक्स विक्री"
                                             required
                                         />
 
@@ -4912,52 +4994,113 @@ const VibhagDashboard = () => {
 
                                 </div>
 
+
+                                {/* HEALTH ATM */}
+
+                                <div className="col-12">
+
+                                    <Form.Group>
+
+                                        <Form.Label className="fw-semibold">
+                                            Today's Health ATM Machine Details (एटीएम मशीन बुकिंग) *
+                                        </Form.Label>
+
+                                        <Form.Control
+                                            as="textarea"
+                                            rows="3"
+                                            name="healthAtmMachineDetails"
+                                            value={formData.healthAtmMachineDetails}
+                                            onChange={handleChange}
+                                            placeholder="आजच्या हेल्थ ATM मशीनचे तपशील"
+                                            required
+                                        />
+
+                                    </Form.Group>
+
+                                </div>
+
+                                {/* BIRTH / DEATH / ACCIDENT */}
+
+                                <div className="col-12 col-md-4">
+                                    <Form.Group>
+                                        <Form.Label className="fw-semibold">
+                                            Birth (Baby Girls) (जन्मलेल्या मुलींची संख्या) *
+                                        </Form.Label>
+                                        <Form.Control
+                                            type="number"
+                                            min="0"
+                                            name="birthBabyGirls"
+                                            value={formData.birthBabyGirls}
+                                            onChange={handleChange}
+                                            required
+                                        />
+                                    </Form.Group>
+                                </div>
+
+                                <div className="col-12 col-md-4">
+                                    <Form.Group>
+                                        <Form.Label className="fw-semibold">
+                                            Death Count (मृत्यू संख्या) *
+                                        </Form.Label>
+                                        <Form.Control
+                                            type="number"
+                                            min="0"
+                                            name="deathCount"
+                                            value={formData.deathCount}
+                                            onChange={handleChange}
+                                            required
+                                        />
+                                    </Form.Group>
+                                </div>
+
+                                <div className="col-12 col-md-4">
+                                    <Form.Group>
+                                        <Form.Label className="fw-semibold">
+                                            Accident Count (अपघात संख्या) *
+                                        </Form.Label>
+                                        <Form.Control
+                                            type="number"
+                                            min="0"
+                                            name="accidentCount"
+                                            value={formData.accidentCount}
+                                            onChange={handleChange}
+                                            required
+                                        />
+                                    </Form.Group>
+                                </div>
 
                                 {/* UTR */}
 
                                 <div className="col-12 col-md-6">
-
                                     <Form.Group>
-
                                         <Form.Label className="fw-semibold">
-                                            UTR Number (युटीआर क्रमांक) *
+                                            UTR Number (युटीआर क्रमांक)
                                         </Form.Label>
-
                                         <Form.Control
                                             name="utrNumber"
                                             value={formData.utrNumber}
                                             onChange={handleChange}
                                             placeholder="UTR क्रमांक प्रविष्ट करा"
-                                            required
                                         />
-
                                     </Form.Group>
-
                                 </div>
 
-
-                                {/* ADDITIONAL REMARKS */}
+                                {/* OTHER INFORMATION */}
 
                                 <div className="col-12">
-
                                     <Form.Group>
-
                                         <Form.Label className="fw-semibold">
-                                            Additional Remarks (इतर माहिती / शेरा) *
+                                            Any Other Information (इतर माहिती)
                                         </Form.Label>
-
                                         <Form.Control
                                             as="textarea"
-                                            rows="4"
+                                            rows="3"
                                             name="additionalRemarks"
                                             value={formData.additionalRemarks}
                                             onChange={handleChange}
-                                            placeholder="इतर माहिती / शेरा प्रविष्ट करा..."
-                                            required
+                                            placeholder="इतर माहिती"
                                         />
-
                                     </Form.Group>
-
                                 </div>
 
                             </div>

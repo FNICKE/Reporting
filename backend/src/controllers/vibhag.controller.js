@@ -16,10 +16,10 @@ const getVibhags = async (req, res) => {
                 v.contact_number,
                 v.designation,
                 v.district_id,
-                d.district_name,
+                COALESCE(NULLIF(d.district_name, ''), d.name, '') AS district_name,
                 d.name AS district_head_name,
                 v.taluka_id,
-                t.taluka_name,
+                COALESCE(NULLIF(t.taluka_name, ''), t.name, '') AS taluka_name,
                 t.name AS taluka_head_name,
                 v.vibhag,
                 v.joining_date,
@@ -74,10 +74,10 @@ const getVibhagById = async (req, res) => {
                 v.contact_number,
                 v.designation,
                 v.district_id,
-                d.district_name,
+                COALESCE(NULLIF(d.district_name, ''), d.name, '') AS district_name,
                 d.name AS district_head_name,
                 v.taluka_id,
-                t.taluka_name,
+                COALESCE(NULLIF(t.taluka_name, ''), t.name, '') AS taluka_name,
                 t.name AS taluka_head_name,
                 v.vibhag,
                 v.joining_date,
@@ -135,7 +135,9 @@ const createVibhag = async (req, res) => {
             contact_number,
             designation,
             district_id,
+            district_name,
             taluka_id,
+            taluka_name,
             vibhag,
             joining_date,
             status = "active",
@@ -156,18 +158,46 @@ const createVibhag = async (req, res) => {
             });
         }
 
-        if (!district_id) {
-            return res.status(400).json({
-                success: false,
-                message: "District is required",
-            });
+        let finalDistrictId = district_id ? Number(district_id) : null;
+        if (district_id && !Number.isInteger(finalDistrictId)) {
+            const [dRows] = await db.query(
+                "SELECT id FROM districts WHERE LOWER(name) = LOWER(?) OR LOWER(district_name) = LOWER(?) LIMIT 1",
+                [String(district_id).trim(), String(district_id).trim()]
+            );
+            finalDistrictId = dRows[0]?.id || null;
+        }
+        if (!finalDistrictId && district_name) {
+            const [dRows] = await db.query(
+                "SELECT id FROM districts WHERE LOWER(name) = LOWER(?) OR LOWER(district_name) = LOWER(?) LIMIT 1",
+                [String(district_name).trim(), String(district_name).trim()]
+            );
+            finalDistrictId = dRows[0]?.id || null;
+        }
+        // If district name was typed but not found in DB — store null (don't error)
+        if (finalDistrictId) {
+            const [dRows] = await db.query("SELECT id FROM districts WHERE id = ? LIMIT 1", [finalDistrictId]);
+            if (dRows.length === 0) finalDistrictId = null;
         }
 
-        if (!taluka_id) {
-            return res.status(400).json({
-                success: false,
-                message: "Taluka is required",
-            });
+        let finalTalukaId = taluka_id ? Number(taluka_id) : null;
+        if (taluka_id && !Number.isInteger(finalTalukaId)) {
+            const [tRows] = await db.query(
+                "SELECT id FROM talukas WHERE LOWER(name) = LOWER(?) OR LOWER(taluka_name) = LOWER(?) LIMIT 1",
+                [String(taluka_id).trim(), String(taluka_id).trim()]
+            );
+            finalTalukaId = tRows[0]?.id || null;
+        }
+        if (!finalTalukaId && taluka_name) {
+            const [tRows] = await db.query(
+                "SELECT id FROM talukas WHERE LOWER(name) = LOWER(?) OR LOWER(taluka_name) = LOWER(?) LIMIT 1",
+                [String(taluka_name).trim(), String(taluka_name).trim()]
+            );
+            finalTalukaId = tRows[0]?.id || null;
+        }
+        // If taluka name was typed but not found in DB — store null (don't error)
+        if (finalTalukaId) {
+            const [tRows] = await db.query("SELECT id FROM talukas WHERE id = ? LIMIT 1", [finalTalukaId]);
+            if (tRows.length === 0) finalTalukaId = null;
         }
 
         const cleanUserId = user_id && String(user_id).trim()
@@ -206,13 +236,18 @@ const createVibhag = async (req, res) => {
 
         const finalVibhagName = vibhag ? String(vibhag).trim() : (finalHead ? String(finalHead).trim() : finalVibhagCode);
 
+        const finalDistrictName = district_name ? String(district_name).trim() : null;
+        const finalTalukaName = taluka_name ? String(taluka_name).trim() : null;
+
         const [result] = await db.query(`
             INSERT INTO vibhags
             (
                 vibhag_code,
                 head,
                 district_id,
+                district_name,
                 taluka_id,
+                taluka_name,
                 contact_number,
                 designation,
                 joining_date,
@@ -226,12 +261,14 @@ const createVibhag = async (req, res) => {
                 vibhag,
                 address
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
             finalVibhagCode,
             String(finalHead).trim(),
-            district_id,
-            taluka_id,
+            finalDistrictId,
+            finalDistrictName,
+            finalTalukaId,
+            finalTalukaName,
             contact_number ? String(contact_number).trim() : null,
             designation ? String(designation).trim() : null,
             joining_date || null,
@@ -320,7 +357,9 @@ const updateVibhag = async (req, res) => {
             contact_number,
             designation,
             district_id,
+            district_name,
             taluka_id,
+            taluka_name,
             vibhag,
             joining_date,
             status,
@@ -348,8 +387,49 @@ const updateVibhag = async (req, res) => {
         const oldRecord = existing[0];
         const finalHead = (head || name) !== undefined ? String(head || name).trim() : oldRecord.head;
         const finalUserId = user_id !== undefined ? String(user_id).trim() : oldRecord.user_id;
-        const finalDistrictId = district_id !== undefined ? district_id : oldRecord.district_id;
-        const finalTalukaId = taluka_id !== undefined ? taluka_id : oldRecord.taluka_id;
+
+        let finalDistrictId = district_id !== undefined ? Number(district_id) : oldRecord.district_id;
+        if (district_id && !Number.isInteger(finalDistrictId)) {
+            const [dRows] = await db.query(
+                "SELECT id FROM districts WHERE LOWER(name) = LOWER(?) OR LOWER(district_name) = LOWER(?) LIMIT 1",
+                [String(district_id).trim(), String(district_id).trim()]
+            );
+            finalDistrictId = dRows[0]?.id || null;
+        }
+        if (district_name && (district_id === undefined || !finalDistrictId)) {
+            const [dRows] = await db.query(
+                "SELECT id FROM districts WHERE LOWER(name) = LOWER(?) OR LOWER(district_name) = LOWER(?) LIMIT 1",
+                [String(district_name).trim(), String(district_name).trim()]
+            );
+            finalDistrictId = dRows[0]?.id || null;
+        }
+        // If district not found by name/id — keep null (don't error)
+        if (finalDistrictId) {
+            const [dRows] = await db.query("SELECT id FROM districts WHERE id = ? LIMIT 1", [finalDistrictId]);
+            if (dRows.length === 0) finalDistrictId = null;
+        }
+
+        let finalTalukaId = taluka_id !== undefined ? Number(taluka_id) : oldRecord.taluka_id;
+        if (taluka_id && !Number.isInteger(finalTalukaId)) {
+            const [tRows] = await db.query(
+                "SELECT id FROM talukas WHERE LOWER(name) = LOWER(?) OR LOWER(taluka_name) = LOWER(?) LIMIT 1",
+                [String(taluka_id).trim(), String(taluka_id).trim()]
+            );
+            finalTalukaId = tRows[0]?.id || null;
+        }
+        if (taluka_name && (taluka_id === undefined || !finalTalukaId)) {
+            const [tRows] = await db.query(
+                "SELECT id FROM talukas WHERE LOWER(name) = LOWER(?) OR LOWER(taluka_name) = LOWER(?) LIMIT 1",
+                [String(taluka_name).trim(), String(taluka_name).trim()]
+            );
+            finalTalukaId = tRows[0]?.id || null;
+        }
+        // If taluka not found by name/id — keep null (don't error)
+        if (finalTalukaId) {
+            const [tRows] = await db.query("SELECT id FROM talukas WHERE id = ? LIMIT 1", [finalTalukaId]);
+            if (tRows.length === 0) finalTalukaId = null;
+        }
+
         const normalizedStatus = status !== undefined
             ? (String(status).toLowerCase() === "inactive" ? "inactive" : "active")
             : oldRecord.status;

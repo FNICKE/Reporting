@@ -6,36 +6,27 @@ const path = require("path");
 // MASTER ROUTES
 // =====================================================
 
-const districtRoutes =
-    require("./routes/district.routes");
+const districtRoutes = require("./routes/district.routes");
 
-const talukaRoutes =
-    require("./routes/taluka.routes");
+const talukaRoutes = require("./routes/taluka.routes");
 
-const vibhagRoutes =
-    require("./routes/vibhag.routes");
+const vibhagRoutes = require("./routes/vibhag.routes");
 
-const trainerRoutes =
-    require("./routes/trainer.routes");
+const trainerRoutes = require("./routes/trainer.routes");
 
-const authRoutes =
-    require("./routes/auth.routes");
+const authRoutes = require("./routes/auth.routes");
 
 // =====================================================
 // REPORT ROUTES
 // =====================================================
 
-const districtReportRoutes =
-    require("./routes/districtReport.routes");
+const districtReportRoutes = require("./routes/districtReport.routes");
 
-const talukaReportRoutes =
-    require("./routes/talukaReport.routes");
+const talukaReportRoutes = require("./routes/talukaReport.routes");
 
-const vibhagReportRoutes =
-    require("./routes/vibhagReport.routes");
+const vibhagReportRoutes = require("./routes/vibhagReport.routes");
 
-const trainerReportRoutes =
-    require("./routes/trainerReport.routes");
+const trainerReportRoutes = require("./routes/trainerReport.routes");
 
 // =====================================================
 // APP
@@ -52,99 +43,100 @@ const app = express();
 // =====================================================
 
 const allowedOrigins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "https://reporting.sainikshetkari.org",
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://reporting.sainikshetkari.org",
+  "http://reporting.sainikshetkari.org",
+  "https://www.reporting.sainikshetkari.org",
+  "http://www.reporting.sainikshetkari.org",
+  "https://reportbackend.sainikshetkari.org",
+  "http://reportbackend.sainikshetkari.org",
 ];
 
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  const cleanOrigin = origin.replace(/\/+$/, "").toLowerCase();
+  if (allowedOrigins.map((o) => o.toLowerCase()).includes(cleanOrigin)) {
+    return true;
+  }
+  // Allow any sainikshetkari.org subdomain
+  if (
+    /^https?:\/\/([a-z0-9-]+\.)*sainikshetkari\.org(:[0-9]+)?$/i.test(
+      cleanOrigin,
+    )
+  ) {
+    return true;
+  }
+  // Allow localhost/127.0.0.1
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:[0-9]+)?$/i.test(cleanOrigin)) {
+    return true;
+  }
+  return false;
+};
+
+// Universal CORS headers & preflight handler
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && isAllowedOrigin(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader(
+      "Access-Control-Allow-Methods",
+      "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+    );
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization, Accept, Origin, X-Requested-With",
+    );
+  } else if (!origin) {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+  }
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+  next();
+});
+
 const corsOptions = {
-
-    origin: function (origin, callback) {
-
-        console.log(
-            "CORS REQUEST:",
-            origin
-        );
-
-        // Postman / curl / server-to-server
-        if (!origin) {
-            return callback(null, true);
-        }
-
-        if (
-            allowedOrigins.includes(origin)
-        ) {
-
-            console.log(
-                "✅ CORS ALLOWED:",
-                origin
-            );
-
-            return callback(
-                null,
-                true
-            );
-        }
-
-        console.log(
-            "❌ CORS BLOCKED:",
-            origin
-        );
-
-        return callback(
-            new Error(
-                `CORS not allowed for origin: ${origin}`
-            )
-        );
-    },
-
-    credentials: true,
-
-    methods: [
-        "GET",
-        "POST",
-        "PUT",
-        "PATCH",
-        "DELETE",
-        "OPTIONS",
-    ],
-
-    allowedHeaders: [
-        "Content-Type",
-        "Authorization",
-        "Accept",
-        "Origin",
-        "X-Requested-With",
-    ],
-
-    optionsSuccessStatus: 204,
+  origin: function (origin, callback) {
+    if (!origin || isAllowedOrigin(origin)) {
+      return callback(null, true);
+    }
+    console.warn("⚠️ CORS Warning: Unknown origin:", origin);
+    return callback(null, true); // Allow to prevent hard 500 error on preflights
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "Accept",
+    "Origin",
+    "X-Requested-With",
+  ],
+  optionsSuccessStatus: 204,
 };
 
 // =====================================================
-// APPLY CORS
+// APPLY CORS & PREFLIGHT
 // =====================================================
 
-app.use(
-    cors(corsOptions)
-);
-
-// =====================================================
-// PREFLIGHT REQUEST
-// =====================================================
-
+app.use(cors(corsOptions));
+app.options(/(.*)/, cors(corsOptions));
 
 // =====================================================
 // BODY PARSER
 // =====================================================
 
-app.use(
-    express.json()
-);
+app.use(express.json());
 
 app.use(
-    express.urlencoded({
-        extended: true,
-    })
+  express.urlencoded({
+    extended: true,
+  }),
 );
 
 // =====================================================
@@ -159,34 +151,20 @@ app.use(
 //
 // =====================================================
 
-const uploadsPath = path.join(
-    __dirname,
-    "uploads"
-);
+const uploadsPath = path.join(__dirname, "uploads");
 
-console.log(
-    "========================================"
-);
+console.log("========================================");
 
-console.log(
-    "UPLOADS PATH:",
-    uploadsPath
-);
+console.log("UPLOADS PATH:", uploadsPath);
 
-console.log(
-    "========================================"
-);
+console.log("========================================");
 
 // =====================================================
 // STATIC UPLOADS
 // =====================================================
 
-app.use(
-    "/uploads",
-    express.static(
-        uploadsPath
-    )
-);
+app.use("/uploads", express.static(uploadsPath));
+app.use("/api/uploads", express.static(uploadsPath));
 
 // =====================================================
 // TEST UPLOAD ROUTE
@@ -197,24 +175,15 @@ app.use(
 //
 // =====================================================
 
-app.get(
-    "/uploads",
-    (req, res) => {
+app.get("/uploads", (req, res) => {
+  res.status(200).json({
+    success: true,
 
-        res.status(200).json({
+    message: "Uploads folder is available",
 
-            success: true,
-
-            message:
-                "Uploads folder is available",
-
-            path:
-                uploadsPath,
-
-        });
-
-    }
-);
+    path: uploadsPath,
+  });
+});
 
 // =====================================================
 // TEST API
@@ -225,21 +194,13 @@ app.get(
 //
 // =====================================================
 
-app.get(
-    "/",
-    (req, res) => {
-
-        res.status(200).json({
-
-            success: true,
-
-            message:
-                "Dashboard Backend API is running",
-
-        });
-
-    }
-);
+app.get(["/", "/api", "/api/health"], (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: "Dashboard Backend API is running",
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // =====================================================
 // AUTH ROUTES
@@ -257,291 +218,171 @@ app.get(
 //
 // =====================================================
 
-app.use(
-    "/api/auth",
-    authRoutes
-);
+app.use("/api/auth", authRoutes);
 
 // =====================================================
 // MASTER ROUTES
 // =====================================================
 
-app.use(
-    "/api/district",
-    districtRoutes
-);
+app.use("/api/district", districtRoutes);
 
-app.use(
-    "/api/taluka",
-    talukaRoutes
-);
+app.use("/api/taluka", talukaRoutes);
 
-app.use(
-    "/api/vibhag",
-    vibhagRoutes
-);
+app.use("/api/vibhag", vibhagRoutes);
 
-app.use(
-    "/api/trainer",
-    trainerRoutes
-);
+app.use("/api/trainer", trainerRoutes);
 
 // =====================================================
 // DISTRICT REPORT ROUTES
 // =====================================================
 
-app.use(
-    "/api/district-reports",
-    districtReportRoutes
-);
+app.use("/api/district-reports", districtReportRoutes);
 
 // =====================================================
 // TALUKA REPORT ROUTES
 // =====================================================
 
-app.use(
-    "/api/taluka-reports",
-    talukaReportRoutes
-);
+app.use("/api/taluka-reports", talukaReportRoutes);
 
 // =====================================================
 // VIBHAG REPORT ROUTES
 // =====================================================
 
-app.use(
-    "/api/vibhag-reports",
-    vibhagReportRoutes
-);
+app.use("/api/vibhag-reports", vibhagReportRoutes);
 
 // =====================================================
 // TRAINER REPORT ROUTES
 // =====================================================
 
-app.use(
-    "/api/trainer-reports",
-    trainerReportRoutes
-);
+app.use("/api/trainer-reports", trainerReportRoutes);
 
 // =====================================================
 // 404 ROUTE
 // =====================================================
 
-app.use(
-    (req, res) => {
+app.use((req, res) => {
+  console.log("========================================");
 
-        console.log(
-            "========================================"
-        );
+  console.log("❌ 404 ROUTE");
 
-        console.log(
-            "❌ 404 ROUTE"
-        );
+  console.log("METHOD:", req.method);
 
-        console.log(
-            "METHOD:",
-            req.method
-        );
+  console.log("URL:", req.originalUrl);
 
-        console.log(
-            "URL:",
-            req.originalUrl
-        );
+  console.log("ORIGIN:", req.headers.origin);
 
-        console.log(
-            "ORIGIN:",
-            req.headers.origin
-        );
+  console.log("========================================");
 
-        console.log(
-            "========================================"
-        );
+  res.status(404).json({
+    success: false,
 
-        res.status(404).json({
+    message: "Route not found",
 
-            success: false,
-
-            message:
-                "Route not found",
-
-            path:
-                req.originalUrl,
-
-        });
-
-    }
-);
+    path: req.originalUrl,
+  });
+});
 
 // =====================================================
 // GLOBAL ERROR HANDLER
 // =====================================================
 
-app.use(
-    (
-        err,
-        req,
-        res,
-        next
-    ) => {
+app.use((err, req, res, next) => {
+  console.error("========================================");
 
-        console.error(
-            "========================================"
-        );
+  console.error("❌ SERVER ERROR");
 
-        console.error(
-            "❌ SERVER ERROR"
-        );
+  console.error("METHOD:", req.method);
 
-        console.error(
-            "METHOD:",
-            req.method
-        );
+  console.error("URL:", req.originalUrl);
 
-        console.error(
-            "URL:",
-            req.originalUrl
-        );
+  console.error("ORIGIN:", req.headers.origin);
 
-        console.error(
-            "ORIGIN:",
-            req.headers.origin
-        );
+  console.error("ERROR:", err);
 
-        console.error(
-            "ERROR:",
-            err
-        );
+  console.error("========================================");
 
-        console.error(
-            "========================================"
-        );
+  // =================================================
+  // CORS ERROR
+  // =================================================
 
-        // =================================================
-        // CORS ERROR
-        // =================================================
+  if (err.message && err.message.includes("CORS not allowed")) {
+    return res.status(403).json({
+      success: false,
 
-        if (
-            err.message &&
-            err.message.includes(
-                "CORS not allowed"
-            )
-        ) {
+      message: "CORS origin not allowed",
 
-            return res.status(403).json({
+      error: err.message,
+    });
+  }
 
-                success: false,
+  // =================================================
+  // MULTER UNEXPECTED FILE
+  // =================================================
 
-                message:
-                    "CORS origin not allowed",
+  if (err.code === "LIMIT_UNEXPECTED_FILE") {
+    return res.status(400).json({
+      success: false,
 
-                error:
-                    err.message,
+      message: `Unexpected file field: ${err.field}`,
+    });
+  }
 
-            });
+  // =================================================
+  // MULTER FILE SIZE
+  // =================================================
 
-        }
+  if (err.code === "LIMIT_FILE_SIZE") {
+    return res.status(400).json({
+      success: false,
 
-        // =================================================
-        // MULTER UNEXPECTED FILE
-        // =================================================
+      message: "File size must be less than 10MB",
+    });
+  }
 
-        if (
-            err.code ===
-            "LIMIT_UNEXPECTED_FILE"
-        ) {
+  // =================================================
+  // MULTER ERROR
+  // =================================================
 
-            return res.status(400).json({
+  if (err.name === "MulterError") {
+    return res.status(400).json({
+      success: false,
 
-                success: false,
+      message: err.message || "File upload error",
+    });
+  }
 
-                message:
-                    `Unexpected file field: ${err.field}`,
+  // =================================================
+  // IMAGE TYPE ERROR
+  // =================================================
 
-            });
+  if (err.message && err.message.includes("Only JPG")) {
+    return res.status(400).json({
+      success: false,
 
-        }
+      message: err.message,
+    });
+  }
 
-        // =================================================
-        // MULTER FILE SIZE
-        // =================================================
+  // =================================================
+  // GENERAL ERROR
+  // =================================================
 
-        if (
-            err.code ===
-            "LIMIT_FILE_SIZE"
-        ) {
+  return res.status(500).json({
+    success: false,
 
-            return res.status(400).json({
-
-                success: false,
-
-                message:
-                    "File size must be less than 10MB",
-
-            });
-
-        }
-
-        // =================================================
-        // MULTER ERROR
-        // =================================================
-
-        if (
-            err.name ===
-            "MulterError"
-        ) {
-
-            return res.status(400).json({
-
-                success: false,
-
-                message:
-                    err.message ||
-                    "File upload error",
-
-            });
-
-        }
-
-        // =================================================
-        // IMAGE TYPE ERROR
-        // =================================================
-
-        if (
-            err.message &&
-            err.message.includes(
-                "Only JPG"
-            )
-        ) {
-
-            return res.status(400).json({
-
-                success: false,
-
-                message:
-                    err.message,
-
-            });
-
-        }
-
-        // =================================================
-        // GENERAL ERROR
-        // =================================================
-
-        return res.status(500).json({
-
-            success: false,
-
-            message:
-                err.message ||
-                "Internal server error",
-
-        });
-
-    }
-);
+    message: err.message || "Internal server error",
+  });
+});
 
 // =====================================================
 // EXPORT
 // =====================================================
+
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Backend server listening on port ${PORT}`);
+  });
+}
 
 module.exports = app;

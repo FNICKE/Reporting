@@ -14,69 +14,16 @@ import {
     Row,
     Col,
 } from "react-bootstrap";
+import * as XLSX from "xlsx";
 
+import { API_BASE_URL, BACKEND_ROOT_URL } from "../../config/api";
 
-// =====================================================
-// API CONFIGURATION
-// =====================================================
-//
-// Local:
-//   VITE_API_BASE_URL=http://localhost:5000
-//
-// Production:
-//   VITE_API_BASE_URL=https://reportbackend.sainikshetkari.org
-//
-
-// =====================================================
-// SMART BACKEND URL
-// =====================================================
-// Live website:
-//   https://reporting.sainikshetkari.org
-// Backend:
-//   https://reportbackend.sainikshetkari.org
-//
-// Local development:
-//   http://localhost:5000
-//
-// IMPORTANT:
-// A live browser must never try to call localhost:5000.
-// =====================================================
-
-const PRODUCTION_BACKEND_URL =
-    "https://reportbackend.sainikshetkari.org";
-
-const LOCAL_BACKEND_URL =
-    "http://localhost:5000";
-
-const currentHostname =
-    typeof window !== "undefined"
-        ? window.location.hostname
-        : "";
-
-const isLocalFrontend =
-    currentHostname === "localhost" ||
-    currentHostname === "127.0.0.1" ||
-    currentHostname === "0.0.0.0";
-
-const configuredBackendUrl =
-    import.meta.env.VITE_API_BASE_URL?.trim();
-
-const resolvedBackendUrl =
-    isLocalFrontend
-        ? (configuredBackendUrl || LOCAL_BACKEND_URL)
-        : PRODUCTION_BACKEND_URL;
-
-const BACKEND_BASE_URL =
-    resolvedBackendUrl.replace(/\/$/, "");
-
-const API_BASE_URL =
-    `${BACKEND_BASE_URL}/api`;
 
 const TRAINER_REPORTS_API =
     `${API_BASE_URL}/trainer-reports`;
 
 const TRAINER_UPLOAD_URL =
-    `${BACKEND_BASE_URL}/uploads/trainer-reports`;
+    `${BACKEND_ROOT_URL}/uploads/trainer-reports`;
 
 console.log(
     "TRAINER DASHBOARD API:",
@@ -101,27 +48,17 @@ const EMPTY_FORM = {
 
     reportDate: "",
 
-    totalAuthorisedCenterHeads: "",
+    totalShopsVisitedToday: "",
 
-    totalActiveCenterHeads: "",
+    totalPanelRegistrationAmount: "",
 
-    todayVisitedCenterHeadsNames: "",
+    paymentMode: "",
 
-    totalSanitaryPadBoxesSoldToday: "",
+    shopPhoto: null,
 
-    totalAmountFromSanitaryPadSalesToday: "",
+    shopkeeperRegistrationPhoto: null,
 
-    utrNumber: "",
-
-    totalCenterHeadsVisitedToday: "",
-
-    todaysNewMembers: "",
-
-    additionalRemarks: "",
-
-    meetingPhoto1: null,
-
-    meetingPhoto2: null,
+    workPhotoVideo: null,
 
 };
 
@@ -197,48 +134,15 @@ const formatDisplayDate = (value) => {
 // GET PHOTO 1
 // =====================================================
 
-const getPhoto1 = (report) => {
-
-    return (
-
-        report?.meeting_photo_1 ||
-
-        report?.meetingPhoto1 ||
-
-        report?.meeting_photo1 ||
-
-        report?.photo_1 ||
-
-        report?.photo1 ||
-
-        ""
-
-    );
-};
+const getPhoto1 = (report) => report?.shop_photo || "";
 
 
 // =====================================================
 // GET PHOTO 2
 // =====================================================
 
-const getPhoto2 = (report) => {
-
-    return (
-
-        report?.meeting_photo_2 ||
-
-        report?.meetingPhoto2 ||
-
-        report?.meeting_photo2 ||
-
-        report?.photo_2 ||
-
-        report?.photo2 ||
-
-        ""
-
-    );
-};
+const getPhoto2 = (report) =>
+    report?.shopkeeper_registration_photo || "";
 
 
 // =====================================================
@@ -284,7 +188,7 @@ const getImageUrl = (imagePath) => {
     ) {
 
         return (
-            BACKEND_BASE_URL +
+            BACKEND_ROOT_URL +
             value
         );
 
@@ -300,7 +204,7 @@ const getImageUrl = (imagePath) => {
     ) {
 
         return (
-            BACKEND_BASE_URL +
+            BACKEND_ROOT_URL +
             "/" +
             value
         );
@@ -317,7 +221,7 @@ const getImageUrl = (imagePath) => {
     ) {
 
         return (
-            BACKEND_BASE_URL +
+            BACKEND_ROOT_URL +
             "/uploads/" +
             value
         );
@@ -597,25 +501,16 @@ const isReportForCurrentTrainer = (report, user) => {
         );
     }
 
+    // Check mobile number for legacy rows
+    const reportMobile = normalize(report?.mobile_number ?? report?.mobileNumber);
+    const currentMobile = normalize(user?.mobileNumber || user?.contactNumber || localStorage.getItem("logged_in_mobile"));
+    if (reportMobile && currentMobile && reportMobile === currentMobile) {
+        return true;
+    }
+
     // Existing trainer-reports data stores the trainer in "name".
     if (currentTrainerName && reportTrainerName) {
         return reportTrainerName === currentTrainerName;
-    }
-
-    // Last fallback for legacy rows without trainer name.
-    const reportTaluka = normalize(
-        getReportTaluka(report)
-    );
-
-    const reportDistrict = normalize(
-        getReportDistrict(report)
-    );
-
-    if (currentTaluka && currentDistrict) {
-        return (
-            reportTaluka === currentTaluka &&
-            reportDistrict === currentDistrict
-        );
     }
 
     return false;
@@ -677,93 +572,40 @@ const TrainerDashboard = () => {
 
     const handleDownloadExcel = () => {
         if (!filteredReports.length) {
-            setError("No reports available to download.");
+            setError("Download करण्यासाठी कोणताही report उपलब्ध नाही.");
             return;
         }
-
-        const escapeHtml = (value) =>
-            String(value ?? "")
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#039;");
-
-        const rows = filteredReports.map((report, index) => `
-            <tr>
-                <td>${index + 1}</td>
-                <td>${escapeHtml(report?.name)}</td>
-                <td>${escapeHtml(report?.designation)}</td>
-                <td>${escapeHtml(report?.taluka)}</td>
-                <td>${escapeHtml(report?.district)}</td>
-                <td>${escapeHtml(report?.mobile_number)}</td>
-                <td>${escapeHtml(formatDisplayDate(report?.report_date))}</td>
-                <td>${escapeHtml(report?.total_authorised_center_heads)}</td>
-                <td>${escapeHtml(report?.total_active_center_heads)}</td>
-                <td>${escapeHtml(report?.today_visited_center_heads_names)}</td>
-                <td>${escapeHtml(report?.total_sanitary_pad_boxes_sold_today ?? report?.totalSanitaryPadBoxesSoldToday)}</td>
-                <td>${escapeHtml(report?.total_amount_from_sanitary_pad_sales_today ?? report?.totalAmountFromSanitaryPadSalesToday)}</td>
-                <td>${escapeHtml(report?.utr_number ?? report?.utrNumber)}</td>
-                <td>${escapeHtml(report?.total_center_heads_visited_today)}</td>
-                <td>${escapeHtml(report?.todays_new_members)}</td>
-                <td>${escapeHtml(report?.additional_remarks)}</td>
-                <td>${escapeHtml(report?.status)}</td>
-            </tr>
-        `).join("");
-
-        const excelHtml = `
-            <html>
-                <head>
-                    <meta charset="UTF-8" />
-                    <style>
-                        table { border-collapse: collapse; }
-                        th, td { border: 1px solid #999; padding: 6px; }
-                        th { font-weight: bold; background: #eeeeee; }
-                    </style>
-                </head>
-                <body>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>SR</th>
-                                <th>Name</th>
-                                <th>Designation</th>
-                                <th>Taluka</th>
-                                <th>District</th>
-                                <th>Mobile Number</th>
-                                <th>Report Date</th>
-                                <th>Authorised Center Heads</th>
-                                <th>Active Center Heads</th>
-                                <th>Today's Visited Center Heads</th>
-                                <th>Total Sanitary Pads Box Sold Today</th>
-                                <th>Total Amount from Sanitary Pad Box Sales Today</th>
-                                <th>UTR Number</th>
-                                <th>Total Visited</th>
-                                <th>New Members</th>
-                                <th>Additional Remarks</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>${rows}</tbody>
-                    </table>
-                </body>
-            </html>
-        `;
-
-        const blob = new Blob(["\ufeff", excelHtml], {
-            type: "application/vnd.ms-excel;charset=utf-8;",
-        });
-
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        const today = new Date().toISOString().slice(0, 10);
-
-        link.href = url;
-        link.download = `Trainer_Reports_${today}.xls`;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
+        const headers = [
+            "SR",
+            "1 Date(दिनांक)",
+            "2 BDO Full Name (BDO चे पूर्ण नाव)",
+            "3 Designation (पद)",
+            "4 Taluka Name (तालुक्याचे नाव)",
+            "5 District Name (जिल्ह्याचे नाव)",
+            "6 Mobile Number (मोबाईल नंबर)",
+            "7 Total Number of Shops Visited Today (आज प्रत्यक्ष भेट दिलेल्या दुकानांची एकूण संख्या)",
+            "8 Total Amount Collected from Today’s Panel Registrations (आजच्या Panel Registration मधून जमा झालेली एकूण रक्कम)",
+            "9 Payment Mode (पेमेंट पद्धत)",
+            "Status",
+        ];
+        const rows = filteredReports.map((r, i) => [
+            i + 1,
+            formatDisplayDate(r.report_date),
+            r.name || "-",
+            r.designation || "-",
+            r.taluka || "-",
+            r.district || "-",
+            r.mobile_number || "-",
+            r.total_shops_visited_today ?? 0,
+            r.total_panel_registration_amount ?? 0,
+            r.payment_mode || "-",
+            r.status || "active",
+        ]);
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "BDO Reports");
+        XLSX.writeFile(wb, `BDO_Reports_${new Date().toISOString().split("T")[0]}.xlsx`);
+        setSuccess("BDO reports downloaded successfully.");
     };
 
 
@@ -954,14 +796,31 @@ const TrainerDashboard = () => {
                 // API REQUEST
                 // =============================================
 
+                // Build role-based query params so backend filters by logged-in user
+                const loggedRole   = (localStorage.getItem("logged_in_role") || "").toLowerCase();
+                const loggedUserId = localStorage.getItem("logged_in_user_id") || localStorage.getItem("user_id") || "";
+                const loggedMobile = localStorage.getItem("logged_in_mobile")  || "";
+                const loggedName   = localStorage.getItem("logged_in_name")    || "";
+                const isAdmin      = loggedRole === "admin" || loggedRole === "superadmin";
+
+                let trainerApiUrl = TRAINER_REPORTS_API;
+                if (!isAdmin && loggedUserId) {
+                    const params = new URLSearchParams();
+                    params.set("role", loggedRole);
+                    params.set("user_id", loggedUserId);
+                    if (loggedMobile) params.set("mobile_number", loggedMobile);
+                    if (loggedName) params.set("user_name", loggedName);
+                    trainerApiUrl = `${TRAINER_REPORTS_API}?${params.toString()}`;
+                }
+
                 console.log(
                     "FETCHING TRAINER REPORTS:",
-                    TRAINER_REPORTS_API
+                    trainerApiUrl
                 );
 
                 const response =
                     await fetch(
-                        TRAINER_REPORTS_API,
+                        trainerApiUrl,
                         {
                             method: "GET",
                             headers: {
@@ -1064,8 +923,8 @@ const TrainerDashboard = () => {
                     myTrainerReports
                 );
 
-                // Only current trainer records are kept in state.
-                setReports(myTrainerReports);
+                // Admin sees all trainer reports; trainer sees only their own.
+                setReports(isAdmin ? reportRows : myTrainerReports);
 
 
             } catch (err) {
@@ -1141,13 +1000,12 @@ const TrainerDashboard = () => {
                 report?.district,
                 report?.mobile_number,
                 report?.report_date,
-                report?.total_sanitary_pad_boxes_sold_today,
-                report?.totalSanitaryPadBoxesSoldToday,
-                report?.total_amount_from_sanitary_pad_sales_today,
-                report?.totalAmountFromSanitaryPadSalesToday,
-                report?.utr_number,
-                report?.utrNumber,
-                report?.additional_remarks,
+                report?.total_shops_visited_today,
+                report?.total_panel_registration_amount,
+                report?.payment_mode,
+                report?.shop_photo,
+                report?.shopkeeper_registration_photo,
+                report?.work_photo_video,
                 report?.status,
             ].some((value) =>
                 normalize(value).includes(globalKeyword)
@@ -1250,6 +1108,12 @@ const TrainerDashboard = () => {
 
                 "image/webp",
 
+                "video/mp4",
+
+                "video/webm",
+
+                "video/quicktime",
+
             ];
 
 
@@ -1260,7 +1124,7 @@ const TrainerDashboard = () => {
             ) {
 
                 alert(
-                    "Only JPG, JPEG, PNG and WEBP images are allowed."
+                    "Only JPG, JPEG, PNG, WEBP or supported video files are allowed."
                 );
 
                 event.target.value =
@@ -1273,11 +1137,11 @@ const TrainerDashboard = () => {
 
             if (
                 file.size >
-                10 * 1024 * 1024
+                50 * 1024 * 1024
             ) {
 
                 alert(
-                    "Photo size must be less than 10 MB."
+                    "File size must be less than 50 MB."
                 );
 
                 event.target.value =
@@ -1442,93 +1306,26 @@ const TrainerDashboard = () => {
                 ),
 
 
-            totalAuthorisedCenterHeads:
-
-                report.total_authorised_center_heads ??
-
-                report.totalAuthorisedCenterHeads ??
-
+            totalShopsVisitedToday:
+                report.total_shops_visited_today ??
+                report.totalShopsVisitedToday ??
                 "",
 
-
-            totalActiveCenterHeads:
-
-                report.total_active_center_heads ??
-
-                report.totalActiveCenterHeads ??
-
+            totalPanelRegistrationAmount:
+                report.total_panel_registration_amount ??
+                report.totalPanelRegistrationAmount ??
                 "",
 
-
-            todayVisitedCenterHeadsNames:
-
-                report.today_visited_center_heads_names ??
-
-                report.todayVisitedCenterHeadsNames ??
-
+            paymentMode:
+                report.payment_mode ??
+                report.paymentMode ??
                 "",
 
+            shopPhoto: null,
 
-            totalSanitaryPadBoxesSoldToday:
+            shopkeeperRegistrationPhoto: null,
 
-                report.total_sanitary_pad_boxes_sold_today ??
-
-                report.totalSanitaryPadBoxesSoldToday ??
-
-                "",
-
-
-            totalAmountFromSanitaryPadSalesToday:
-
-                report.total_amount_from_sanitary_pad_sales_today ??
-
-                report.totalAmountFromSanitaryPadSalesToday ??
-
-                "",
-
-
-            utrNumber:
-
-                report.utr_number ??
-
-                report.utrNumber ??
-
-                "",
-
-
-            totalCenterHeadsVisitedToday:
-
-                report.total_center_heads_visited_today ??
-
-                report.totalCenterHeadsVisitedToday ??
-
-                "",
-
-
-            todaysNewMembers:
-
-                report.todays_new_members ??
-
-                report.todaysNewMembers ??
-
-                "",
-
-
-            additionalRemarks:
-
-                report.additional_remarks ??
-
-                report.additionalRemarks ??
-
-                "",
-
-
-            meetingPhoto1:
-                null,
-
-
-            meetingPhoto2:
-                null,
+            workPhotoVideo: null,
 
         });
 
@@ -1634,182 +1431,27 @@ const TrainerDashboard = () => {
     // =================================================
 
     const validateForm = () => {
-
-        if (
-            !formData.name.trim()
-        ) {
-
-            return "Please enter Trainer Name.";
-
-        }
-
-
-        if (
-            !formData.designation.trim()
-        ) {
-
-            return "Please enter Designation.";
-
-        }
-
-
-        if (
-            !formData.taluka.trim()
-        ) {
-
-            return "Please enter Taluka.";
-
-        }
-
-
-        if (
-            !formData.district.trim()
-        ) {
-
-            return "Please enter District.";
-
-        }
-
-
-        if (
-            !/^[0-9]{10}$/.test(
-                formData.mobileNumber.trim()
-            )
-        ) {
-
+        if (!formData.name.trim()) return "Please enter BDO Full Name.";
+        if (!formData.designation.trim()) return "Please enter Designation.";
+        if (!formData.taluka.trim()) return "Please enter Taluka Name.";
+        if (!formData.district.trim()) return "Please enter District Name.";
+        if (!/^[0-9]{10}$/.test(formData.mobileNumber.trim())) {
             return "Mobile Number must be exactly 10 digits.";
-
         }
+        if (!formData.reportDate) return "Please select Date.";
 
-
-        if (
-            !formData.reportDate
-        ) {
-
-            return "Please select Report Date.";
-
+        const shops = Number(formData.totalShopsVisitedToday);
+        const amount = Number(formData.totalPanelRegistrationAmount);
+        if (!Number.isInteger(shops) || shops < 0) {
+            return "Total Number of Shops Visited Today is invalid.";
         }
-
-
-        const authorised =
-            Number(
-                formData.totalAuthorisedCenterHeads
-            );
-
-
-        const active =
-            Number(
-                formData.totalActiveCenterHeads
-            );
-
-
-        const sanitaryPadBoxesSold =
-            Number(
-                formData.totalSanitaryPadBoxesSoldToday
-            );
-
-
-        const totalSanitaryPadAmount =
-            Number(
-                formData.totalAmountFromSanitaryPadSalesToday
-            );
-
-
-        const visited =
-            Number(
-                formData.totalCenterHeadsVisitedToday
-            );
-
-
-        const newMembers =
-            Number(
-                formData.todaysNewMembers
-            );
-
-
-        if (
-            !Number.isFinite(
-                authorised
-            ) ||
-            authorised < 0
-        ) {
-
-            return "Total Authorised Center Heads is invalid.";
-
+        if (!Number.isFinite(amount) || amount < 0) {
+            return "Total Amount Collected is invalid.";
         }
-
-
-        if (
-            !Number.isFinite(
-                active
-            ) ||
-            active < 0 ||
-            active > authorised
-        ) {
-
-            return "Active Center Heads cannot be greater than Authorised Center Heads.";
-
+        if (!["Cash", "UPI", "Online", "Bank Transfer"].includes(formData.paymentMode)) {
+            return "Please select a valid Payment Mode.";
         }
-
-
-        if (
-            !Number.isFinite(
-                sanitaryPadBoxesSold
-            ) ||
-            sanitaryPadBoxesSold < 0
-        ) {
-
-            return "Total Sanitary Pads Box Sold Today is invalid.";
-
-        }
-
-
-        if (
-            !Number.isFinite(
-                totalSanitaryPadAmount
-            ) ||
-            totalSanitaryPadAmount < 0
-        ) {
-
-            return "Total Amount from Sanitary Pad Box Sales Today is invalid.";
-
-        }
-
-
-        if (!formData.utrNumber.trim()) {
-
-            return "Please enter UTR Number.";
-
-        }
-
-
-        if (
-            !Number.isFinite(
-                visited
-            ) ||
-            visited < 0 ||
-            visited > active
-        ) {
-
-            return "Total Center Heads Visited Today cannot be greater than Active Center Heads.";
-
-        }
-
-
-        if (
-            !Number.isFinite(
-                newMembers
-            ) ||
-            newMembers < 0
-        ) {
-
-            return "Today's New Members is invalid.";
-
-        }
-
-
         return "";
-
     };
 
 
@@ -1974,113 +1616,27 @@ const TrainerDashboard = () => {
                 );
 
 
-                // =====================================
-                // CENTER HEADS
-                // =====================================
-
                 data.append(
-                    "total_authorised_center_heads",
-                    Number(
-                        formData.totalAuthorisedCenterHeads
-                    ) || 0
+                    "total_shops_visited_today",
+                    Number(formData.totalShopsVisitedToday) || 0
                 );
-
-
                 data.append(
-                    "total_active_center_heads",
-                    Number(
-                        formData.totalActiveCenterHeads
-                    ) || 0
+                    "total_panel_registration_amount",
+                    Number(formData.totalPanelRegistrationAmount) || 0
                 );
+                data.append("payment_mode", formData.paymentMode);
 
-
-                data.append(
-                    "today_visited_center_heads_names",
-                    formData
-                        .todayVisitedCenterHeadsNames
-                        .trim()
-                );
-
-
-                data.append(
-                    "total_sanitary_pad_boxes_sold_today",
-                    Number(
-                        formData.totalSanitaryPadBoxesSoldToday
-                    ) || 0
-                );
-
-
-                data.append(
-                    "total_amount_from_sanitary_pad_sales_today",
-                    Number(
-                        formData.totalAmountFromSanitaryPadSalesToday
-                    ) || 0
-                );
-
-
-                data.append(
-                    "utr_number",
-                    formData.utrNumber.trim()
-                );
-
-
-                data.append(
-                    "total_center_heads_visited_today",
-                    Number(
-                        formData.totalCenterHeadsVisitedToday
-                    ) || 0
-                );
-
-
-                data.append(
-                    "todays_new_members",
-                    Number(
-                        formData.todaysNewMembers
-                    ) || 0
-                );
-
-
-                // =====================================
-                // REMARKS
-                // =====================================
-
-                data.append(
-                    "additional_remarks",
-                    formData
-                        .additionalRemarks
-                        .trim()
-                );
-
-
-                // =====================================
-                // PHOTO 1
-                // =====================================
-
-                if (
-                    formData.meetingPhoto1
-                ) {
-
-                    data.append(
-                        "meeting_photo_1",
-                        formData.meetingPhoto1
-                    );
-
+                if (formData.shopPhoto) {
+                    data.append("shop_photo", formData.shopPhoto);
                 }
-
-
-                // =====================================
-                // PHOTO 2
-                // =====================================
-
-                if (
-                    formData.meetingPhoto2
-                ) {
-
+                if (formData.shopkeeperRegistrationPhoto) {
                     data.append(
-                        "meeting_photo_2",
-                        formData.meetingPhoto2
+                        "shopkeeper_registration_photo",
+                        formData.shopkeeperRegistrationPhoto
                     );
-
+                }
+                if (formData.workPhotoVideo) {
+                    data.append("work_photo_video", formData.workPhotoVideo);
                 }
 
 
@@ -2308,7 +1864,6 @@ const TrainerDashboard = () => {
             }
 
         };
-
 
     // =================================================
     // LOGOUT
@@ -2763,87 +2318,21 @@ const TrainerDashboard = () => {
                             >
 
                                 <tr>
-
-                                    <th className="text-center">
-                                        SR
-                                    </th>
-
-                                    <th>
-                                        Name
-                                    </th>
-
-                                    <th>
-                                        Designation
-                                    </th>
-
-                                    <th>
-                                        Taluka
-                                    </th>
-
-                                    <th>
-                                        District
-                                    </th>
-
-                                    <th>
-                                        Mobile Number
-                                    </th>
-
-                                    <th>
-                                        Report Date
-                                    </th>
-
-                                    <th className="text-center">
-                                        Authorised Center Heads
-                                    </th>
-
-                                    <th className="text-center">
-                                        Active Center Heads
-                                    </th>
-
-                                    <th>
-                                        Today's Visited Center Heads
-                                    </th>
-
-                                    <th className="text-center">
-                                        Total Sanitary Pads Box Sold Today
-                                    </th>
-
-                                    <th className="text-center">
-                                        Total Amount from Sanitary Pad Box Sales Today
-                                    </th>
-
-                                    <th>
-                                        UTR Number
-                                    </th>
-
-                                    <th className="text-center">
-                                        Total Visited
-                                    </th>
-
-                                    <th className="text-center">
-                                        New Members
-                                    </th>
-
-                                    <th>
-                                        Additional Remarks
-                                    </th>
-
-                                    <th className="text-center">
-                                        Meeting Photo 1
-                                    </th>
-
-                                    <th className="text-center">
-                                        Meeting Photo 2
-                                    </th>
-
-                                    <th className="text-center">
-                                        Status
-                                    </th>
-
-                                    <th className="text-center">
-                                        Action
-                                    </th>
-
+                                    <th className="text-center">SR</th>
+                                    <th>1 Date(दिनांक)</th>
+                                    <th>2 BDO Full Name (BDO चे पूर्ण नाव)</th>
+                                    <th>3 Designation (पद)</th>
+                                    <th>4 Taluka Name (तालुक्याचे नाव)</th>
+                                    <th>5 District Name (जिल्ह्याचे नाव)</th>
+                                    <th>6 Mobile Number (मोबाईल नंबर)</th>
+                                    <th className="text-center">7 Total Number of Shops Visited Today (आज प्रत्यक्ष भेट दिलेल्या दुकानांची एकूण संख्या)</th>
+                                    <th className="text-center">8 Total Amount Collected from Today’s Panel Registrations (आजच्या Panel Registration मधून जमा झालेली एकूण रक्कम)</th>
+                                    <th>9 Payment Mode (पेमेंट पद्धत)</th>
+                                    <th className="text-center">10 Shop Photo (दुकानाचा फोटो)</th>
+                                    <th className="text-center">11 Photo of the Shopkeeper’s Registration Form (दुकानदाराच्या Registration Form चा फोटो)</th>
+                                    <th className="text-center">12 Today’s Work Photo / Video Proof (आजच्या कामाचे Photo / Video Proof)</th>
+                                    <th className="text-center">Status</th>
+                                    <th className="text-center">Action</th>
                                 </tr>
 
                             </thead>
@@ -2923,6 +2412,10 @@ const TrainerDashboard = () => {
                                                 getImageUrl(
                                                     photo2
                                                 );
+                                            const image3 =
+                                                getImageUrl(
+                                                    report.work_photo_video
+                                                );
 
 
                                             return (
@@ -2938,126 +2431,40 @@ const TrainerDashboard = () => {
                                                         {index + 1}
                                                     </td>
 
-
-                                                    <td className="fw-semibold">
-                                                        {report.name || "-"}
-                                                    </td>
-
-
-                                                    <td>
-                                                        {report.designation || "-"}
-                                                    </td>
-
-
-                                                    <td>
-                                                        {report.taluka || "-"}
-                                                    </td>
-
-
-                                                    <td>
-                                                        {report.district || "-"}
-                                                    </td>
-
-
-                                                    <td>
-                                                        {report.mobile_number || "-"}
-                                                    </td>
-
-
                                                     <td>
                                                         {formatDisplayDate(
                                                             report.report_date
                                                         )}
                                                     </td>
 
-
-                                                    <td className="text-center">
-                                                        {
-                                                            report.total_authorised_center_heads ??
-                                                            0
-                                                        }
+                                                    <td className="fw-semibold">
+                                                        {report.name || "-"}
                                                     </td>
-
-
-                                                    <td className="text-center">
-                                                        {
-                                                            report.total_active_center_heads ??
-                                                            0
-                                                        }
-                                                    </td>
-
-
-                                                    <td
-                                                        style={{
-                                                            minWidth:
-                                                                "280px",
-                                                            whiteSpace:
-                                                                "normal",
-                                                        }}
-                                                    >
-                                                        {
-                                                            report.today_visited_center_heads_names ||
-                                                            "-"
-                                                        }
-                                                    </td>
-
-
-                                                    <td className="text-center">
-                                                        {
-                                                            report.total_sanitary_pad_boxes_sold_today ??
-                                                            report.totalSanitaryPadBoxesSoldToday ??
-                                                            0
-                                                        }
-                                                    </td>
-
-
-                                                    <td className="text-center">
-                                                        {
-                                                            report.total_amount_from_sanitary_pad_sales_today ??
-                                                            report.totalAmountFromSanitaryPadSalesToday ??
-                                                            0
-                                                        }
-                                                    </td>
-
 
                                                     <td>
-                                                        {
-                                                            report.utr_number ??
-                                                            report.utrNumber ??
-                                                            "-"
-                                                        }
+                                                        {report.designation || "-"}
+                                                    </td>
+
+                                                    <td>
+                                                        {report.taluka || "-"}
+                                                    </td>
+
+                                                    <td>
+                                                        {report.district || "-"}
+                                                    </td>
+
+                                                    <td>
+                                                        {report.mobile_number || "-"}
                                                     </td>
 
 
                                                     <td className="text-center">
-                                                        {
-                                                            report.total_center_heads_visited_today ??
-                                                            0
-                                                        }
+                                                        {report.total_shops_visited_today ?? 0}
                                                     </td>
-
-
                                                     <td className="text-center">
-                                                        {
-                                                            report.todays_new_members ??
-                                                            0
-                                                        }
+                                                        {report.total_panel_registration_amount ?? 0}
                                                     </td>
-
-
-                                                    <td
-                                                        style={{
-                                                            minWidth:
-                                                                "250px",
-                                                            whiteSpace:
-                                                                "normal",
-                                                        }}
-                                                    >
-                                                        {
-                                                            report.additional_remarks ||
-                                                            "-"
-                                                        }
-                                                    </td>
+                                                    <td>{report.payment_mode || "-"}</td>
 
 
                                                     {/* PHOTO 1 */}
@@ -3072,7 +2479,7 @@ const TrainerDashboard = () => {
                                                                     src={
                                                                         image1
                                                                     }
-                                                                    alt="Meeting Photo 1"
+                                                                    alt="Shop Photo"
                                                                     style={{
                                                                         width:
                                                                             75,
@@ -3090,7 +2497,7 @@ const TrainerDashboard = () => {
                                                                     onClick={() =>
                                                                         handleViewImage(
                                                                             photo1,
-                                                                            "Meeting Photo 1"
+                                                                            "Shop Photo"
                                                                         )
                                                                     }
                                                                     onError={(
@@ -3110,7 +2517,7 @@ const TrainerDashboard = () => {
                                                                         onClick={() =>
                                                                             handleViewImage(
                                                                                 photo1,
-                                                                                "Meeting Photo 1"
+                                                                                "Shop Photo"
                                                                             )
                                                                         }
                                                                     >
@@ -3144,7 +2551,7 @@ const TrainerDashboard = () => {
                                                                     src={
                                                                         image2
                                                                     }
-                                                                    alt="Meeting Photo 2"
+                                                                    alt="Registration Form Photo"
                                                                     style={{
                                                                         width:
                                                                             75,
@@ -3162,7 +2569,7 @@ const TrainerDashboard = () => {
                                                                     onClick={() =>
                                                                         handleViewImage(
                                                                             photo2,
-                                                                            "Meeting Photo 2"
+                                                                            "Registration Form Photo"
                                                                         )
                                                                     }
                                                                     onError={(
@@ -3182,7 +2589,7 @@ const TrainerDashboard = () => {
                                                                         onClick={() =>
                                                                             handleViewImage(
                                                                                 photo2,
-                                                                                "Meeting Photo 2"
+                                                                                "Registration Form Photo"
                                                                             )
                                                                         }
                                                                     >
@@ -3201,6 +2608,29 @@ const TrainerDashboard = () => {
 
                                                         )}
 
+                                                    </td>
+
+
+                                                    {/* WORK PROOF */}
+
+                                                    <td className="text-center">
+                                                        {image3 ? (
+                                                            <Button
+                                                                size="sm"
+                                                                variant="link"
+                                                                className="p-0"
+                                                                onClick={() =>
+                                                                    handleViewImage(
+                                                                        report.work_photo_video,
+                                                                        "Work Photo / Video Proof"
+                                                                    )
+                                                                }
+                                                            >
+                                                                View
+                                                            </Button>
+                                                        ) : (
+                                                            <span className="text-muted">-</span>
+                                                        )}
                                                     </td>
 
 
@@ -3361,7 +2791,7 @@ const TrainerDashboard = () => {
                                 <Form.Group>
 
                                     <Form.Label className="fw-semibold">
-                                        Trainer Name (नाव) *
+                                        BDO Full Name (BDO चे पूर्ण नाव) *
                                     </Form.Label>
 
                                     <Form.Control
@@ -3502,7 +2932,110 @@ const TrainerDashboard = () => {
 
                         <hr className="my-4" />
 
+                        <h5 className="fw-bold border-bottom pb-2 mb-3">
+                            BDO Daily Work Details (BDO दैनिक कामाचा तपशील)
+                        </h5>
+                        <Row className="g-3">
+                            <Col xs={12} md={6}>
+                                <Form.Group>
+                                    <Form.Label className="fw-semibold">
+                                        Total Number of Shops Visited Today (आज प्रत्यक्ष भेट दिलेल्या दुकानांची एकूण संख्या) *
+                                    </Form.Label>
+                                    <Form.Control
+                                        type="number"
+                                        min="0"
+                                        name="totalShopsVisitedToday"
+                                        value={formData.totalShopsVisitedToday}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col xs={12} md={6}>
+                                <Form.Group>
+                                    <Form.Label className="fw-semibold">
+                                        Total Amount Collected from Today&apos;s Panel Registrations (आजच्या Panel Registration मधून जमा झालेली एकूण रक्कम) *
+                                    </Form.Label>
+                                    <Form.Control
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        name="totalPanelRegistrationAmount"
+                                        value={formData.totalPanelRegistrationAmount}
+                                        onChange={handleChange}
+                                        required
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col xs={12} md={6}>
+                                <Form.Group>
+                                    <Form.Label className="fw-semibold">
+                                        Payment Mode (पेमेंट पद्धत) *
+                                    </Form.Label>
+                                    <Form.Select
+                                        name="paymentMode"
+                                        value={formData.paymentMode}
+                                        onChange={handleChange}
+                                        required
+                                    >
+                                        <option value="">Select payment mode</option>
+                                        <option value="Cash">Cash</option>
+                                        <option value="UPI">UPI</option>
+                                        <option value="Online">Online</option>
+                                        <option value="Bank Transfer">Bank Transfer</option>
+                                    </Form.Select>
+                                </Form.Group>
+                            </Col>
+                        </Row>
 
+                        <hr className="my-4" />
+                        <h5 className="fw-bold border-bottom pb-2 mb-3">
+                            Work Proof (कामाचा पुरावा)
+                        </h5>
+                        <Row className="g-4">
+                            <Col xs={12} md={4}>
+                                <Form.Group>
+                                    <Form.Label className="fw-semibold">
+                                        Shop Photo (दुकानाचा फोटो)
+                                    </Form.Label>
+                                    <Form.Control
+                                        type="file"
+                                        name="shopPhoto"
+                                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                                        onChange={handleChange}
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col xs={12} md={4}>
+                                <Form.Group>
+                                    <Form.Label className="fw-semibold">
+                                        Photo of the Shopkeeper&apos;s Registration Form (दुकानदाराच्या Registration Form चा फोटो)
+                                    </Form.Label>
+                                    <Form.Control
+                                        type="file"
+                                        name="shopkeeperRegistrationPhoto"
+                                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                                        onChange={handleChange}
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col xs={12} md={4}>
+                                <Form.Group>
+                                    <Form.Label className="fw-semibold">
+                                        Today&apos;s Work Photo / Video Proof (आजच्या कामाचे Photo / Video Proof)
+                                    </Form.Label>
+                                    <Form.Control
+                                        type="file"
+                                        name="workPhotoVideo"
+                                        accept="image/*,video/*"
+                                        onChange={handleChange}
+                                    />
+                                </Form.Group>
+                            </Col>
+                        </Row>
+
+                        {false && (
+                        <>
                         {/* =================================================
                             CENTER HEADS
                         ================================================= */}
@@ -3972,6 +3505,8 @@ const TrainerDashboard = () => {
                             </Col>
 
                         </Row>
+                        </>
+                        )}
 
                     </Modal.Body>
 

@@ -1,10 +1,8 @@
 const db = require("../config/db");
 const { syncSystemUser, deleteSystemUser } = require("../utils/user.utils");
 
-// =====================================================
 // GET ALL TALUKAS
 // GET /api/taluka
-// =====================================================
 
 const getTalukas = async (req, res) => {
     try {
@@ -16,7 +14,7 @@ const getTalukas = async (req, res) => {
                 t.contact_number,
                 t.designation,
                 t.district_id,
-                d.district_name,
+                COALESCE(NULLIF(t.district_name, ''), NULLIF(d.district_name, ''), d.name, '') AS district_name,
                 d.name AS district_head_name,
                 t.taluka_name,
                 t.joining_date,
@@ -54,10 +52,8 @@ const getTalukas = async (req, res) => {
 };
 
 
-// =====================================================
 // GET TALUKAS BY DISTRICT
 // GET /api/taluka/district/:districtId
-// =====================================================
 
 const getTalukasByDistrict = async (req, res) => {
     try {
@@ -78,7 +74,7 @@ const getTalukasByDistrict = async (req, res) => {
                 t.contact_number,
                 t.designation,
                 t.district_id,
-                d.district_name,
+                COALESCE(NULLIF(t.district_name, ''), NULLIF(d.district_name, ''), d.name, '') AS district_name,
                 d.name AS district_head_name,
                 t.taluka_name,
                 t.joining_date,
@@ -117,10 +113,8 @@ const getTalukasByDistrict = async (req, res) => {
 };
 
 
-// =====================================================
 // GET SINGLE TALUKA
 // GET /api/taluka/:id
-// =====================================================
 
 const getTalukaById = async (req, res) => {
     try {
@@ -134,7 +128,7 @@ const getTalukaById = async (req, res) => {
                 t.contact_number,
                 t.designation,
                 t.district_id,
-                d.district_name,
+                COALESCE(NULLIF(t.district_name, ''), NULLIF(d.district_name, ''), d.name, '') AS district_name,
                 d.name AS district_head_name,
                 t.taluka_name,
                 t.joining_date,
@@ -178,10 +172,8 @@ const getTalukaById = async (req, res) => {
 };
 
 
-// =====================================================
 // CREATE TALUKA
 // POST /api/taluka
-// =====================================================
 
 const createTaluka = async (req, res) => {
     try {
@@ -191,6 +183,8 @@ const createTaluka = async (req, res) => {
             contact_number,
             designation,
             district_id,
+            district_name,
+            district,
             taluka_name,
             taluka,
             joining_date,
@@ -210,31 +204,53 @@ const createTaluka = async (req, res) => {
             });
         }
 
-        if (!district_id) {
-            return res.status(400).json({
-                success: false,
-                message: "District is required",
-            });
-        }
-
         const finalTalukaName = taluka_name || taluka || name;
 
-        // Check district exists
-        const [districtRows] = await db.query(
-            "SELECT id, district_name, name FROM districts WHERE id = ? LIMIT 1",
-            [district_id]
-        );
+        const rawDistrictName = district_name || district || null;
+        let finalDistrictId = district_id ? Number(district_id) : null;
+        let finalDistrictName = rawDistrictName ? String(rawDistrictName).trim() : "";
 
-        if (districtRows.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "Selected district not found",
-            });
+        if (finalDistrictId) {
+            const [dRows] = await db.query(
+                "SELECT id, district_name, name FROM districts WHERE id = ? LIMIT 1",
+                [finalDistrictId]
+            );
+            if (dRows.length > 0) {
+                finalDistrictId = dRows[0].id;
+                if (!finalDistrictName) {
+                    finalDistrictName = dRows[0].district_name || dRows[0].name || "";
+                }
+            } else {
+                finalDistrictId = null;
+            }
         }
 
-        const cleanUserId = user_id && String(user_id).trim()
-            ? String(user_id).trim()
-            : String(name).trim();
+        if (!finalDistrictId && finalDistrictName) {
+            const [findD] = await db.query(
+                "SELECT id, district_name, name FROM districts WHERE LOWER(TRIM(district_name)) = LOWER(?) OR LOWER(TRIM(name)) = LOWER(?) LIMIT 1",
+                [finalDistrictName, finalDistrictName]
+            );
+            if (findD.length > 0) {
+                finalDistrictId = findD[0].id;
+                finalDistrictName = findD[0].district_name || findD[0].name || finalDistrictName;
+            } else {
+                const generatedDistrictUserId = `district_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                const [newD] = await db.query(
+                    "INSERT INTO districts (district_name, name, user_id, contact_number, password, status) VALUES (?, ?, ?, '', '123456', 'active')",
+                    [finalDistrictName, finalDistrictName, generatedDistrictUserId]
+                );
+                finalDistrictId = newD.insertId;
+            }
+        }
+
+        const cleanUserId = String(user_id ?? "").trim() || String(name).trim();
+
+        if (!cleanUserId) {
+            return res.status(400).json({
+                success: false,
+                message: "User ID is required",
+            });
+        }
 
         const cleanPassword = password && String(password).trim()
             ? String(password).trim()
@@ -272,6 +288,7 @@ const createTaluka = async (req, res) => {
                 taluka_code,
                 name,
                 district_id,
+                district_name,
                 taluka_name,
                 contact_number,
                 designation,
@@ -284,11 +301,12 @@ const createTaluka = async (req, res) => {
                 email,
                 password
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
             finalTalukaCode,
             String(name).trim(),
-            district_id,
+            finalDistrictId,
+            finalDistrictName || null,
             String(finalTalukaName).trim(),
             contact_number ? String(contact_number).trim() : null,
             designation ? String(designation).trim() : null,
@@ -319,7 +337,7 @@ const createTaluka = async (req, res) => {
                 t.contact_number,
                 t.designation,
                 t.district_id,
-                d.district_name,
+                COALESCE(NULLIF(t.district_name, ''), NULLIF(d.district_name, ''), d.name, '') AS district_name,
                 d.name AS district_head_name,
                 t.taluka_name,
                 t.joining_date,
@@ -356,10 +374,8 @@ const createTaluka = async (req, res) => {
 };
 
 
-// =====================================================
 // UPDATE TALUKA
 // PUT /api/taluka/:id
-// =====================================================
 
 const updateTaluka = async (req, res) => {
     try {
@@ -370,6 +386,8 @@ const updateTaluka = async (req, res) => {
             contact_number,
             designation,
             district_id,
+            district_name,
+            district,
             taluka_name,
             taluka,
             joining_date,
@@ -396,8 +414,47 @@ const updateTaluka = async (req, res) => {
 
         const oldRecord = existingRows[0];
         const finalName = name !== undefined ? String(name).trim() : oldRecord.name;
-        const finalUserId = user_id !== undefined ? String(user_id).trim() : oldRecord.user_id;
-        const finalDistrictId = district_id !== undefined ? district_id : oldRecord.district_id;
+        const finalUserId = user_id !== undefined
+            ? (String(user_id).trim() || finalName)
+            : oldRecord.user_id;
+
+        const rawDistrictName = district_name !== undefined ? district_name : (district !== undefined ? district : oldRecord.district_name);
+        let finalDistrictId = district_id !== undefined ? (district_id ? Number(district_id) : null) : oldRecord.district_id;
+        let finalDistrictName = rawDistrictName ? String(rawDistrictName).trim() : "";
+
+        if (finalDistrictId) {
+            const [dRows] = await db.query(
+                "SELECT id, district_name, name FROM districts WHERE id = ? LIMIT 1",
+                [finalDistrictId]
+            );
+            if (dRows.length > 0) {
+                finalDistrictId = dRows[0].id;
+                if (!finalDistrictName) {
+                    finalDistrictName = dRows[0].district_name || dRows[0].name || "";
+                }
+            } else {
+                finalDistrictId = null;
+            }
+        }
+
+        if (!finalDistrictId && finalDistrictName) {
+            const [findD] = await db.query(
+                "SELECT id, district_name, name FROM districts WHERE LOWER(TRIM(district_name)) = LOWER(?) OR LOWER(TRIM(name)) = LOWER(?) LIMIT 1",
+                [finalDistrictName, finalDistrictName]
+            );
+            if (findD.length > 0) {
+                finalDistrictId = findD[0].id;
+                finalDistrictName = findD[0].district_name || findD[0].name || finalDistrictName;
+            } else {
+                const generatedDistrictUserId = `district_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                const [newD] = await db.query(
+                    "INSERT INTO districts (district_name, name, user_id, contact_number, password, status) VALUES (?, ?, ?, '', '123456', 'active')",
+                    [finalDistrictName, finalDistrictName, generatedDistrictUserId]
+                );
+                finalDistrictId = newD.insertId;
+            }
+        }
+
         const finalTalukaName = taluka_name || taluka || oldRecord.taluka_name || finalName;
         const normalizedStatus = status !== undefined
             ? (String(status).toLowerCase() === "inactive" ? "inactive" : "active")
@@ -427,6 +484,7 @@ const updateTaluka = async (req, res) => {
                 taluka_code = COALESCE(?, taluka_code),
                 name = ?,
                 district_id = ?,
+                district_name = ?,
                 taluka_name = ?,
                 contact_number = COALESCE(?, contact_number),
                 designation = COALESCE(?, designation),
@@ -443,6 +501,7 @@ const updateTaluka = async (req, res) => {
             taluka_code ? String(taluka_code).trim() : null,
             finalName,
             finalDistrictId,
+            finalDistrictName || null,
             String(finalTalukaName).trim(),
             contact_number ? String(contact_number).trim() : null,
             designation ? String(designation).trim() : null,
@@ -475,7 +534,7 @@ const updateTaluka = async (req, res) => {
                 t.contact_number,
                 t.designation,
                 t.district_id,
-                d.district_name,
+                COALESCE(NULLIF(t.district_name, ''), NULLIF(d.district_name, ''), d.name, '') AS district_name,
                 d.name AS district_head_name,
                 t.taluka_name,
                 t.joining_date,
@@ -532,6 +591,26 @@ const deleteTaluka = async (req, res) => {
             });
         }
 
+        const [[referenceCounts]] = await db.query(`
+            SELECT
+                (SELECT COUNT(*) FROM trainers WHERE taluka_id = ?) AS trainer_count,
+                (SELECT COUNT(*) FROM vibhags WHERE taluka_id = ?) AS vibhag_count
+        `, [id, id]);
+
+        const trainerCount = Number(referenceCounts?.trainer_count || 0);
+        const vibhagCount = Number(referenceCounts?.vibhag_count || 0);
+
+        if (trainerCount > 0 || vibhagCount > 0) {
+            const references = [];
+            if (trainerCount > 0) references.push(`${trainerCount} trainer(s)`);
+            if (vibhagCount > 0) references.push(`${vibhagCount} vibhag(s)`);
+
+            return res.status(409).json({
+                success: false,
+                message: `Taluka cannot be deleted because it is used by ${references.join(" and ")}`,
+            });
+        }
+
         const [result] = await db.query("DELETE FROM talukas WHERE id = ?", [id]);
 
         if (result.affectedRows === 0) {
@@ -552,6 +631,13 @@ const deleteTaluka = async (req, res) => {
 
     } catch (error) {
         console.error("DELETE TALUKA ERROR:", error);
+
+        if (error.code === "ER_DUP_ENTRY" && error.message.includes("user_id")) {
+            return res.status(409).json({
+                success: false,
+                message: "User ID already exists in Talukas",
+            });
+        }
 
         if (
             error.code === "ER_ROW_IS_REFERENCED_2" ||

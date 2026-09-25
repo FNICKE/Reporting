@@ -340,18 +340,17 @@ const createTrainer = async (req, res) => {
             });
         }
 
-        if (!district_id) {
-            return res.status(400).json({
-                success: false,
-                message: "District is required",
-            });
+        let finalDistrictId = district_id ? Number(district_id) : null;
+        if (finalDistrictId) {
+            const [dRows] = await db.query("SELECT id FROM districts WHERE id = ? LIMIT 1", [finalDistrictId]);
+            if (dRows.length === 0) finalDistrictId = null;
         }
 
-        if (!taluka_id) {
-            return res.status(400).json({
-                success: false,
-                message: "Taluka is required",
-            });
+        let finalTalukaId = taluka_id ? Number(taluka_id) : null;
+
+        if (finalTalukaId) {
+            const [tRows] = await db.query("SELECT id FROM talukas WHERE id = ? LIMIT 1", [finalTalukaId]);
+            if (tRows.length === 0) finalTalukaId = null;
         }
 
         const cleanUserId = user_id && String(user_id).trim()
@@ -412,8 +411,8 @@ const createTrainer = async (req, res) => {
         `, [
             String(finalName).trim(),
             finalCode,
-            district_id,
-            taluka_id,
+            finalDistrictId,
+            finalTalukaId,
             vibhag_id || null,
             contact_number ? String(contact_number).trim() : null,
             cleanUserId,
@@ -532,8 +531,20 @@ const updateTrainer = async (req, res) => {
         const oldRecord = existing[0];
         const finalName = (trainer_name || name) !== undefined ? String(trainer_name || name).trim() : oldRecord.trainer_name;
         const finalUserId = user_id !== undefined ? String(user_id).trim() : oldRecord.user_id;
-        const finalDistrictId = district_id !== undefined ? district_id : oldRecord.district_id;
-        const finalTalukaId = taluka_id !== undefined ? taluka_id : oldRecord.taluka_id;
+
+        let finalDistrictId = district_id !== undefined ? Number(district_id) : oldRecord.district_id;
+        if (finalDistrictId) {
+            const [dRows] = await db.query("SELECT id FROM districts WHERE id = ? LIMIT 1", [finalDistrictId]);
+            if (dRows.length === 0) finalDistrictId = null;
+        }
+
+        let finalTalukaId = taluka_id !== undefined ? Number(taluka_id) : oldRecord.taluka_id;
+
+        if (finalTalukaId) {
+            const [tRows] = await db.query("SELECT id FROM talukas WHERE id = ? LIMIT 1", [finalTalukaId]);
+            if (tRows.length === 0) finalTalukaId = null;
+        }
+
         const normalizedStatus = status !== undefined
             ? (String(status).toLowerCase() === "inactive" ? "inactive" : "active")
             : oldRecord.status;

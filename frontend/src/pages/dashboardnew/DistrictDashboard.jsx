@@ -16,20 +16,20 @@ const EMPTY_FORM = {
   district: "",
   mobile_number: "",
   report_date: "",
-  total_authorised_center_heads: "",
+  total_authorised_center_heads_300_to_500: "",
   total_active_center_heads: "",
-  today_visited_centers: "",
-  visited_center_head_name: "",
-  new_members_added_today: "",
-  sanitary_pad_box_sales: "",
-  health_atm_machine_details: "",
-  birth_baby_girls: "",
-  death_count: "",
-  accident_count: "",
+  machine1_camp_name: "",
+  machine1_test_amount: "",
+  machine1_medicine_amount: "",
+  machine1_total_amount: "",
+  machine2_camp_name: "",
+  machine2_test_amount: "",
+  machine2_medicine_amount: "",
+  machine2_total_amount: "",
   utr_number: "",
-  any_other_information: "",
-  meeting_photo_1: null,
-  meeting_photo_2: null,
+  additional_remarks: "",
+  machine1_camp_photo: null,
+  machine2_camp_photo: null,
 };
 
 const getTodayForInput = () => {
@@ -128,10 +128,21 @@ const DistrictDashboard = () => {
       setLoading(true);
       setError("");
 
+      const role = (localStorage.getItem("logged_in_role") || "").toLowerCase();
+      const isAdmin = role === "admin" || role === "superadmin";
       const userId = getDistrictUserId();
-      const url = userId
-        ? `${API_BASE_URL}?user_id=${encodeURIComponent(userId)}`
-        : API_BASE_URL;
+      const mobile = localStorage.getItem("logged_in_mobile") || "";
+      const userName = localStorage.getItem("logged_in_name") || "";
+
+      let url = API_BASE_URL;
+      if (!isAdmin && userId) {
+        const params = new URLSearchParams();
+        params.set("role", role || "district");
+        params.set("user_id", userId);
+        if (mobile) params.set("mobile_number", mobile);
+        if (userName) params.set("user_name", userName);
+        url = `${API_BASE_URL}?${params.toString()}`;
+      }
 
       const response = await fetch(url);
       const data = await response.json();
@@ -141,7 +152,24 @@ const DistrictDashboard = () => {
       }
 
       const rows = data.reports || data.data || [];
-      setReports(Array.isArray(rows) ? rows : []);
+      const list = Array.isArray(rows) ? rows : [];
+
+      if (isAdmin) {
+        setReports(list);
+      } else {
+        const myReports = list.filter((r) => {
+          const rUid = String(r?.user_id || "").trim();
+          if (rUid && userId) return rUid.toLowerCase() === userId.toLowerCase();
+          if (!rUid) {
+            const rMobile = String(r?.mobile_number || "").trim();
+            if (mobile && rMobile && rMobile === mobile) return true;
+            const rName = String(r?.name || "").trim().toLowerCase();
+            if (userName && rName && rName === userName.toLowerCase()) return true;
+          }
+          return false;
+        });
+        setReports(myReports);
+      }
     } catch (err) {
       console.error("Report loading error:", err);
       setError(err.message || "Unable to load reports.");
@@ -178,6 +206,7 @@ const DistrictDashboard = () => {
       ...EMPTY_FORM,
       report_date: getTodayForInput(),
       name: localStorage.getItem("logged_in_name") || "",
+      taluka: localStorage.getItem("logged_in_taluka_name") || "",
       district: localStorage.getItem("logged_in_district_name") || "",
     });
     setError("");
@@ -194,8 +223,7 @@ const DistrictDashboard = () => {
       district: report.district || "",
       mobile_number: report.mobile_number || report.mobileNumber || "",
       report_date: formatDateForInput(report.report_date || report.reportDate),
-      total_authorised_center_heads:
-        report.total_authorised_center_heads ??
+      total_authorised_center_heads_300_to_500:
         report.total_authorised_center_heads_300_to_500 ??
         report.totalAuthorisedCenterHeads ??
         "",
@@ -203,53 +231,21 @@ const DistrictDashboard = () => {
         report.total_active_center_heads ??
         report.totalActiveCenterHeads ??
         "",
-      today_visited_centers:
-        report.today_visited_centers ??
-        report.todayVisitedCenters ??
-        "",
-      visited_center_head_name:
-        report.visited_center_head_name ??
-        report.visitedCenterHeadName ??
-        "",
-      new_members_added_today:
-        report.new_members_added_today ??
-        report.newMembersAddedToday ??
-        "",
-      sanitary_pad_box_sales:
-        report.sanitary_pad_box_sales ??
-        report.sanitaryPadBoxSales ??
-        "",
-      health_atm_machine_details:
-        report.health_atm_machine_details ??
-        report.healthAtmMachineDetails ??
-        "",
-      birth_baby_girls:
-        report.birth_baby_girls ??
-        report.birthBabyGirls ??
-        "",
-      death_count:
-        report.death_count ??
-        report.deathCount ??
-        "",
-      accident_count:
-        report.accident_count ??
-        report.accidentCount ??
-        "",
+      machine1_camp_name: report.machine1_camp_name || "",
+      machine1_test_amount: report.machine1_test_amount ?? "",
+      machine1_medicine_amount: report.machine1_medicine_amount ?? "",
+      machine1_total_amount: report.machine1_total_amount ?? "",
+      machine2_camp_name: report.machine2_camp_name || "",
+      machine2_test_amount: report.machine2_test_amount ?? "",
+      machine2_medicine_amount: report.machine2_medicine_amount ?? "",
+      machine2_total_amount: report.machine2_total_amount ?? "",
       utr_number: report.utr_number || report.utrNumber || "",
-      any_other_information:
-        report.any_other_information ||
-        report.anyOtherInformation ||
+      additional_remarks:
         report.additional_remarks ||
         report.additionalRemarks ||
         "",
-      meeting_photo_1:
-        report.meeting_photo_1 ||
-        report.machine1_camp_photo ||
-        null,
-      meeting_photo_2:
-        report.meeting_photo_2 ||
-        report.machine2_camp_photo ||
-        null,
+      machine1_camp_photo: report.machine1_camp_photo || null,
+      machine2_camp_photo: report.machine2_camp_photo || null,
     });
     setError("");
     setSuccess("");
@@ -288,63 +284,36 @@ const DistrictDashboard = () => {
 
       formPayload.append("name", formData.name.trim());
       formPayload.append("designation", formData.designation.trim());
-      formPayload.append("taluka", formData.taluka.trim());
+      formPayload.append("taluka", (formData.taluka || "").trim());
       formPayload.append("district", formData.district.trim());
       formPayload.append("mobile_number", formData.mobile_number.trim());
       formPayload.append("report_date", formData.report_date);
 
       formPayload.append(
-        "total_authorised_center_heads",
-        formData.total_authorised_center_heads || "0"
+        "total_authorised_center_heads_300_to_500",
+        formData.total_authorised_center_heads_300_to_500 || "0"
       );
       formPayload.append(
         "total_active_center_heads",
         formData.total_active_center_heads || "0"
       );
-      formPayload.append(
-        "today_visited_centers",
-        formData.today_visited_centers || "0"
-      );
-      formPayload.append(
-        "visited_center_head_name",
-        formData.visited_center_head_name || ""
-      );
-      formPayload.append(
-        "new_members_added_today",
-        formData.new_members_added_today || "0"
-      );
-      formPayload.append(
-        "sanitary_pad_box_sales",
-        formData.sanitary_pad_box_sales || "0"
-      );
-      formPayload.append(
-        "health_atm_machine_details",
-        formData.health_atm_machine_details || ""
-      );
-      formPayload.append(
-        "birth_baby_girls",
-        formData.birth_baby_girls || "0"
-      );
-      formPayload.append(
-        "death_count",
-        formData.death_count || "0"
-      );
-      formPayload.append(
-        "accident_count",
-        formData.accident_count || "0"
-      );
+      formPayload.append("machine1_camp_name", formData.machine1_camp_name || "");
+      formPayload.append("machine1_test_amount", formData.machine1_test_amount || "0");
+      formPayload.append("machine1_medicine_amount", formData.machine1_medicine_amount || "0");
+      formPayload.append("machine1_total_amount", formData.machine1_total_amount || "0");
+      formPayload.append("machine2_camp_name", formData.machine2_camp_name || "");
+      formPayload.append("machine2_test_amount", formData.machine2_test_amount || "0");
+      formPayload.append("machine2_medicine_amount", formData.machine2_medicine_amount || "0");
+      formPayload.append("machine2_total_amount", formData.machine2_total_amount || "0");
       formPayload.append("utr_number", formData.utr_number || "");
-      formPayload.append(
-        "any_other_information",
-        formData.any_other_information || ""
-      );
+      formPayload.append("additional_remarks", formData.additional_remarks || "");
 
       // Photos
-      if (formData.meeting_photo_1 instanceof File) {
-        formPayload.append("meeting_photo_1", formData.meeting_photo_1);
+      if (formData.machine1_camp_photo instanceof File) {
+        formPayload.append("machine1_camp_photo", formData.machine1_camp_photo);
       }
-      if (formData.meeting_photo_2 instanceof File) {
-        formPayload.append("meeting_photo_2", formData.meeting_photo_2);
+      if (formData.machine2_camp_photo instanceof File) {
+        formPayload.append("machine2_camp_photo", formData.machine2_camp_photo);
       }
 
       const url = editingId
@@ -460,7 +429,6 @@ const DistrictDashboard = () => {
         report?.utr_number,
         report?.utrNumber,
         report?.visited_center_head_name,
-        report?.health_atm_machine_details,
       ].some((val) => normalize(val).includes(globalKeyword));
 
     const matchesName = !nameKeyword || normalize(report?.name).includes(nameKeyword);
@@ -497,24 +465,24 @@ const DistrictDashboard = () => {
 
     const headers = [
       "SR",
-      "Name (नाव)",
-      "Designation (पद)",
+      "Name(नाव)",
+      "Designation(पद)",
       "Taluka (तालुका)",
       "District (जिल्हा)",
       "Mobile Number (मोबाईल क्रमांक)",
       "Report Date (अहवालाची तारीख)",
-      "Total Authorised Center Head -10",
-      "Total Active Center Head",
-      "Today Visited Centers (आज भेट दिलेली केंद्रे)",
-      "Visited Center Head Name (केंद्र प्रमुख यांची नावे)",
-      "New Members Added Today (आज नव्याने जोडलेले सदस्य)",
-      "Sanitary Pad Box Sales (पॅड बॉक्स विक्री)",
-      "Today's Health ATM Machine Details",
-      "Birth (Baby Girls)",
-      "Death Count",
-      "Accident Count",
-      "UTR Number",
-      "Any Other Information (इतर माहिती)",
+      "Total authourised center Head 300 to 500 (अधिकृत केंद्र प्रमुखांची एकूण संख्या (३०० ते ५००)",
+      "Total Active center Head (सक्रिय केंद्र प्रमुखांची एकूण संख्या)",
+      "Today's Machine-1 Camp Name आजच्या मशीन 1 शिबिराचे नाव",
+      "Today's Machine-1 Total Test Amount (₹)  आजची मशीन 1 तपासणीची एकूण रक्कम (₹)",
+      "Today's Machine-1 Total Medicine Amount (₹) आजची मशीन 1 औषधांची एकूण रक्कम (₹)",
+      "Today's Machine-1 Total Amount (₹)  आजची मशीन 1 एकूण रक्कम (₹)",
+      "Today's Machine-2 Camp Name (आजच्या मशीन 2 शिबिराचे नाव )",
+      "Today's Machine-2 Total Test Amount (₹)  आजची मशीन 2 तपासणीची एकूण रक्कम (₹)",
+      "Today's Machine-2 Total Medicine Amount (₹) (आजची मशीन 2 औषधांची एकूण रक्कम (₹))",
+      "Today's Machine-2 Total Amount (₹) (आजची मशीन 2 एकूण रक्कम (₹) )",
+      "Machine 1 and Machine-2 UTR Number( मशीन 1 आणि मशीन 2 च्या व्यवहारांचे UTR क्रमांक)",
+      "Additional Remarks (इतर माहिती)",
       "Status",
     ];
 
@@ -526,18 +494,18 @@ const DistrictDashboard = () => {
       r.district || "-",
       r.mobile_number || r.mobileNumber || "-",
       formatDateForTable(r.report_date || r.reportDate),
-      r.total_authorised_center_heads ?? r.total_authorised_center_heads_300_to_500 ?? "0",
+      r.total_authorised_center_heads_300_to_500 ?? "0",
       r.total_active_center_heads ?? "0",
-      r.today_visited_centers ?? "0",
-      r.visited_center_head_name || "-",
-      r.new_members_added_today ?? "0",
-      r.sanitary_pad_box_sales ?? "0",
-      r.health_atm_machine_details || "-",
-      r.birth_baby_girls ?? "0",
-      r.death_count ?? "0",
-      r.accident_count ?? "0",
+      r.machine1_camp_name || "-",
+      r.machine1_test_amount ?? "0",
+      r.machine1_medicine_amount ?? "0",
+      r.machine1_total_amount ?? "0",
+      r.machine2_camp_name || "-",
+      r.machine2_test_amount ?? "0",
+      r.machine2_medicine_amount ?? "0",
+      r.machine2_total_amount ?? "0",
       r.utr_number || r.utrNumber || "-",
-      r.any_other_information || r.additional_remarks || "-",
+      r.additional_remarks || "-",
       r.status || "active",
     ]);
 
@@ -738,26 +706,52 @@ const DistrictDashboard = () => {
                 <thead className="table-light">
                   <tr>
                     <th className="text-center" style={{ width: "60px" }}>SR</th>
-                    <th style={{ minWidth: "180px" }}>Name (नाव)</th>
-                    <th style={{ minWidth: "150px" }}>Designation (पद)</th>
-                    <th style={{ minWidth: "130px" }}>Taluka (तालुका)</th>
+                    <th style={{ minWidth: "180px" }}>Name(नाव)</th>
+                    <th style={{ minWidth: "150px" }}>Designation(पद)</th>
+                    <th style={{ minWidth: "140px" }}>Taluka (तालुका)</th>
                     <th style={{ minWidth: "130px" }}>District (जिल्हा)</th>
                     <th style={{ minWidth: "150px" }}>Mobile Number (मोबाईल क्रमांक)</th>
                     <th style={{ minWidth: "140px" }}>Report Date (अहवालाची तारीख)</th>
-                    <th className="text-center" style={{ minWidth: "220px" }}>Total authourised center Head -10</th>
-                    <th className="text-center" style={{ minWidth: "180px" }}>Total Active center Head</th>
-                    <th className="text-center" style={{ minWidth: "160px" }}>Today Visited Centers</th>
-                    <th style={{ minWidth: "200px" }}>Visited Center Head Name</th>
-                    <th className="text-center" style={{ minWidth: "180px" }}>New Members Added Today</th>
-                    <th className="text-center" style={{ minWidth: "160px" }}>Sanitary Pad box Sales</th>
-                    <th style={{ minWidth: "260px" }}>Today's health ATM Machine details</th>
-                    <th className="text-center" style={{ minWidth: "150px" }}>Birth (Baby Girls)</th>
-                    <th className="text-center" style={{ minWidth: "130px" }}>Death Count</th>
-                    <th className="text-center" style={{ minWidth: "140px" }}>Accident Count</th>
-                    <th style={{ minWidth: "160px" }}>UTR Number</th>
-                    <th style={{ minWidth: "260px" }}>Any Other Information (इतर माहिती)</th>
-                    <th className="text-center" style={{ minWidth: "140px" }}>Meeting Photo 1</th>
-                    <th className="text-center" style={{ minWidth: "140px" }}>Meeting Photo 2</th>
+                    <th className="text-center" style={{ minWidth: "260px" }}>
+                      Total authourised center Head 300 to 500 (अधिकृत केंद्र प्रमुखांची एकूण संख्या (३०० ते ५००)
+                    </th>
+                    <th className="text-center" style={{ minWidth: "180px" }}>
+                      Total Active center Head (सक्रिय केंद्र प्रमुखांची एकूण संख्या)
+                    </th>
+                    <th style={{ minWidth: "230px" }}>
+                      Today's Machine-1 Camp Name आजच्या मशीन 1 शिबिराचे नाव
+                    </th>
+                    <th className="text-center" style={{ minWidth: "200px" }}>
+                      Today's Machine-1 Total Test Amount (₹)  आजची मशीन 1 तपासणीची एकूण रक्कम (₹)
+                    </th>
+                    <th className="text-center" style={{ minWidth: "220px" }}>
+                      Today's Machine-1 Total Medicine Amount (₹) आजची मशीन 1 औषधांची एकूण रक्कम (₹)
+                    </th>
+                    <th className="text-center" style={{ minWidth: "200px" }}>
+                      Today's Machine-1 Total Amount (₹)  आजची मशीन 1 एकूण रक्कम (₹)
+                    </th>
+                    <th style={{ minWidth: "230px" }}>
+                      Today's Machine-2 Camp Name (आजच्या मशीन 2 शिबिराचे नाव )
+                    </th>
+                    <th className="text-center" style={{ minWidth: "200px" }}>
+                      Today's Machine-2 Total Test Amount (₹)  आजची मशीन 2 तपासणीची एकूण रक्कम (₹)
+                    </th>
+                    <th className="text-center" style={{ minWidth: "220px" }}>
+                      Today's Machine-2 Total Medicine Amount (₹) (आजची मशीन 2 औषधांची एकूण रक्कम (₹))
+                    </th>
+                    <th className="text-center" style={{ minWidth: "200px" }}>
+                      Today's Machine-2 Total Amount (₹) (आजची मशीन 2 एकूण रक्कम (₹) )
+                    </th>
+                    <th style={{ minWidth: "220px" }}>
+                      Machine 1 and Machine-2 UTR Number( मशीन 1 आणि मशीन 2 च्या व्यवहारांचे UTR क्रमांक)
+                    </th>
+                    <th style={{ minWidth: "260px" }}>Additional Remarks (इतर माहिती)</th>
+                    <th className="text-center" style={{ minWidth: "150px" }}>
+                      Machine 1camp photo (मशीन 1 च्या शिबिराचा फोटो)
+                    </th>
+                    <th className="text-center" style={{ minWidth: "150px" }}>
+                      Machine 2 Camp photo (मशीन 2च्या शिबिराचा फोटो)
+                    </th>
                     <th className="text-center" style={{ minWidth: "100px" }}>Status</th>
                     <th className="text-center" style={{ minWidth: "140px" }}>Action</th>
                   </tr>
@@ -779,8 +773,8 @@ const DistrictDashboard = () => {
                     </tr>
                   ) : (
                     filteredReports.map((report, index) => {
-                      const photo1 = report.meeting_photo_1 || report.machine1_camp_photo;
-                      const photo2 = report.meeting_photo_2 || report.machine2_camp_photo;
+                      const photo1 = report.machine1_camp_photo;
+                      const photo2 = report.machine2_camp_photo;
 
                       return (
                         <tr key={report.id}>
@@ -792,21 +786,20 @@ const DistrictDashboard = () => {
                           <td>{report.mobile_number || report.mobileNumber || "-"}</td>
                           <td>{formatDateForTable(report.report_date || report.reportDate)}</td>
                           <td className="text-center">
-                            {report.total_authorised_center_heads ??
-                              report.total_authorised_center_heads_300_to_500 ??
+                            {report.total_authorised_center_heads_300_to_500 ??
                               "0"}
                           </td>
                           <td className="text-center">{report.total_active_center_heads ?? "0"}</td>
-                          <td className="text-center">{report.today_visited_centers ?? "0"}</td>
-                          <td>{report.visited_center_head_name || "-"}</td>
-                          <td className="text-center">{report.new_members_added_today ?? "0"}</td>
-                          <td className="text-center">{report.sanitary_pad_box_sales ?? "0"}</td>
-                          <td>{report.health_atm_machine_details || "-"}</td>
-                          <td className="text-center">{report.birth_baby_girls ?? "0"}</td>
-                          <td className="text-center">{report.death_count ?? "0"}</td>
-                          <td className="text-center">{report.accident_count ?? "0"}</td>
+                          <td>{report.machine1_camp_name || "-"}</td>
+                          <td className="text-center">{report.machine1_test_amount ?? "0"}</td>
+                          <td className="text-center">{report.machine1_medicine_amount ?? "0"}</td>
+                          <td className="text-center">{report.machine1_total_amount ?? "0"}</td>
+                          <td>{report.machine2_camp_name || "-"}</td>
+                          <td className="text-center">{report.machine2_test_amount ?? "0"}</td>
+                          <td className="text-center">{report.machine2_medicine_amount ?? "0"}</td>
+                          <td className="text-center">{report.machine2_total_amount ?? "0"}</td>
                           <td>{report.utr_number || report.utrNumber || "-"}</td>
-                          <td>{report.any_other_information || report.additional_remarks || "-"}</td>
+                          <td>{report.additional_remarks || "-"}</td>
                           <td className="text-center">
                             {photo1 ? (
                               <a href={getImageUrl(photo1)} target="_blank" rel="noreferrer">
@@ -961,7 +954,7 @@ const DistrictDashboard = () => {
                 </Form.Group>
               </div>
 
-              {/* 5. Mobile Number (मोबाईल क्रमांक) */}
+              {/* 4. Mobile Number (मोबाईल क्रमांक) */}
               <div className="col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold">
@@ -978,7 +971,7 @@ const DistrictDashboard = () => {
                 </Form.Group>
               </div>
 
-              {/* 6. Report Date (अहवालाची तारीख) */}
+              {/* 5. Report Date (अहवालाची तारीख) */}
               <div className="col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold">
@@ -994,16 +987,16 @@ const DistrictDashboard = () => {
                 </Form.Group>
               </div>
 
-              {/* 7. Total authourised center Head -10(अधिकृत केंद्र प्रमुखांची एकूण संख्या -10) */}
+              {/* 6. Total authourised center Head 300 to 500(अधिकृत केंद्र प्रमुखांची एकूण संख्या ३०० ते ५००) */}
               <div className="col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold">
-                    Total authourised center Head -10(अधिकृत केंद्र प्रमुखांची एकूण संख्या -10)
+                    Total authourised center Head 300 to 500(अधिकृत केंद्र प्रमुखांची एकूण संख्या ३०० ते ५००)
                   </Form.Label>
                   <Form.Control
                     type="number"
-                    name="total_authorised_center_heads"
-                    value={formData.total_authorised_center_heads}
+                    name="total_authorised_center_heads_300_to_500"
+                    value={formData.total_authorised_center_heads_300_to_500}
                     onChange={handleChange}
                     placeholder="संख्या प्रविष्ट करा"
                     min="0"
@@ -1011,7 +1004,7 @@ const DistrictDashboard = () => {
                 </Form.Group>
               </div>
 
-              {/* 8. Total Active center Head (सक्रिय केंद्र प्रमुखांची एकूण संख्या) */}
+              {/* 7. Total Active center Head (सक्रिय केंद्र प्रमुखांची एकूण संख्या) */}
               <div className="col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold">
@@ -1028,136 +1021,142 @@ const DistrictDashboard = () => {
                 </Form.Group>
               </div>
 
-              {/* 9. Today Visited Centers (आज भेट दिलेली केंद्रे) */}
+              {/* 9. Today's Machine-1 Camp Name */}
               <div className="col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold">
-                    Today Visited Centers (आज भेट दिलेली केंद्रे)
-                  </Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="today_visited_centers"
-                    value={formData.today_visited_centers}
-                    onChange={handleChange}
-                    placeholder="केंद्रांची संख्या"
-                    min="0"
-                  />
-                </Form.Group>
-              </div>
-
-              {/* 10. Visited Center Head Name (केंद्र प्रमुख यांची नावे ) */}
-              <div className="col-md-6">
-                <Form.Group>
-                  <Form.Label className="fw-semibold">
-                    Visited Center Head Name (केंद्र प्रमुख यांची नावे )
+                    Today's Machine-1 Camp Name (आजच्या मशीन 1 शिबिराचे नाव)
                   </Form.Label>
                   <Form.Control
                     type="text"
-                    name="visited_center_head_name"
-                    value={formData.visited_center_head_name}
+                    name="machine1_camp_name"
+                    value={formData.machine1_camp_name}
                     onChange={handleChange}
-                    placeholder="केंद्र प्रमुखांची नावे"
+                    placeholder="मशीन 1 शिबिराचे नाव"
                   />
                 </Form.Group>
               </div>
 
-              {/* 11. New Members Added Today(आज नव्याने जोडलेले सदस्य ) */}
+              {/* 10. Machine-1 Test Amount */}
               <div className="col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold">
-                    New Members Added Today(आज नव्याने जोडलेले सदस्य )
+                    Today's Machine-1 Total Test Amount (₹) (आजची मशीन 1 तपासणीची एकूण रक्कम)
                   </Form.Label>
                   <Form.Control
                     type="number"
-                    name="new_members_added_today"
-                    value={formData.new_members_added_today}
+                    name="machine1_test_amount"
+                    value={formData.machine1_test_amount}
                     onChange={handleChange}
-                    placeholder="सदस्यांची संख्या"
+                    placeholder="₹"
                     min="0"
+                    step="0.01"
                   />
                 </Form.Group>
               </div>
 
-              {/* 12. Sanitary Pad box Sales (पॅड बॉक्स विक्री) */}
+              {/* 11. Machine-1 Medicine Amount */}
               <div className="col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold">
-                    Sanitary Pad box Sales (पॅड बॉक्स विक्री)
+                    Today's Machine-1 Total Medicine Amount (₹) (आजची मशीन 1 औषधांची एकूण रक्कम)
                   </Form.Label>
                   <Form.Control
                     type="number"
-                    name="sanitary_pad_box_sales"
-                    value={formData.sanitary_pad_box_sales}
+                    name="machine1_medicine_amount"
+                    value={formData.machine1_medicine_amount}
                     onChange={handleChange}
-                    placeholder="पॅड बॉक्स विक्री संख्या"
+                    placeholder="₹"
                     min="0"
+                    step="0.01"
                   />
                 </Form.Group>
               </div>
 
-              {/* 13. Today’s health ATM Machine details (एटीएम मशीन बुकिंग) */}
+              {/* 12. Machine-1 Total Amount */}
               <div className="col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold">
-                    Today’s health ATM Machine details (एटीएम मशीन बुकिंग)
+                    Today's Machine-1 Total Amount (₹) (आजची मशीन 1 एकूण रक्कम)
+                  </Form.Label>
+                  <Form.Control
+                    type="number"
+                    name="machine1_total_amount"
+                    value={formData.machine1_total_amount}
+                    onChange={handleChange}
+                    placeholder="₹"
+                    min="0"
+                    step="0.01"
+                  />
+                </Form.Group>
+              </div>
+
+              {/* 13. Machine-2 Camp Name */}
+              <div className="col-md-6">
+                <Form.Group>
+                  <Form.Label className="fw-semibold">
+                    Today's Machine-2 Camp Name (आजच्या मशीन 2 शिबिराचे नाव)
                   </Form.Label>
                   <Form.Control
                     type="text"
-                    name="health_atm_machine_details"
-                    value={formData.health_atm_machine_details}
+                    name="machine2_camp_name"
+                    value={formData.machine2_camp_name}
                     onChange={handleChange}
-                    placeholder="एटीएम मशीन माहिती / बुकिंग"
+                    placeholder="मशीन 2 शिबिराचे नाव"
                   />
                 </Form.Group>
               </div>
 
-              {/* 14. Birth (Baby Girls)  (जन्मलेल्या मुलींची संख्या) */}
+              {/* 14. Machine-2 Test Amount */}
               <div className="col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold">
-                    Birth (Baby Girls)  (जन्मलेल्या मुलींची संख्या)
+                    Today's Machine-2 Total Test Amount (₹) (आजची मशीन 2 तपासणीची एकूण रक्कम)
                   </Form.Label>
                   <Form.Control
                     type="number"
-                    name="birth_baby_girls"
-                    value={formData.birth_baby_girls}
+                    name="machine2_test_amount"
+                    value={formData.machine2_test_amount}
                     onChange={handleChange}
-                    placeholder="मुलींची संख्या"
+                    placeholder="₹"
                     min="0"
+                    step="0.01"
                   />
                 </Form.Group>
               </div>
 
-              {/* 15. Death Count  (मृत्यू संख्या) */}
+              {/* 15. Machine-2 Medicine Amount */}
               <div className="col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold">
-                    Death Count  (मृत्यू संख्या)
+                    Today's Machine-2 Total Medicine Amount (₹) (आजची मशीन 2 औषधांची एकूण रक्कम)
                   </Form.Label>
                   <Form.Control
                     type="number"
-                    name="death_count"
-                    value={formData.death_count}
+                    name="machine2_medicine_amount"
+                    value={formData.machine2_medicine_amount}
                     onChange={handleChange}
-                    placeholder="मृत्यू संख्या"
+                    placeholder="₹"
                     min="0"
+                    step="0.01"
                   />
                 </Form.Group>
               </div>
 
-              {/* 16. Accident Count (अपघात संख्या) */}
+              {/* 16. Machine-2 Total Amount */}
               <div className="col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold">
-                    Accident Count (अपघात संख्या)
+                    Today's Machine-2 Total Amount (₹) (आजची मशीन 2 एकूण रक्कम)
                   </Form.Label>
                   <Form.Control
                     type="number"
-                    name="accident_count"
-                    value={formData.accident_count}
+                    name="machine2_total_amount"
+                    value={formData.machine2_total_amount}
                     onChange={handleChange}
-                    placeholder="अपघात संख्या"
+                    placeholder="₹"
                     min="0"
+                    step="0.01"
                   />
                 </Form.Group>
               </div>
@@ -1166,7 +1165,7 @@ const DistrictDashboard = () => {
               <div className="col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold">
-                    UTR Number
+                    Machine 1 and Machine-2 UTR Number( मशीन 1 आणि मशीन 2 च्या व्यवहारांचे UTR क्रमांक)
                   </Form.Label>
                   <Form.Control
                     type="text"
@@ -1178,58 +1177,58 @@ const DistrictDashboard = () => {
                 </Form.Group>
               </div>
 
-              {/* 18. Any Other Information(इतर माहिती) */}
+              {/* 18. Additional Remarks (इतर माहिती) */}
               <div className="col-12">
                 <Form.Group>
                   <Form.Label className="fw-semibold">
-                    Any Other Information(इतर माहिती)
+                    Additional Remarks (इतर माहिती)
                   </Form.Label>
                   <Form.Control
                     as="textarea"
                     rows={3}
-                    name="any_other_information"
-                    value={formData.any_other_information}
+                    name="additional_remarks"
+                    value={formData.additional_remarks}
                     onChange={handleChange}
                     placeholder="इतर कोणतीही माहिती असल्यास येथे लिहा"
                   />
                 </Form.Group>
               </div>
 
-              {/* 19. Meeting Photo 1 (बैठकीचे फोटो १) */}
+              {/* 19. Machine 1 Camp Photo */}
               <div className="col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold">
-                    Meeting Photo 1 (बैठकीचे फोटो १)
+                    Machine 1camp photo (मशीन 1 च्या शिबिराचा फोटो)
                   </Form.Label>
                   <Form.Control
                     type="file"
-                    name="meeting_photo_1"
+                    name="machine1_camp_photo"
                     accept="image/*"
                     onChange={handleChange}
                   />
-                  {formData.meeting_photo_1 && (
+                  {formData.machine1_camp_photo && (
                     <small className="text-muted d-block mt-1">
-                      Selected: {formData.meeting_photo_1 instanceof File ? formData.meeting_photo_1.name : "Existing Photo 1"}
+                      Selected: {formData.machine1_camp_photo instanceof File ? formData.machine1_camp_photo.name : "Existing Machine 1 Photo"}
                     </small>
                   )}
                 </Form.Group>
               </div>
 
-              {/* 20. Meeting Photo 2 (बैठकीचे फोटो २ ) */}
+              {/* 20. Machine 2 Camp Photo */}
               <div className="col-md-6">
                 <Form.Group>
                   <Form.Label className="fw-semibold">
-                    Meeting Photo 2 (बैठकीचे फोटो २ )
+                    Machine 2 Camp photo (मशीन 2च्या शिबिराचा फोटो)
                   </Form.Label>
                   <Form.Control
                     type="file"
-                    name="meeting_photo_2"
+                    name="machine2_camp_photo"
                     accept="image/*"
                     onChange={handleChange}
                   />
-                  {formData.meeting_photo_2 && (
+                  {formData.machine2_camp_photo && (
                     <small className="text-muted d-block mt-1">
-                      Selected: {formData.meeting_photo_2 instanceof File ? formData.meeting_photo_2.name : "Existing Photo 2"}
+                      Selected: {formData.machine2_camp_photo instanceof File ? formData.machine2_camp_photo.name : "Existing Machine 2 Photo"}
                     </small>
                   )}
                 </Form.Group>

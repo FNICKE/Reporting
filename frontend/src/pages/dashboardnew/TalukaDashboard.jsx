@@ -615,13 +615,29 @@ const TalukaDashboard = () => {
 
             setErrorMessage("");
 
+            // Build role-based query params so backend filters by logged-in user
+            const loggedRole   = (localStorage.getItem("logged_in_role") || "").toLowerCase();
+            const loggedUserId = localStorage.getItem("logged_in_user_id") || localStorage.getItem("user_id") || "";
+            const loggedMobile = localStorage.getItem("logged_in_mobile")  || "";
+            const loggedName   = localStorage.getItem("logged_in_name")    || "";
+            const isAdmin      = loggedRole === "admin" || loggedRole === "superadmin";
+
+            let queryPath = "";
+            if (!isAdmin && loggedUserId) {
+                const params = new URLSearchParams();
+                params.set("role", loggedRole);
+                params.set("user_id", loggedUserId);
+                if (loggedMobile) params.set("mobile_number", loggedMobile);
+                if (loggedName) params.set("user_name", loggedName);
+                queryPath = `?${params.toString()}`;
+            }
 
             const {
                 response,
                 data,
                 url,
             } =
-                await requestTalukaReport();
+                await requestTalukaReport(queryPath);
 
 
             console.log(
@@ -766,59 +782,60 @@ const TalukaDashboard = () => {
             // Existing reports use created_by = logged-in name.
             // =================================================
 
-            const loggedInUserId =
-                normalize(
-                    currentUser?.userId
+            const role = (localStorage.getItem("logged_in_role") || "").toLowerCase();
+            const isAdmin = role === "admin" || role === "superadmin";
+            if (isAdmin) {
+                return reports;
+            }
+
+            const loggedInUserId = normalize(currentUser?.userId);
+            const loggedInUserName = normalize(currentUser?.name);
+            const loggedInMobile = normalize(currentUser?.mobileNumber || localStorage.getItem("logged_in_mobile"));
+
+            const filtered = reports.filter((report) => {
+                const reportUserId = normalize(
+                    report?.user_id ??
+                    report?.created_by_id ??
+                    report?.createdById ??
+                    report?.userId
                 );
 
-            const loggedInUserName =
-                normalize(
-                    currentUser?.name
-                );
+                if (loggedInUserId && reportUserId) {
+                    return reportUserId === loggedInUserId;
+                }
 
-            return reports.filter(
-                (report) => {
-
-                    const reportUserId =
-                        normalize(
-                            report?.created_by_id ??
-                            report?.createdById ??
-                            report?.user_id ??
-                            report?.userId
-                        );
-
-                    const reportCreatedBy =
-                        normalize(
-                            report?.created_by ??
-                            report?.createdBy ??
-                            report?.created_by_name ??
-                            report?.createdByName ??
-                            report?.user_name ??
-                            report?.userName
-                        );
-
-                    if (
-                        loggedInUserId &&
-                        reportUserId
-                    ) {
-                        return (
-                            reportUserId ===
-                            loggedInUserId
-                        );
+                // If report has no user_id (legacy row), check mobile or name
+                if (!reportUserId) {
+                    const reportMobile = normalize(report?.mobile_number ?? report?.mobileNumber);
+                    if (loggedInMobile && reportMobile && reportMobile === loggedInMobile) {
+                        return true;
                     }
 
-                    return (
-                        Boolean(loggedInUserName) &&
-                        reportCreatedBy ===
-                            loggedInUserName
+                    const reportCreatedBy = normalize(
+                        report?.created_by ??
+                        report?.createdBy ??
+                        report?.created_by_name ??
+                        report?.createdByName ??
+                        report?.user_name ??
+                        report?.userName ??
+                        report?.name
                     );
+
+                    if (loggedInUserName && reportCreatedBy && reportCreatedBy === loggedInUserName) {
+                        return true;
+                    }
                 }
-            );
+
+                return false;
+            });
+
+            return filtered;
 
         }, [
             reports,
             currentUser?.userId,
             currentUser?.name,
+            currentUser?.mobileNumber,
         ]);
 
 
@@ -1681,6 +1698,10 @@ const TalukaDashboard = () => {
 
                 if (currentUser?.userId) {
                     body.append(
+                        "user_id",
+                        currentUser.userId
+                    );
+                    body.append(
                         "created_by_id",
                         currentUser.userId
                     );
@@ -2053,7 +2074,7 @@ const TalukaDashboard = () => {
 
             "Report Date",
 
-            "Total Authorised Center Head",
+            "Total authourised center Head-50 (अधिकृत केंद्र प्रमुखांची एकूण संख्या -५०)",
 
             "Total Active Center Head",
 
@@ -3609,8 +3630,7 @@ const TalukaDashboard = () => {
                                                 text-center
                                             "
                                         >
-                                            Total Authorised
-                                            Center Head
+                                            Total authourised center Head-50 (अधिकृत केंद्र प्रमुखांची एकूण संख्या -५०)
                                         </th>
 
 
@@ -4463,9 +4483,7 @@ const TalukaDashboard = () => {
                                             name="taluka"
                                             value={formData.taluka}
                                             onChange={handleChange}
-                                            readOnly
-                                            className="bg-light"
-                                            placeholder="तालुका"
+                                            placeholder="तालुका प्रविष्ट करा"
                                             required
                                         />
 
@@ -4488,9 +4506,7 @@ const TalukaDashboard = () => {
                                             name="district"
                                             value={formData.district}
                                             onChange={handleChange}
-                                            readOnly
-                                            className="bg-light"
-                                            placeholder="जिल्हा"
+                                            placeholder="जिल्हा प्रविष्ट करा"
                                             required
                                         />
 
@@ -4572,7 +4588,7 @@ const TalukaDashboard = () => {
                                     <Form.Group>
 
                                         <Form.Label className="fw-semibold">
-                                            Total Authorised Center Head (अधिकृत केंद्र प्रमुखांची एकूण संख्या) *
+                                            Total authourised center Head-50 (अधिकृत केंद्र प्रमुखांची एकूण संख्या -५०) - 50 (अधिकृत केंद्र प्रमुखांची एकूण संख्या - ५०) *
                                         </Form.Label>
 
                                         <Form.Control

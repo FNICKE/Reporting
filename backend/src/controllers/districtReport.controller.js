@@ -53,19 +53,9 @@ const createDistrictReport = async (req, res) => {
             reportDate,
 
             // CENTER HEAD DETAILS
-            total_authorised_center_heads,
             total_authorised_center_heads_300_to_500,
             total_active_center_heads,
-            today_visited_centers,
-            visited_center_head_name,
-            new_members_added_today,
-            sanitary_pad_box_sales,
-            health_atm_machine_details,
-            birth_baby_girls,
-            death_count,
-            accident_count,
             utr_number,
-            any_other_information,
             additional_remarks,
 
             // LEGACY MACHINE FIELDS
@@ -111,28 +101,18 @@ const createDistrictReport = async (req, res) => {
         let photo2 = null;
 
         if (req.files) {
-            if (req.files.meeting_photo_1 && req.files.meeting_photo_1.length > 0) {
-                photo1 = req.files.meeting_photo_1[0].filename;
-            } else if (req.files.machine1_camp_photo && req.files.machine1_camp_photo.length > 0) {
+            if (req.files.machine1_camp_photo && req.files.machine1_camp_photo.length > 0) {
                 photo1 = req.files.machine1_camp_photo[0].filename;
             }
 
-            if (req.files.meeting_photo_2 && req.files.meeting_photo_2.length > 0) {
-                photo2 = req.files.meeting_photo_2[0].filename;
-            } else if (req.files.machine2_camp_photo && req.files.machine2_camp_photo.length > 0) {
+            if (req.files.machine2_camp_photo && req.files.machine2_camp_photo.length > 0) {
                 photo2 = req.files.machine2_camp_photo[0].filename;
             }
         }
 
-        const authCount = Number(total_authorised_center_heads ?? total_authorised_center_heads_300_to_500) || 0;
+        const authCount = Number(total_authorised_center_heads_300_to_500) || 0;
         const activeCount = Number(total_active_center_heads) || 0;
-        const visitedCenters = Number(today_visited_centers) || 0;
-        const newMembers = Number(new_members_added_today) || 0;
-        const padSales = Number(sanitary_pad_box_sales) || 0;
-        const birthCount = Number(birth_baby_girls) || 0;
-        const deathCountVal = Number(death_count) || 0;
-        const accidentCountVal = Number(accident_count) || 0;
-        const otherInfo = any_other_information || additional_remarks || null;
+        const otherInfo = additional_remarks || null;
 
         const [result] = await db.query(
             `
@@ -146,19 +126,9 @@ const createDistrictReport = async (req, res) => {
                 mobile_number,
                 report_date,
 
-                total_authorised_center_heads,
                 total_authorised_center_heads_300_to_500,
                 total_active_center_heads,
-                today_visited_centers,
-                visited_center_head_name,
-                new_members_added_today,
-                sanitary_pad_box_sales,
-                health_atm_machine_details,
-                birth_baby_girls,
-                death_count,
-                accident_count,
                 utr_number,
-                any_other_information,
                 additional_remarks,
 
                 machine1_camp_name,
@@ -170,8 +140,6 @@ const createDistrictReport = async (req, res) => {
                 machine2_medicine_amount,
                 machine2_total_amount,
 
-                meeting_photo_1,
-                meeting_photo_2,
                 machine1_camp_photo,
                 machine2_camp_photo,
 
@@ -179,11 +147,11 @@ const createDistrictReport = async (req, res) => {
             )
             VALUES
             (
-                ?,
-                ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?, ?, ?,
+                ?, ?,
                 ?, ?, ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?,
+                ?, ?,
+                ?, ?,
                 ?
             )
             `,
@@ -197,18 +165,8 @@ const createDistrictReport = async (req, res) => {
                 finalReportDate,
 
                 authCount,
-                authCount,
                 activeCount,
-                visitedCenters,
-                visited_center_head_name || null,
-                newMembers,
-                padSales,
-                health_atm_machine_details || null,
-                birthCount,
-                deathCountVal,
-                accidentCountVal,
                 utr_number || null,
-                otherInfo,
                 otherInfo,
 
                 machine1_camp_name || null,
@@ -220,8 +178,6 @@ const createDistrictReport = async (req, res) => {
                 Number(machine2_medicine_amount) || 0,
                 Number(machine2_total_amount) || 0,
 
-                photo1,
-                photo2,
                 photo1,
                 photo2,
 
@@ -251,14 +207,37 @@ const createDistrictReport = async (req, res) => {
 
 const getDistrictReports = async (req, res) => {
     try {
+        const role = String(req.query.role || req.user?.role || "").trim().toLowerCase();
+        const isAdmin = role === "admin" || role === "superadmin";
         const currentUserId = getCurrentUserId(req);
+        const mobileNum = String(req.query.mobile_number || "").trim();
+        const userName = String(req.query.user_name || req.query.name || "").trim();
         let reports;
 
-        if (currentUserId) {
-            [reports] = await db.query(
-                `SELECT * FROM district_reports WHERE user_id = ? ORDER BY id DESC`,
-                [currentUserId]
-            );
+        if (!isAdmin && (currentUserId || mobileNum || userName)) {
+            if (currentUserId) {
+                if (mobileNum || userName) {
+                    [reports] = await db.query(
+                        `SELECT * FROM district_reports 
+                         WHERE user_id = ? 
+                            OR (user_id IS NULL AND (mobile_number = ? OR name = ?)) 
+                         ORDER BY id DESC`,
+                        [currentUserId, mobileNum || "__none__", userName || "__none__"]
+                    );
+                } else {
+                    [reports] = await db.query(
+                        `SELECT * FROM district_reports WHERE user_id = ? ORDER BY id DESC`,
+                        [currentUserId]
+                    );
+                }
+            } else {
+                [reports] = await db.query(
+                    `SELECT * FROM district_reports 
+                     WHERE mobile_number = ? OR name = ? 
+                     ORDER BY id DESC`,
+                    [mobileNum || "__none__", userName || "__none__"]
+                );
+            }
         } else {
             [reports] = await db.query(
                 `SELECT * FROM district_reports ORDER BY id DESC`
@@ -367,17 +346,8 @@ const updateDistrictReport = async (req, res) => {
             mobileNumber,
             report_date,
             reportDate,
-            total_authorised_center_heads,
             total_authorised_center_heads_300_to_500,
             total_active_center_heads,
-            today_visited_centers,
-            visited_center_head_name,
-            new_members_added_today,
-            sanitary_pad_box_sales,
-            health_atm_machine_details,
-            birth_baby_girls,
-            death_count,
-            accident_count,
             utr_number,
             any_other_information,
             additional_remarks,
@@ -392,58 +362,28 @@ const updateDistrictReport = async (req, res) => {
             status,
         } = req.body;
 
-        let photo1 = old.meeting_photo_1 || old.machine1_camp_photo || null;
-        let photo2 = old.meeting_photo_2 || old.machine2_camp_photo || null;
+        let photo1 = old.machine1_camp_photo || null;
+        let photo2 = old.machine2_camp_photo || null;
 
         if (req.files) {
-            if (req.files.meeting_photo_1 && req.files.meeting_photo_1.length > 0) {
-                photo1 = req.files.meeting_photo_1[0].filename;
-            } else if (req.files.machine1_camp_photo && req.files.machine1_camp_photo.length > 0) {
+            if (req.files.machine1_camp_photo && req.files.machine1_camp_photo.length > 0) {
                 photo1 = req.files.machine1_camp_photo[0].filename;
             }
 
-            if (req.files.meeting_photo_2 && req.files.meeting_photo_2.length > 0) {
-                photo2 = req.files.meeting_photo_2[0].filename;
-            } else if (req.files.machine2_camp_photo && req.files.machine2_camp_photo.length > 0) {
+            if (req.files.machine2_camp_photo && req.files.machine2_camp_photo.length > 0) {
                 photo2 = req.files.machine2_camp_photo[0].filename;
             }
         }
 
-        const authCount = total_authorised_center_heads !== undefined
-            ? (Number(total_authorised_center_heads) || 0)
-            : total_authorised_center_heads_300_to_500 !== undefined
+        const authCount = total_authorised_center_heads_300_to_500 !== undefined
             ? (Number(total_authorised_center_heads_300_to_500) || 0)
-            : (old.total_authorised_center_heads || old.total_authorised_center_heads_300_to_500 || 0);
+            : (old.total_authorised_center_heads_300_to_500 || 0);
 
         const activeCount = total_active_center_heads !== undefined
             ? (Number(total_active_center_heads) || 0)
             : (old.total_active_center_heads || 0);
 
-        const visitedCenters = today_visited_centers !== undefined
-            ? (Number(today_visited_centers) || 0)
-            : (old.today_visited_centers || 0);
-
-        const newMembers = new_members_added_today !== undefined
-            ? (Number(new_members_added_today) || 0)
-            : (old.new_members_added_today || 0);
-
-        const padSales = sanitary_pad_box_sales !== undefined
-            ? (Number(sanitary_pad_box_sales) || 0)
-            : (old.sanitary_pad_box_sales || 0);
-
-        const birthCount = birth_baby_girls !== undefined
-            ? (Number(birth_baby_girls) || 0)
-            : (old.birth_baby_girls || 0);
-
-        const deathCountVal = death_count !== undefined
-            ? (Number(death_count) || 0)
-            : (old.death_count || 0);
-
-        const accidentCountVal = accident_count !== undefined
-            ? (Number(accident_count) || 0)
-            : (old.accident_count || 0);
-
-        const otherInfo = any_other_information ?? additional_remarks ?? old.any_other_information ?? old.additional_remarks ?? null;
+        const otherInfo = additional_remarks ?? old.additional_remarks ?? null;
 
         let updateQuery = `
             UPDATE district_reports
@@ -455,19 +395,9 @@ const updateDistrictReport = async (req, res) => {
                 mobile_number = ?,
                 report_date = ?,
 
-                total_authorised_center_heads = ?,
                 total_authorised_center_heads_300_to_500 = ?,
                 total_active_center_heads = ?,
-                today_visited_centers = ?,
-                visited_center_head_name = ?,
-                new_members_added_today = ?,
-                sanitary_pad_box_sales = ?,
-                health_atm_machine_details = ?,
-                birth_baby_girls = ?,
-                death_count = ?,
-                accident_count = ?,
                 utr_number = ?,
-                any_other_information = ?,
                 additional_remarks = ?,
 
                 machine1_camp_name = ?,
@@ -479,8 +409,6 @@ const updateDistrictReport = async (req, res) => {
                 machine2_medicine_amount = ?,
                 machine2_total_amount = ?,
 
-                meeting_photo_1 = ?,
-                meeting_photo_2 = ?,
                 machine1_camp_photo = ?,
                 machine2_camp_photo = ?,
 
@@ -497,18 +425,8 @@ const updateDistrictReport = async (req, res) => {
             report_date ?? reportDate ?? old.report_date,
 
             authCount,
-            authCount,
             activeCount,
-            visitedCenters,
-            visited_center_head_name ?? old.visited_center_head_name,
-            newMembers,
-            padSales,
-            health_atm_machine_details ?? old.health_atm_machine_details,
-            birthCount,
-            deathCountVal,
-            accidentCountVal,
             utr_number ?? old.utr_number,
-            otherInfo,
             otherInfo,
 
             machine1_camp_name ?? old.machine1_camp_name,
@@ -520,8 +438,6 @@ const updateDistrictReport = async (req, res) => {
             machine2_medicine_amount !== undefined ? (Number(machine2_medicine_amount) || 0) : old.machine2_medicine_amount,
             machine2_total_amount !== undefined ? (Number(machine2_total_amount) || 0) : old.machine2_total_amount,
 
-            photo1,
-            photo2,
             photo1,
             photo2,
 

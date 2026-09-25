@@ -6,32 +6,52 @@ const pool = require("../config/db");
 
 const getTalukaReports = async (req, res) => {
     try {
+        // Role-based filtering:
+        // admin/superadmin → all reports
+        // others → only their own (filtered by user_id or mobile_number)
+        const role      = String(req.query.role          || "").trim().toLowerCase();
+        const userId    = String(req.query.user_id       || "").trim();
+        const mobileNum = String(req.query.mobile_number || "").trim();
+        const userName  = String(req.query.user_name     || req.query.name || "").trim();
+        const isAdmin   = role === "admin" || role === "superadmin" || (!role && !userId && !mobileNum && !userName);
 
-        const [rows] = await pool.query(`
-            SELECT *
-            FROM taluka_reports
-            ORDER BY id DESC
-        `);
+        let rows;
+        if (isAdmin) {
+            [rows] = await pool.query(`SELECT * FROM taluka_reports ORDER BY id DESC`);
+        } else if (userId) {
+            if (mobileNum || userName) {
+                [rows] = await pool.query(
+                    `SELECT * FROM taluka_reports 
+                     WHERE user_id = ? 
+                        OR (user_id IS NULL AND (mobile_number = ? OR name = ?)) 
+                     ORDER BY id DESC`,
+                    [userId, mobileNum || "__none__", userName || "__none__"]
+                );
+            } else {
+                [rows] = await pool.query(
+                    `SELECT * FROM taluka_reports WHERE user_id = ? ORDER BY id DESC`,
+                    [userId]
+                );
+            }
+        } else if (mobileNum || userName) {
+            [rows] = await pool.query(
+                `SELECT * FROM taluka_reports 
+                 WHERE mobile_number = ? OR name = ? 
+                 ORDER BY id DESC`,
+                [mobileNum || "__none__", userName || "__none__"]
+            );
+        } else {
+            [rows] = await pool.query(`SELECT * FROM taluka_reports ORDER BY id DESC`);
+        }
 
-        return res.status(200).json({
-            success: true,
-            reports: rows,
-        });
+        return res.status(200).json({ success: true, reports: rows });
 
     } catch (error) {
-
-        console.error(
-            "GET TALUKA REPORTS ERROR:",
-            error
-        );
-
+        console.error("GET TALUKA REPORTS ERROR:", error);
         return res.status(500).json({
             success: false,
-            message:
-                error.message ||
-                "Failed to load Taluka reports",
+            message: error.message || "Failed to load Taluka reports",
         });
-
     }
 };
 
@@ -206,7 +226,8 @@ const createTalukaReport = async (req, res) => {
         }
 
 
-        if (!mobile_number) {
+        const finalMobile = mobile_number || req.body.mobileNumber || req.body.mobile || "";
+        if (!finalMobile) {
 
             return res.status(400).json({
                 success: false,
@@ -216,8 +237,8 @@ const createTalukaReport = async (req, res) => {
 
         }
 
-
-        if (!report_date) {
+        const finalReportDate = report_date || req.body.reportDate || "";
+        if (!finalReportDate) {
 
             return res.status(400).json({
                 success: false,
@@ -246,11 +267,18 @@ const createTalukaReport = async (req, res) => {
         // INSERT
         // =====================================================
 
+        // Capture the logged-in user_id from form data (sent by frontend)
+        const submittedUserId = String(req.body.user_id || req.body.created_by_id || "").trim() || null;
+        const submittedRole   = String(req.body.role    || req.body.created_by_role || "").trim() || null;
+
         const sql = `
 
             INSERT INTO taluka_reports
 
             (
+                user_id,
+
+                created_by_role,
 
                 name,
 
@@ -320,6 +348,10 @@ const createTalukaReport = async (req, res) => {
 
                 ?,
 
+                ?,
+
+                ?,
+
                 ?
 
             )
@@ -328,6 +360,14 @@ const createTalukaReport = async (req, res) => {
 
 
         const values = [
+
+            // =================================================
+            // USER IDENTITY (for role-based filtering)
+            // =================================================
+
+            submittedUserId,
+
+            submittedRole,
 
             // =================================================
             // BASIC
@@ -341,9 +381,9 @@ const createTalukaReport = async (req, res) => {
 
             district?.trim() || "",
 
-            mobile_number?.trim() || "",
+            finalMobile?.trim() || "",
 
-            report_date,
+            finalReportDate,
 
 
             // =================================================

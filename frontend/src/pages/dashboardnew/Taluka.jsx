@@ -45,6 +45,16 @@ const EMPTY_FORM = {
   password: "",
 };
 
+const MAHARASHTRA_DISTRICTS = [
+  "Ahmednagar", "Akola", "Amravati", "Chhatrapati Sambhajinagar", "Beed",
+  "Bhandara", "Buldhana", "Chandrapur", "Dhule", "Gadchiroli",
+  "Gondia", "Hingoli", "Jalgaon", "Jalna", "Kolhapur",
+  "Latur", "Mumbai City", "Mumbai Suburban", "Nagpur", "Nanded",
+  "Nandurbar", "Nashik", "Dharashiv", "Palghar", "Parbhani",
+  "Pune", "Raigad", "Ratnagiri", "Sangli", "Satara",
+  "Sindhudurg", "Solapur", "Thane", "Wardha", "Washim", "Yavatmal"
+];
+
 
 /* =========================================================
    SAFE STRING
@@ -701,7 +711,7 @@ const Taluka = () => {
             ? safeString(
                 selectedDistrict.id
               )
-            : (previous.districtId || ""),
+            : "",
       })
     );
 
@@ -986,11 +996,6 @@ const Taluka = () => {
       return;
     }
 
-    if (!safeString(formData.userId).trim()) {
-      alert("Please enter User ID");
-      return;
-    }
-
     if (!editingId && !safeString(formData.password).trim()) {
       alert("Please enter Password");
       return;
@@ -1007,13 +1012,15 @@ const Taluka = () => {
       const talukaCodeValue = editingId
         ? (formData.talukaCode || getTalukaHeadId({ id: editingId }))
         : getNextTalukaId();
+      const userIdValue =
+        safeString(formData.userId).trim() || safeString(formData.name).trim();
 
       const payload = {
         taluka_code: talukaCodeValue,
         name: safeString(formData.name).trim(),
         contact_number: safeString(formData.contactNumber).trim(),
         designation: safeString(formData.designation).trim(),
-        district_id: Number(districtIdValue) || 1,
+        district_id: districtIdValue ? Number(districtIdValue) : null,
         district_name: districtNameValue,
         taluka_name: safeString(formData.taluka || formData.name).trim(),
         taluka: safeString(formData.taluka || formData.name).trim(),
@@ -1022,7 +1029,7 @@ const Taluka = () => {
         account_number: safeString(formData.accountNumber).trim(),
         ifsc_code: safeString(formData.ifscCode).trim().toUpperCase(),
         bank_name: safeString(formData.bankName).trim(),
-        user_id: safeString(formData.userId).trim(),
+        user_id: userIdValue,
         password: safeString(formData.password).trim(),
       };
 
@@ -2145,7 +2152,6 @@ const Taluka = () => {
 
                   <Form.Control
                     type="text"
-                    list="talukaDistrictList"
                     name="districtName"
                     value={
                       safeString(
@@ -2160,27 +2166,6 @@ const Taluka = () => {
                       loading
                     }
                   />
-
-                  <datalist id="talukaDistrictList">
-
-                    {districts.map(
-                      (
-                        district
-                      ) => (
-
-                        <option
-                          key={
-                            district.id
-                          }
-                          value={
-                            district.name
-                          }
-                        />
-
-                      )
-                    )}
-
-                  </datalist>
 
                 </Form.Group>
 

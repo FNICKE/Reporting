@@ -57,6 +57,16 @@ const EMPTY_FORM = {
     password: "",
 };
 
+const MAHARASHTRA_DISTRICTS = [
+    "Ahmednagar", "Akola", "Amravati", "Chhatrapati Sambhajinagar", "Beed",
+    "Bhandara", "Buldhana", "Chandrapur", "Dhule", "Gadchiroli",
+    "Gondia", "Hingoli", "Jalgaon", "Jalna", "Kolhapur",
+    "Latur", "Mumbai City", "Mumbai Suburban", "Nagpur", "Nanded",
+    "Nandurbar", "Nashik", "Dharashiv", "Palghar", "Parbhani",
+    "Pune", "Raigad", "Ratnagiri", "Sangli", "Satara",
+    "Sindhudurg", "Solapur", "Thane", "Wardha", "Washim", "Yavatmal"
+];
+
 
 // =====================================================
 // SAFE API RESPONSE
@@ -871,213 +881,6 @@ const Trainer = () => {
     // DISTRICT INPUT CHANGE
     // =====================================================
 
-    const handleDistrictInputChange = (
-        event
-    ) => {
-
-        const value =
-            event.target.value;
-
-
-        const selectedDistrict =
-            districts.find(
-                (item) =>
-                    safeString(getDistrictName(item)).trim().toLowerCase() ===
-                    safeString(value).trim().toLowerCase() ||
-                    safeString(item?.id).trim() ===
-                    safeString(value).trim()
-            );
-
-        const districtId =
-            selectedDistrict
-                ? String(selectedDistrict.id)
-                : "";
-
-        const districtName =
-            selectedDistrict
-                ? getDistrictName(selectedDistrict)
-                : value;
-
-
-        if (districtId) {
-
-            // Filter Talukas
-
-            const filteredTalukas =
-                allTalukas.filter(
-                    (item) => {
-
-                        if (
-                            item?.district_id ===
-                                undefined ||
-                            item?.district_id ===
-                                null
-                        ) {
-
-                            return false;
-
-                        }
-
-
-                        return (
-                            String(
-                                item.district_id
-                            ) ===
-                            String(districtId)
-                        );
-
-                    }
-                );
-
-
-            // Filter Vibhags by district
-
-            const filteredVibhags =
-                allVibhags.filter(
-                    (item) => {
-
-                        if (
-                            item?.district_id ===
-                                undefined ||
-                            item?.district_id ===
-                                null
-                        ) {
-
-                            return false;
-
-                        }
-
-
-                        return (
-                            String(
-                                item.district_id
-                            ) ===
-                            String(districtId)
-                        );
-
-                    }
-                );
-
-
-            setTalukas(
-                filteredTalukas
-            );
-
-
-            setVibhags(
-                filteredVibhags
-            );
-
-        }
-
-
-        setFormData(
-            (prev) => ({
-                ...prev,
-
-                districtId:
-                    districtId || prev.districtId,
-
-                district:
-                    districtName,
-
-                talukaId:
-                    districtId ? "" : prev.talukaId,
-
-                taluka:
-                    districtId ? "" : prev.taluka,
-
-                vibhagId:
-                    districtId ? "" : prev.vibhagId,
-
-                vibhag:
-                    districtId ? "" : prev.vibhag,
-
-            })
-        );
-
-    };
-
-    const handleDistrictChange =
-        handleDistrictInputChange;
-
-
-    // =====================================================
-    // TALUKA CHANGE
-    // =====================================================
-
-    const handleTalukaChange = (
-        event
-    ) => {
-
-        const talukaId =
-            event.target.value;
-
-
-        const selectedTaluka =
-            allTalukas.find(
-                (item) =>
-                    String(item?.id) ===
-                    String(talukaId)
-            );
-
-
-        const filteredVibhags =
-            allVibhags.filter(
-                (item) => {
-
-                    if (
-                        item?.taluka_id ===
-                            undefined ||
-                        item?.taluka_id ===
-                            null
-                    ) {
-
-                        return false;
-
-                    }
-
-
-                    return (
-                        String(
-                            item.taluka_id
-                        ) ===
-                        String(talukaId)
-                    );
-
-                }
-            );
-
-
-        setVibhags(
-            filteredVibhags
-        );
-
-
-        setFormData(
-            (prev) => ({
-                ...prev,
-
-                talukaId:
-                    talukaId,
-
-                taluka:
-                    getTalukaName(
-                        selectedTaluka
-                    ),
-
-                vibhagId:
-                    "",
-
-                vibhag:
-                    "",
-
-            })
-        );
-
-    };
-
-
     // =====================================================
     // VIBHAG CHANGE
     // =====================================================
@@ -1129,6 +932,23 @@ const Trainer = () => {
             value,
         } = event.target;
 
+        if (name === "district") {
+            setFormData((prev) => ({
+                ...prev,
+                districtId: "",
+                district: value,
+            }));
+            return;
+        }
+
+        if (name === "taluka") {
+            setFormData((prev) => ({
+                ...prev,
+                talukaId: "",
+                taluka: value,
+            }));
+            return;
+        }
 
         setFormData(
             (prev) => ({
@@ -1173,28 +993,6 @@ const Trainer = () => {
 
         setEditingId(null);
 
-
-        const [
-            districtData,
-            talukaData,
-            vibhagData,
-        ] = await Promise.all([
-            loadDistricts(),
-            loadTalukas(),
-            loadVibhags(),
-        ]);
-
-
-        setTalukas(
-            talukaData
-        );
-
-
-        setVibhags(
-            vibhagData
-        );
-
-
         setFormData({
             ...EMPTY_FORM,
             trainerId: getNextTrainerId(),
@@ -1206,8 +1004,21 @@ const Trainer = () => {
 
         setSuccess("");
 
-
+        // Open immediately; reference data should not block the Add form.
         setShowModal(true);
+
+        const [districtData, talukaData, vibhagData] = await Promise.all([
+            loadDistricts(),
+            loadTalukas(),
+            loadVibhags(),
+        ]);
+
+        if (districtData.length > 0) {
+            setDistricts(districtData);
+        }
+
+        setTalukas(talukaData);
+        setVibhags(vibhagData);
 
     };
 
@@ -1565,97 +1376,64 @@ const Trainer = () => {
                 }
             }
 
-            if (
-                !finalDistrictId &&
-                !formData.district?.trim()
-            ) {
-
-                alert(
-                    "Please enter District"
+            let finalTalukaId = formData.talukaId;
+            if (!finalTalukaId && formData.taluka) {
+                const matchedTaluka = (talukas.length > 0 ? talukas : allTalukas).find(
+                    (t) =>
+                        safeString(getTalukaName(t)).trim().toLowerCase() ===
+                        safeString(formData.taluka).trim().toLowerCase() ||
+                        safeString(t?.id).trim() ===
+                        safeString(formData.taluka).trim()
                 );
-
-                return;
-
-            }
-
-
-            if (
-                !formData.talukaId &&
-                !formData.taluka?.trim()
-            ) {
-
-                alert(
-                    "Please select Taluka"
-                );
-
-                return;
-
+                if (matchedTaluka) {
+                    finalTalukaId = String(matchedTaluka.id);
+                }
             }
 
             if (
                 !formData.contactNumber.trim()
             ) {
-
                 alert(
                     "Please enter Contact Number"
                 );
-
                 return;
-
             }
-
 
             if (
                 !/^[0-9]{10}$/.test(
                     formData.contactNumber.trim()
                 )
             ) {
-
                 alert(
                     "Contact Number must contain 10 digits"
                 );
-
                 return;
-
             }
-
-
-
-
 
             if (
                 !formData.userId.trim()
             ) {
-
                 alert(
                     "Please enter User ID"
                 );
-
                 return;
-
             }
-
 
             if (
                 !editingId &&
                 !formData.password.trim()
             ) {
-
                 alert(
                     "Please enter Password"
                 );
-
                 return;
-
             }
-
 
             // =============================================
             // PAYLOAD
             // =============================================
 
             const payload = {
-
                 trainer_name:
                     formData.name.trim(),
 
@@ -1663,17 +1441,13 @@ const Trainer = () => {
                     formData.trainerId.trim(),
 
                 district_id:
-                    Number(
-                        finalDistrictId
-                    ) || 1,
+                    finalDistrictId ? Number(finalDistrictId) : null,
 
                 district_name:
                     formData.district || "",
 
                 taluka_id:
-                    Number(
-                        formData.talukaId
-                    ) || 1,
+                    finalTalukaId ? Number(finalTalukaId) : null,
 
                 taluka_name:
                     formData.taluka || "",
@@ -2224,6 +1998,7 @@ const Trainer = () => {
 
                 <Button
                     variant="dark"
+                    type="button"
                     onClick={
                         openAddModal
                     }
@@ -3643,6 +3418,7 @@ const Trainer = () => {
                     onSubmit={
                         handleSubmit
                     }
+                    noValidate
                 >
 
                     <Modal.Header
@@ -3726,17 +3502,12 @@ const Trainer = () => {
                                     </Form.Label>
                                     <Form.Control
                                         type="text"
-                                        list="trainerDistrictList"
                                         name="district"
                                         value={formData.district || ""}
-                                        onChange={handleDistrictInputChange}
-                                        placeholder="Select or type District (जिल्हा निवडा किंवा टाईप करा)"
+                                        onChange={handleChange}
+                                        autoComplete="off"
+                                        placeholder="Type District (जिल्हा टाईप करा)"
                                     />
-                                    <datalist id="trainerDistrictList">
-                                        {districts.map((district) => (
-                                            <option key={district.id} value={getDistrictName(district)} />
-                                        ))}
-                                    </datalist>
                                 </Form.Group>
                             </div>
 
@@ -3746,19 +3517,14 @@ const Trainer = () => {
                                     <Form.Label className="fw-semibold">
                                         Taluka (तालुका)
                                     </Form.Label>
-                                    <Form.Select
-                                        name="talukaId"
-                                        value={formData.talukaId}
-                                        onChange={handleTalukaChange}
-                                        disabled={!formData.districtId && !formData.district}
-                                    >
-                                        <option value="">तालुका निवडा</option>
-                                        {talukas.map((taluka) => (
-                                            <option key={taluka.id} value={taluka.id}>
-                                                {getTalukaName(taluka)}
-                                            </option>
-                                        ))}
-                                    </Form.Select>
+                                    <Form.Control
+                                        type="text"
+                                        name="taluka"
+                                        value={formData.taluka || ""}
+                                        onChange={handleChange}
+                                        autoComplete="off"
+                                        placeholder="Type Taluka (तालुका टाईप करा)"
+                                    />
                                 </Form.Group>
                             </div>
 
@@ -3928,6 +3694,11 @@ const Trainer = () => {
                             variant="dark"
                             type="submit"
                             disabled={saving}
+                            style={{
+                                position: "relative",
+                                zIndex: 2,
+                                pointerEvents: saving ? "none" : "auto",
+                            }}
                         >
 
                             {saving

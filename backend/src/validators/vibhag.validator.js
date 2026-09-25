@@ -19,15 +19,19 @@ const vibhagValidator = [
             "Name must be between 2 and 100 characters"
         ),
 
-    // DISTRICT
+    // DISTRICT (optional ID or name)
     body("district_id")
-        .notEmpty()
-        .withMessage("District is required"),
+        .optional({ nullable: true, checkFalsy: true }),
 
-    // TALUKA
+    body("district_name")
+        .optional({ nullable: true, checkFalsy: true }),
+
+    // TALUKA (optional ID or name)
     body("taluka_id")
-        .notEmpty()
-        .withMessage("Taluka is required"),
+        .optional({ nullable: true, checkFalsy: true }),
+
+    body("taluka_name")
+        .optional({ nullable: true, checkFalsy: true }),
 
     // CONTACT NUMBER
     body("contact_number")

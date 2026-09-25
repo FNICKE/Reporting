@@ -583,7 +583,7 @@ const DashboardLayout = () => {
 
           color: #ffffff;
 
-          z-index: 1100;
+          z-index: 1000;
 
           box-shadow:
             4px 0 20px
@@ -591,6 +591,15 @@ const DashboardLayout = () => {
 
           transition:
             transform 0.3s ease;
+        }
+
+        /* Ensure Bootstrap Modals appear above sidebar and header */
+        .modal-backdrop {
+          z-index: 1050 !important;
+        }
+
+        .modal {
+          z-index: 1055 !important;
         }
 
 
@@ -1217,6 +1226,7 @@ const DashboardLayout = () => {
           .dashboard-sidebar {
             width: 270px;
             min-width: 270px;
+            z-index: 1035;
 
             transform:
               translateX(-100%);
@@ -1230,6 +1240,7 @@ const DashboardLayout = () => {
           .dashboard-sidebar.sidebar-open {
             transform:
               translateX(0);
+            z-index: 1035;
           }
 
 
@@ -1269,7 +1280,7 @@ const DashboardLayout = () => {
             backdrop-filter:
               blur(2px);
 
-            z-index: 1050;
+            z-index: 1030;
           }
 
 

@@ -46,6 +46,16 @@ const EMPTY_FORM = {
     address: "",
 };
 
+const MAHARASHTRA_DISTRICTS = [
+    "Ahmednagar", "Akola", "Amravati", "Chhatrapati Sambhajinagar", "Beed",
+    "Bhandara", "Buldhana", "Chandrapur", "Dhule", "Gadchiroli",
+    "Gondia", "Hingoli", "Jalgaon", "Jalna", "Kolhapur",
+    "Latur", "Mumbai City", "Mumbai Suburban", "Nagpur", "Nanded",
+    "Nandurbar", "Nashik", "Dharashiv", "Palghar", "Parbhani",
+    "Pune", "Raigad", "Ratnagiri", "Sangli", "Satara",
+    "Sindhudurg", "Solapur", "Thane", "Wardha", "Washim", "Yavatmal"
+];
+
 // =====================================================
 // SAFE STRING
 // =====================================================
@@ -492,88 +502,34 @@ const Vibhag = () => {
     // GET DISTRICT NAME
     // =====================================================
 
-    const getDistrictName = (
-        item
-    ) => {
-
-        if (
-            item?.district_name
-        ) {
-            return item.district_name;
+    const getDistrictName = (item) => {
+        const val = item?.district_name || item?.districtName || item?.district;
+        if (val && String(val).trim() && String(val).trim() !== "-") {
+            return String(val).trim();
         }
 
-        if (
-            item?.districtName
-        ) {
-            return item.districtName;
-        }
-
-        const district =
-            districts.find(
-                (d) =>
-                    safeString(
-                        d?.id
-                    ) ===
-                    safeString(
-                        item?.district_id ??
-                        item?.districtId
-                    )
-            );
-
-        return (
-            district?.name ||
-            district?.district_name ||
-            district?.districtName ||
-            "-"
+        const district = districts.find(
+            (d) => safeString(d?.id) === safeString(item?.district_id ?? item?.districtId)
         );
 
+        return district?.district_name || district?.name || "-";
     };
 
     // =====================================================
     // GET TALUKA NAME
     // =====================================================
 
-    const getTalukaName = (
-        item
-    ) => {
-
-        if (
-            item?.taluka
-        ) {
-            return item.taluka;
+    const getTalukaName = (item) => {
+        const val = item?.taluka_name || item?.talukaName || item?.taluka;
+        if (val && String(val).trim() && String(val).trim() !== "-") {
+            return String(val).trim();
         }
 
-        if (
-            item?.taluka_name
-        ) {
-            return item.taluka_name;
-        }
-
-        if (
-            item?.talukaName
-        ) {
-            return item.talukaName;
-        }
-
-        const taluka =
-            talukas.find(
-                (t) =>
-                    safeString(
-                        t?.id
-                    ) ===
-                    safeString(
-                        item?.taluka_id ??
-                        item?.talukaId
-                    )
-            );
-
-        return (
-            taluka?.name ||
-            taluka?.taluka ||
-            taluka?.taluka_name ||
-            "-"
+        const taluka = talukas.find(
+            (t) => safeString(t?.id) === safeString(item?.taluka_id ?? item?.talukaId)
         );
 
+        return taluka?.taluka_name || taluka?.name || taluka?.taluka || "-";
     };
 
     // =====================================================
@@ -879,10 +835,6 @@ const Vibhag = () => {
             value,
         } = e.target;
 
-        // ===============================================
-        // DISTRICT
-        // ===============================================
-
         if (
             name === "districtName" ||
             name === "districtId" ||
@@ -916,32 +868,15 @@ const Vibhag = () => {
                     ? safeString(selectedDistrict.id)
                     : "";
 
-            setFormData(
-                (prev) => ({
+            setFormData((prev) => ({
+                ...prev,
+                districtId,
+                districtName,
+                talukaId: "",
+                taluka: "",
+            }));
 
-                    ...prev,
-
-                    districtId:
-                        districtId || (name === "districtId" ? value : prev.districtId),
-
-                    districtName:
-                        districtName,
-
-                    talukaId:
-                        districtId ? "" : prev.talukaId,
-
-                    taluka:
-                        districtId ? "" : prev.taluka,
-
-                })
-            );
-
-            if (districtId) {
-                setTalukas([]);
-                fetchTalukasByDistrict(
-                    districtId
-                );
-            }
+            fetchTalukasByDistrict(districtId);
 
             return;
 
@@ -951,9 +886,7 @@ const Vibhag = () => {
         // TALUKA
         // ===============================================
 
-        if (
-            name === "talukaId"
-        ) {
+        if (name === "talukaId") {
 
             const selectedTaluka =
                 talukas.find(
@@ -1078,6 +1011,8 @@ const Vibhag = () => {
     const openEditModal = async (
         item
     ) => {
+        const resolvedDistrict = getDistrictName(item);
+        const resolvedTaluka = getTalukaName(item);
 
         const districtId =
             item?.district_id ??
@@ -1085,11 +1020,19 @@ const Vibhag = () => {
             "";
 
         const districtName =
-            item?.district_name ??
-            item?.districtName ??
-            getDistrictName(
-                item
-            );
+            (item?.district_name && item?.district_name !== "-")
+                ? item.district_name
+                : (resolvedDistrict !== "-" ? resolvedDistrict : "");
+
+        const talukaId =
+            item?.taluka_id ??
+            item?.talukaId ??
+            "";
+
+        const talukaName =
+            (item?.taluka_name && item?.taluka_name !== "-")
+                ? item.taluka_name
+                : (item?.taluka && item?.taluka !== "-" ? item.taluka : (resolvedTaluka !== "-" ? resolvedTaluka : ""));
 
         setEditingId(
             item?.id
@@ -1098,7 +1041,6 @@ const Vibhag = () => {
         setShowPassword(false);
 
         setFormData({
-
             head:
                 item?.head ||
                 item?.name ||
@@ -1130,16 +1072,11 @@ const Vibhag = () => {
 
             talukaId:
                 safeString(
-                    item?.taluka_id ??
-                    item?.talukaId ??
-                    ""
+                    talukaId
                 ),
 
             taluka:
-                item?.taluka ||
-                item?.taluka_name ||
-                item?.talukaName ||
-                "",
+                talukaName,
 
             vibhag:
                 item?.vibhag ||
@@ -1374,38 +1311,50 @@ const Vibhag = () => {
 
         }
 
-        let finalDistrictId = districtId;
-        if (!finalDistrictId && districtName) {
+        const rawDistrict = (formData.districtName || districtName || "").trim();
+        let finalDistrictId = formData.districtId || districtId;
+        if (!finalDistrictId && rawDistrict) {
             const matched = districts.find(
                 (d) =>
-                    safeString(d?.name).trim().toLowerCase() ===
-                    districtName.toLowerCase() ||
-                    safeString(d?.district_name).trim().toLowerCase() ===
-                    districtName.toLowerCase()
+                    safeString(d?.name).trim().toLowerCase() === rawDistrict.toLowerCase() ||
+                    safeString(d?.district_name).trim().toLowerCase() === rawDistrict.toLowerCase()
             );
             if (matched) {
                 finalDistrictId = safeString(matched.id);
             }
         }
 
-        if (!finalDistrictId && !districtName) {
+        const rawTaluka = (formData.taluka || taluka || "").trim();
+        let finalTalukaId = formData.talukaId || talukaId;
+        let finalTalukaName = rawTaluka;
 
+        if (!finalTalukaId && finalDistrictId && rawTaluka) {
+            const talukaRows = await fetchTalukasByDistrict(finalDistrictId);
+            const matchedTaluka = talukaRows.find(
+                (item) =>
+                    safeString(item?.name || item?.taluka_name || item?.taluka)
+                        .trim()
+                        .toLowerCase() === rawTaluka.toLowerCase()
+            );
+
+            if (matchedTaluka) {
+                finalTalukaId = safeString(matchedTaluka.id);
+                finalTalukaName = matchedTaluka.name || matchedTaluka.taluka_name || matchedTaluka.taluka;
+            }
+        }
+
+        if (!rawDistrict) {
             alert(
                 "Please enter District"
             );
-
             return;
-
         }
 
-        if (!talukaId && !taluka) {
-
+        if (!rawTaluka) {
             alert(
                 "Please enter Taluka"
             );
-
             return;
-
         }
 
         if (!vibhag) {
@@ -1463,19 +1412,20 @@ const Vibhag = () => {
             designation,
 
             district_id:
-                Number(
-                    finalDistrictId
-                ) || 1,
+                finalDistrictId ? Number(finalDistrictId) : null,
 
             district_name:
-                districtName,
+                rawDistrict,
+
+            district:
+                rawDistrict,
 
             taluka_id:
-                Number(
-                    talukaId
-                ) || 1,
+                finalTalukaId ? Number(finalTalukaId) : null,
 
-            taluka,
+            taluka: finalTalukaName || rawTaluka,
+            taluka_name:
+                finalTalukaName || rawTaluka,
 
             vibhag:
                 vibhag || head || autoVibhagCode,
@@ -2771,6 +2721,19 @@ const Vibhag = () => {
                                 />
                             </div>
 
+                            {/* VIBHAG NAME */}
+                            <div className="col-md-6">
+                                <Form.Label className="fw-semibold">Vibhag Name (विभागाचे नाव)</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    name="vibhag"
+                                    value={formData.vibhag}
+                                    onChange={handleChange}
+                                    placeholder="विभागाचे नाव प्रविष्ट करा"
+                                    disabled={formLoading}
+                                />
+                            </div>
+
                             {/* MOBILE */}
                             <div className="col-md-6">
                                 <Form.Label className="fw-semibold">Mobile Number (मोबाईल क्रमांक)</Form.Label>
@@ -2803,16 +2766,34 @@ const Vibhag = () => {
                                 <Form.Label className="fw-semibold">District (जिल्हा)</Form.Label>
                                 <Form.Control
                                     type="text"
-                                    list="vibhagDistrictList"
+                                    list="vibhagDistrictDatalist"
                                     name="districtName"
                                     value={safeString(formData.districtName)}
-                                    onChange={handleChange}
-                                    placeholder="Select or type District (जिल्हा निवडा किंवा टाईप करा)"
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        const matched = districts.find(
+                                            (d) => safeString(d?.name).trim().toLowerCase() === val.trim().toLowerCase() ||
+                                                   safeString(d?.district_name).trim().toLowerCase() === val.trim().toLowerCase()
+                                        );
+                                        const newDistrictId = matched ? safeString(matched.id) : "";
+                                        setFormData((prev) => ({
+                                            ...prev,
+                                            districtName: val,
+                                            districtId: newDistrictId,
+                                        }));
+                                        if (newDistrictId) {
+                                            fetchTalukasByDistrict(newDistrictId);
+                                        }
+                                    }}
+                                    placeholder="जिल्हा निवडा किंवा टाईप करा"
                                     disabled={formLoading}
                                 />
-                                <datalist id="vibhagDistrictList">
-                                    {districts.map((district) => (
-                                        <option key={district.id} value={district.district_name || district.name} />
+                                <datalist id="vibhagDistrictDatalist">
+                                    {MAHARASHTRA_DISTRICTS.map((d) => (
+                                        <option key={d} value={d} />
+                                    ))}
+                                    {districts.map((item) => (
+                                        <option key={`db-${item.id}`} value={item.name || item.district_name || item.districtName} />
                                     ))}
                                 </datalist>
                             </div>
@@ -2820,21 +2801,32 @@ const Vibhag = () => {
                             {/* TALUKA */}
                             <div className="col-md-6">
                                 <Form.Label className="fw-semibold">Taluka (तालुका)</Form.Label>
-                                <Form.Select
-                                    name="talukaId"
-                                    value={safeString(formData.talukaId)}
-                                    onChange={handleChange}
+                                <Form.Control
+                                    type="text"
+                                    list="vibhagTalukaDatalist"
+                                    name="taluka"
+                                    value={safeString(formData.taluka)}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        const matched = talukas.find(
+                                            (t) => safeString(t?.name).trim().toLowerCase() === val.trim().toLowerCase() ||
+                                                   safeString(t?.taluka_name).trim().toLowerCase() === val.trim().toLowerCase() ||
+                                                   safeString(t?.taluka).trim().toLowerCase() === val.trim().toLowerCase()
+                                        );
+                                        setFormData((prev) => ({
+                                            ...prev,
+                                            taluka: val,
+                                            talukaId: matched ? safeString(matched.id) : "",
+                                        }));
+                                    }}
+                                    placeholder="तालुका निवडा किंवा टाईप करा"
                                     disabled={formLoading}
-                                >
-                                    <option value="">
-                                        {talukas.length > 0 ? "तालुका निवडा" : "आधी जिल्हा निवडा / उपलब्ध नाही"}
-                                    </option>
-                                    {talukas.map((taluka) => (
-                                        <option key={taluka.id} value={taluka.id}>
-                                            {taluka.taluka_name || taluka.name}
-                                        </option>
+                                />
+                                <datalist id="vibhagTalukaDatalist">
+                                    {talukas.map((item) => (
+                                        <option key={item.id} value={item.name || item.taluka_name || item.taluka} />
                                     ))}
-                                </Form.Select>
+                                </datalist>
                             </div>
 
                             {/* JOINING DATE */}

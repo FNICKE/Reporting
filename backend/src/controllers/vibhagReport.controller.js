@@ -238,12 +238,18 @@ const createVibhagReport = async (
         // INSERT
         // =================================================
 
+        const submittedUserId = String(req.body.user_id || req.body.created_by_id || "").trim() || null;
+        const submittedRole   = String(req.body.role || req.body.created_by_role || "").trim() || null;
+
         const [result] =
             await db.query(
 
                 `
                 INSERT INTO vibhag_reports
                 (
+                    user_id,
+                    created_by_role,
+
                     name,
                     designation,
                     taluka,
@@ -279,6 +285,8 @@ const createVibhagReport = async (
 
                 VALUES
                 (
+                    ?, ?,
+
                     ?, ?, ?, ?, ?, ?,
 
                     ?, ?,
@@ -304,6 +312,8 @@ const createVibhagReport = async (
                 `,
 
                 [
+                    submittedUserId,
+                    submittedRole,
 
                     String(name).trim(),
 
@@ -466,58 +476,58 @@ const getVibhagReports = async (
 ) => {
 
     try {
+        // Role-based filtering:
+        // admin/superadmin → all reports
+        // others → only their own (filtered by user_id or mobile_number)
+        const role      = String(req.query.role          || "").trim().toLowerCase();
+        const userId    = String(req.query.user_id       || "").trim();
+        const mobileNum = String(req.query.mobile_number || "").trim();
+        const userName  = String(req.query.user_name     || req.query.name || "").trim();
+        const isAdmin   = role === "admin" || role === "superadmin" || (!role && !userId && !mobileNum && !userName);
 
-        const [rows] =
-            await db.query(
-
-                `
-                SELECT *
-
-                FROM vibhag_reports
-
-                ORDER BY id DESC
-                `
-
+        let rows;
+        if (isAdmin) {
+            [rows] = await db.query(`SELECT * FROM vibhag_reports ORDER BY id DESC`);
+        } else if (userId) {
+            if (mobileNum || userName) {
+                [rows] = await db.query(
+                    `SELECT * FROM vibhag_reports 
+                     WHERE user_id = ? 
+                        OR (user_id IS NULL AND (mobile_number = ? OR name = ?)) 
+                     ORDER BY id DESC`,
+                    [userId, mobileNum || "__none__", userName || "__none__"]
+                );
+            } else {
+                [rows] = await db.query(
+                    `SELECT * FROM vibhag_reports WHERE user_id = ? ORDER BY id DESC`,
+                    [userId]
+                );
+            }
+        } else if (mobileNum || userName) {
+            [rows] = await db.query(
+                `SELECT * FROM vibhag_reports 
+                 WHERE mobile_number = ? OR name = ? 
+                 ORDER BY id DESC`,
+                [mobileNum || "__none__", userName || "__none__"]
             );
-
+        } else {
+            [rows] = await db.query(`SELECT * FROM vibhag_reports ORDER BY id DESC`);
+        }
 
         return res.status(200).json({
-
             success: true,
-
-            count:
-                rows.length,
-
-            total:
-                rows.length,
-
-            reports:
-                rows,
-
-            data:
-                rows,
-
+            count: rows.length,
+            total: rows.length,
+            reports: rows,
+            data: rows,
         });
-
 
     } catch (error) {
-
-        console.error(
-            "GET VIBHAG REPORTS ERROR:",
-            error
-        );
-
-
+        console.error("GET VIBHAG REPORTS ERROR:", error);
         return res.status(500).json({
-
             success: false,
-
-            message:
-                error.message ||
-                "Failed to fetch Vibhag reports",
-
+            message: error.message || "Failed to fetch Vibhag reports",
         });
-
     }
 
 };

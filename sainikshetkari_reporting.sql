@@ -109,7 +109,7 @@ INSERT INTO `district_reports` (`id`, `user_id`, `name`, `designation`, `taluka`
 CREATE TABLE `talukas` (
   `id` int(11) NOT NULL,
   `name` varchar(100) NOT NULL,
-  `district_id` int(11) NOT NULL,
+  `district_id` int(11) DEFAULT NULL,
   `contact_number` varchar(20) NOT NULL,
   `user_id` varchar(100) NOT NULL,
   `email` varchar(150) NOT NULL,
@@ -172,9 +172,9 @@ CREATE TABLE `trainers` (
   `id` int(11) NOT NULL,
   `trainer_name` varchar(100) NOT NULL,
   `trainer_code` varchar(100) NOT NULL,
-  `district_id` int(11) NOT NULL,
-  `taluka_id` int(11) NOT NULL,
-  `vibhag_id` int(11) NOT NULL,
+  `district_id` int(11) DEFAULT NULL,
+  `taluka_id` int(11) DEFAULT NULL,
+  `vibhag_id` int(11) DEFAULT NULL,
   `contact_number` varchar(15) NOT NULL,
   `user_id` varchar(100) NOT NULL,
   `email` varchar(150) NOT NULL,
@@ -206,6 +206,12 @@ CREATE TABLE `trainer_reports` (
   `district` varchar(150) DEFAULT NULL,
   `mobile_number` varchar(20) DEFAULT NULL,
   `report_date` date NOT NULL,
+  `total_shops_visited_today` int(11) NOT NULL DEFAULT 0,
+  `total_panel_registration_amount` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `payment_mode` enum('Cash','UPI','Online','Bank Transfer') DEFAULT NULL,
+  `shop_photo` varchar(500) DEFAULT NULL,
+  `shopkeeper_registration_photo` varchar(500) DEFAULT NULL,
+  `work_photo_video` varchar(500) DEFAULT NULL,
   `total_authorised_center_heads` int(11) DEFAULT 0,
   `total_active_center_heads` int(11) DEFAULT 0,
   `today_visited_center_heads_names` text DEFAULT NULL,
@@ -284,8 +290,8 @@ INSERT INTO `users` (`id`, `user_id`, `password`, `name`, `role`, `status`, `cre
 CREATE TABLE `vibhags` (
   `id` int(11) NOT NULL,
   `head` varchar(100) NOT NULL,
-  `district_id` int(11) NOT NULL,
-  `taluka_id` int(11) NOT NULL,
+  `district_id` int(11) DEFAULT NULL,
+  `taluka_id` int(11) DEFAULT NULL,
   `contact_number` varchar(15) NOT NULL,
   `user_id` varchar(100) NOT NULL,
   `email` varchar(150) NOT NULL,
@@ -475,29 +481,7 @@ ALTER TABLE `vibhag_reports`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
--- Constraints for dumped tables
---
-
---
--- Constraints for table `talukas`
---
-ALTER TABLE `talukas`
-  ADD CONSTRAINT `fk_taluka_district` FOREIGN KEY (`district_id`) REFERENCES `districts` (`id`) ON UPDATE CASCADE;
-
---
--- Constraints for table `trainers`
---
-ALTER TABLE `trainers`
-  ADD CONSTRAINT `fk_trainer_district` FOREIGN KEY (`district_id`) REFERENCES `districts` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `fk_trainer_taluka` FOREIGN KEY (`taluka_id`) REFERENCES `talukas` (`id`) ON DELETE CASCADE,
-  ADD CONSTRAINT `fk_trainer_vibhag` FOREIGN KEY (`vibhag_id`) REFERENCES `vibhags` (`id`) ON DELETE CASCADE;
-
---
--- Constraints for table `vibhags`
---
-ALTER TABLE `vibhags`
-  ADD CONSTRAINT `fk_vibhag_district` FOREIGN KEY (`district_id`) REFERENCES `districts` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  ADD CONSTRAINT `fk_vibhag_taluka` FOREIGN KEY (`taluka_id`) REFERENCES `talukas` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+-- Foreign key constraints removed for independent master management
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

@@ -56,6 +56,7 @@ const Login = () => {
       "logged_in_name",
       "logged_in_role",
       "logged_in_status",
+      "logged_in_mobile",
 
       "logged_in_district_id",
       "logged_in_district_name",
@@ -114,6 +115,13 @@ const Login = () => {
     localStorage.setItem(
       "logged_in_status",
       user.status ||
+        ""
+    );
+
+    localStorage.setItem(
+      "logged_in_mobile",
+      user.contact_number ||
+        user.mobile_number ||
         ""
     );
 

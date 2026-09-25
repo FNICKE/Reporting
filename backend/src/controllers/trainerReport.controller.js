@@ -54,12 +54,9 @@ const createTrainerReport = async (req, res) => {
             district,
             mobile_number,
             report_date,
-            total_authorised_center_heads,
-            total_active_center_heads,
-            today_visited_center_heads_names,
-            total_center_heads_visited_today,
-            todays_new_members,
-            additional_remarks,
+            total_shops_visited_today,
+            total_panel_registration_amount,
+            payment_mode,
         } = req.body;
 
         // =================================================
@@ -101,96 +98,34 @@ const createTrainerReport = async (req, res) => {
             });
         }
 
-        // =================================================
-        // NUMBER VALUES
-        // =================================================
-
-        const authorised =
-            Number(total_authorised_center_heads) || 0;
-
-        const active =
-            Number(total_active_center_heads) || 0;
-
-        const visited =
-            Number(total_center_heads_visited_today) || 0;
-
-        const newMembers =
-            Number(todays_new_members) || 0;
-
-        // =================================================
-        // NUMBER VALIDATION
-        // =================================================
-
-        if (authorised < 300 || authorised > 500) {
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Total Authorised Center Heads must be between 300 and 500",
-            });
-        }
-
-        if (active < 0 || active > authorised) {
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Active Center Heads cannot be greater than Authorised Center Heads.",
-            });
-        }
-
-        if (visited < 0 || visited > active) {
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Total Center Heads Visited Today cannot be greater than Active Center Heads.",
-            });
-        }
-
-        if (newMembers < 0) {
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Today's New Members cannot be negative.",
-            });
-        }
-
-        // =================================================
-        // PHOTO 1
-        // =================================================
-
-        let meetingPhoto1 = null;
-
-        if (
-            req.files &&
-            req.files.meeting_photo_1 &&
-            req.files.meeting_photo_1.length > 0
-        ) {
-            meetingPhoto1 =
-                `trainer-reports/${req.files.meeting_photo_1[0].filename}`;
-        }
-
-        // =================================================
-        // PHOTO 2
-        // =================================================
-
-        let meetingPhoto2 = null;
-
-        if (
-            req.files &&
-            req.files.meeting_photo_2 &&
-            req.files.meeting_photo_2.length > 0
-        ) {
-            meetingPhoto2 =
-                `trainer-reports/${req.files.meeting_photo_2[0].filename}`;
-        }
+        const shops = Number(total_shops_visited_today) >= 0 ? Number(total_shops_visited_today) : 0;
+        const amount = Number(total_panel_registration_amount) >= 0 ? Number(total_panel_registration_amount) : 0;
+        const validPaymentModes = ["Cash", "UPI", "Online", "Bank Transfer"];
+        const cleanPaymentMode = payment_mode && validPaymentModes.includes(payment_mode)
+            ? payment_mode
+            : null;
+        const filePath = (field) =>
+            req.files?.[field]?.[0]
+                ? `trainer-reports/${req.files[field][0].filename}`
+                : null;
+        const shopPhoto = filePath("shop_photo");
+        const registrationPhoto = filePath("shopkeeper_registration_photo");
+        const workPhotoVideo = filePath("work_photo_video");
 
         // =================================================
         // INSERT
         // =================================================
 
+        const submittedUserId = String(req.body.user_id || req.body.created_by_id || "").trim() || null;
+        const submittedRole   = String(req.body.role || req.body.created_by_role || "").trim() || null;
+
         const [result] = await db.query(
             `
             INSERT INTO trainer_reports
             (
+                user_id,
+                created_by_role,
+
                 name,
                 designation,
                 taluka,
@@ -198,33 +133,27 @@ const createTrainerReport = async (req, res) => {
                 mobile_number,
                 report_date,
 
-                total_authorised_center_heads,
-                total_active_center_heads,
-
-                today_visited_center_heads_names,
-                total_center_heads_visited_today,
-
-                todays_new_members,
-
-                additional_remarks,
-
-                meeting_photo_1,
-                meeting_photo_2,
+                total_shops_visited_today,
+                total_panel_registration_amount,
+                payment_mode,
+                shop_photo,
+                shopkeeper_registration_photo,
+                work_photo_video,
 
                 status
             )
             VALUES
             (
+                ?, ?,
                 ?, ?, ?, ?, ?, ?,
-                ?, ?,
-                ?, ?,
-                ?,
-                ?,
-                ?, ?,
+                ?, ?, ?, ?, ?, ?,
                 'active'
             )
             `,
             [
+                submittedUserId,
+                submittedRole,
+
                 String(name).trim(),
                 String(designation).trim(),
                 String(taluka).trim(),
@@ -236,24 +165,12 @@ const createTrainerReport = async (req, res) => {
 
                 report_date,
 
-                authorised,
-                active,
-
-                today_visited_center_heads_names
-                    ? String(
-                        today_visited_center_heads_names
-                    ).trim()
-                    : null,
-
-                visited,
-                newMembers,
-
-                additional_remarks
-                    ? String(additional_remarks).trim()
-                    : null,
-
-                meetingPhoto1,
-                meetingPhoto2,
+                shops,
+                amount,
+                cleanPaymentMode,
+                shopPhoto,
+                registrationPhoto,
+                workPhotoVideo,
             ]
         );
 
@@ -298,13 +215,43 @@ const createTrainerReport = async (req, res) => {
 
 const getTrainerReports = async (req, res) => {
     try {
-        const [rows] = await db.query(
-            `
-            SELECT *
-            FROM trainer_reports
-            ORDER BY id DESC
-            `
-        );
+        // Role-based filtering:
+        // admin/superadmin → all reports
+        // others → only their own (filtered by user_id or mobile_number)
+        const role      = String(req.query.role          || "").trim().toLowerCase();
+        const userId    = String(req.query.user_id       || "").trim();
+        const mobileNum = String(req.query.mobile_number || "").trim();
+        const userName  = String(req.query.user_name     || req.query.name || "").trim();
+        const isAdmin   = role === "admin" || role === "superadmin" || (!role && !userId && !mobileNum && !userName);
+
+        let rows;
+        if (isAdmin) {
+            [rows] = await db.query(`SELECT * FROM trainer_reports ORDER BY id DESC`);
+        } else if (userId) {
+            if (mobileNum || userName) {
+                [rows] = await db.query(
+                    `SELECT * FROM trainer_reports 
+                     WHERE user_id = ? 
+                        OR (user_id IS NULL AND (mobile_number = ? OR name = ?)) 
+                     ORDER BY id DESC`,
+                    [userId, mobileNum || "__none__", userName || "__none__"]
+                );
+            } else {
+                [rows] = await db.query(
+                    `SELECT * FROM trainer_reports WHERE user_id = ? ORDER BY id DESC`,
+                    [userId]
+                );
+            }
+        } else if (mobileNum || userName) {
+            [rows] = await db.query(
+                `SELECT * FROM trainer_reports 
+                 WHERE mobile_number = ? OR name = ? 
+                 ORDER BY id DESC`,
+                [mobileNum || "__none__", userName || "__none__"]
+            );
+        } else {
+            [rows] = await db.query(`SELECT * FROM trainer_reports ORDER BY id DESC`);
+        }
 
         return res.status(200).json({
             success: true,
@@ -314,19 +261,14 @@ const getTrainerReports = async (req, res) => {
             data: rows,
         });
     } catch (error) {
-        console.error(
-            "GET TRAINER REPORTS ERROR:",
-            error
-        );
-
+        console.error("GET TRAINER REPORTS ERROR:", error);
         return res.status(500).json({
             success: false,
-            message:
-                error.message ||
-                "Failed to fetch trainer reports",
+            message: error.message || "Failed to fetch trainer reports",
         });
     }
 };
+
 
 // =====================================================
 // GET SINGLE TRAINER REPORT
@@ -417,12 +359,9 @@ const updateTrainerReport = async (req, res) => {
             district,
             mobile_number,
             report_date,
-            total_authorised_center_heads,
-            total_active_center_heads,
-            today_visited_center_heads_names,
-            total_center_heads_visited_today,
-            todays_new_members,
-            additional_remarks,
+            total_shops_visited_today,
+            total_panel_registration_amount,
+            payment_mode,
             status,
         } = req.body;
 
@@ -465,104 +404,39 @@ const updateTrainerReport = async (req, res) => {
             });
         }
 
-        // =================================================
-        // NUMBER VALUES
-        // =================================================
+        const shops = total_shops_visited_today !== undefined && Number(total_shops_visited_today) >= 0
+            ? Number(total_shops_visited_today)
+            : (oldReport.total_shops_visited_today || 0);
 
-        const authorised =
-            Number(total_authorised_center_heads) || 0;
+        const amount = total_panel_registration_amount !== undefined && Number(total_panel_registration_amount) >= 0
+            ? Number(total_panel_registration_amount)
+            : (oldReport.total_panel_registration_amount || 0);
 
-        const active =
-            Number(total_active_center_heads) || 0;
+        const validPaymentModes = ["Cash", "UPI", "Online", "Bank Transfer"];
+        const cleanPaymentMode = payment_mode && validPaymentModes.includes(payment_mode)
+            ? payment_mode
+            : (payment_mode === undefined ? oldReport.payment_mode : null);
 
-        const visited =
-            Number(total_center_heads_visited_today) || 0;
-
-        const newMembers =
-            Number(todays_new_members) || 0;
-
-        // =================================================
-        // NUMBER VALIDATION
-        // =================================================
-
-        if (authorised < 300 || authorised > 500) {
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Total Authorised Center Heads must be between 300 and 500",
-            });
-        }
-
-        if (active < 0 || active > authorised) {
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Active Center Heads cannot be greater than Authorised Center Heads.",
-            });
-        }
-
-        if (visited < 0 || visited > active) {
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Total Center Heads Visited Today cannot be greater than Active Center Heads.",
-            });
-        }
-
-        if (newMembers < 0) {
-            return res.status(400).json({
-                success: false,
-                message:
-                    "Today's New Members cannot be negative.",
-            });
-        }
+        const submittedUserId = String(req.body.user_id || req.body.created_by_id || "").trim() || null;
 
         // =================================================
         // OLD PHOTOS
         // =================================================
 
-        let meetingPhoto1 =
-            oldReport.meeting_photo_1;
-
-        let meetingPhoto2 =
-            oldReport.meeting_photo_2;
-                    // =================================================
-        // NEW PHOTO 1
-        // =================================================
-
-        if (
-            req.files &&
-            req.files.meeting_photo_1 &&
-            req.files.meeting_photo_1.length > 0
-        ) {
-            meetingPhoto1 =
-                `trainer-reports/${req.files.meeting_photo_1[0].filename}`;
-
-            if (oldReport.meeting_photo_1) {
-                deleteOldImage(
-                    oldReport.meeting_photo_1
-                );
+        const media = [
+            ["shop_photo", "shop_photo"],
+            ["shopkeeper_registration_photo", "shopkeeper_registration_photo"],
+            ["work_photo_video", "work_photo_video"],
+        ];
+        const fileValues = {};
+        media.forEach(([field, column]) => {
+            fileValues[column] = oldReport[column];
+            if (req.files?.[field]?.[0]) {
+                fileValues[column] =
+                    `trainer-reports/${req.files[field][0].filename}`;
+                deleteOldImage(oldReport[column]);
             }
-        }
-
-        // =================================================
-        // NEW PHOTO 2
-        // =================================================
-
-        if (
-            req.files &&
-            req.files.meeting_photo_2 &&
-            req.files.meeting_photo_2.length > 0
-        ) {
-            meetingPhoto2 =
-                `trainer-reports/${req.files.meeting_photo_2[0].filename}`;
-
-            if (oldReport.meeting_photo_2) {
-                deleteOldImage(
-                    oldReport.meeting_photo_2
-                );
-            }
-        }
+        });
 
         // =================================================
         // UPDATE DATABASE
@@ -572,6 +446,7 @@ const updateTrainerReport = async (req, res) => {
             `
             UPDATE trainer_reports
             SET
+                user_id = COALESCE(user_id, ?),
                 name = ?,
                 designation = ?,
                 taluka = ?,
@@ -579,24 +454,19 @@ const updateTrainerReport = async (req, res) => {
                 mobile_number = ?,
                 report_date = ?,
 
-                total_authorised_center_heads = ?,
-                total_active_center_heads = ?,
-
-                today_visited_center_heads_names = ?,
-                total_center_heads_visited_today = ?,
-
-                todays_new_members = ?,
-
-                additional_remarks = ?,
-
-                meeting_photo_1 = ?,
-                meeting_photo_2 = ?,
+                total_shops_visited_today = ?,
+                total_panel_registration_amount = ?,
+                payment_mode = ?,
+                shop_photo = ?,
+                shopkeeper_registration_photo = ?,
+                work_photo_video = ?,
 
                 status = ?
 
             WHERE id = ?
             `,
             [
+                submittedUserId,
                 String(name).trim(),
 
                 String(designation).trim(),
@@ -611,27 +481,12 @@ const updateTrainerReport = async (req, res) => {
 
                 report_date,
 
-                authorised,
-
-                active,
-
-                today_visited_center_heads_names
-                    ? String(
-                        today_visited_center_heads_names
-                    ).trim()
-                    : null,
-
-                visited,
-
-                newMembers,
-
-                additional_remarks
-                    ? String(additional_remarks).trim()
-                    : null,
-
-                meetingPhoto1,
-
-                meetingPhoto2,
+                shops,
+                amount,
+                cleanPaymentMode,
+                fileValues.shop_photo,
+                fileValues.shopkeeper_registration_photo,
+                fileValues.work_photo_video,
 
                 status ||
                     oldReport.status ||
@@ -693,8 +548,9 @@ const deleteTrainerReport = async (req, res) => {
         const [rows] = await db.query(
             `
             SELECT
-                meeting_photo_1,
-                meeting_photo_2
+                shop_photo,
+                shopkeeper_registration_photo,
+                work_photo_video
             FROM trainer_reports
             WHERE id = ?
             LIMIT 1
@@ -721,24 +577,11 @@ const deleteTrainerReport = async (req, res) => {
             [id]
         );
                 // =================================================
-        // DELETE PHOTO 1
-        // =================================================
-
-        if (rows[0].meeting_photo_1) {
-            deleteOldImage(
-                rows[0].meeting_photo_1
-            );
-        }
-
-        // =================================================
-        // DELETE PHOTO 2
-        // =================================================
-
-        if (rows[0].meeting_photo_2) {
-            deleteOldImage(
-                rows[0].meeting_photo_2
-            );
-        }
+        [
+            rows[0].shop_photo,
+            rows[0].shopkeeper_registration_photo,
+            rows[0].work_photo_video,
+        ].forEach(deleteOldImage);
 
         return res.status(200).json({
             success: true,
