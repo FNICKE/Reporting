@@ -6,27 +6,27 @@ const path = require("path");
 // MASTER ROUTES
 // =====================================================
 
-const districtRoutes = require("./routes/district.routes");
+const districtRoutes = require("./routes/districtRoutes");
 
-const talukaRoutes = require("./routes/taluka.routes");
+const talukaRoutes = require("./routes/talukaRoutes");
 
-const vibhagRoutes = require("./routes/vibhag.routes");
+const vibhagRoutes = require("./routes/vibhagRoutes");
 
-const trainerRoutes = require("./routes/trainer.routes");
+const trainerRoutes = require("./routes/trainerRoutes");
 
-const authRoutes = require("./routes/auth.routes");
+const authRoutes = require("./routes/authRoutes");
 
 // =====================================================
 // REPORT ROUTES
 // =====================================================
 
-const districtReportRoutes = require("./routes/districtReport.routes");
+const districtReportRoutes = require("./routes/districtReportRoutes");
 
-const talukaReportRoutes = require("./routes/talukaReport.routes");
+const talukaReportRoutes = require("./routes/talukaReportRoutes");
 
-const vibhagReportRoutes = require("./routes/vibhagReport.routes");
+const vibhagReportRoutes = require("./routes/vibhagReportRoutes");
 
-const trainerReportRoutes = require("./routes/trainerReport.routes");
+const trainerReportRoutes = require("./routes/trainerReportRoutes");
 
 // =====================================================
 // APP

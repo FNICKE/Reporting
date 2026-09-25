@@ -1,5 +1,5 @@
 const db = require("../config/db");
-const { syncSystemUser, deleteSystemUser } = require("../utils/user.utils");
+const { syncSystemUser, deleteSystemUser } = require("../utils/userUtils");
 
 // =====================================================
 // GET ALL VIBHAGS

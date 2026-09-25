@@ -7,84 +7,93 @@ const router = express.Router();
 // =====================================================
 
 const {
-    createDistrictReport,
-    getDistrictReports,
-    getDistrictReportById,
-    updateDistrictReport,
-    deleteDistrictReport,
-} = require("../controllers/districtReport.controller");
+    createVibhagReport,
+    getVibhagReports,
+    getVibhagReportById,
+    updateVibhagReport,
+    deleteVibhagReport,
+} = require("../controllers/vibhagReportController");
 
 // =====================================================
 // UPLOAD MIDDLEWARE
 // =====================================================
 
 const {
-    districtUpload,
+    vibhagUpload,
 } = require("../middleware/upload");
 
 // =====================================================
-// GET ALL
+// GET ALL VIBHAG REPORTS
+// GET /api/vibhag-reports
 // =====================================================
 
 router.get(
     "/",
-    getDistrictReports
+    getVibhagReports
 );
 
 // =====================================================
-// GET BY ID
+// GET SINGLE VIBHAG REPORT
+// GET /api/vibhag-reports/:id
 // =====================================================
 
 router.get(
     "/:id",
-    getDistrictReportById
+    getVibhagReportById
 );
 
 // =====================================================
-// CREATE
+// CREATE VIBHAG REPORT
+// POST /api/vibhag-reports
 // =====================================================
 
 router.post(
     "/",
-    districtUpload.fields([
+    vibhagUpload.fields([
         {
-            name: "machine1_camp_photo",
+            name: "meeting_photo_1",
             maxCount: 1,
         },
         {
-            name: "machine2_camp_photo",
+            name: "meeting_photo_2",
             maxCount: 1,
         },
     ]),
-    createDistrictReport
+    createVibhagReport
 );
 
 // =====================================================
-// UPDATE
+// UPDATE VIBHAG REPORT
+// PUT /api/vibhag-reports/:id
 // =====================================================
 
 router.put(
     "/:id",
-    districtUpload.fields([
+    vibhagUpload.fields([
         {
-            name: "machine1_camp_photo",
+            name: "meeting_photo_1",
             maxCount: 1,
         },
         {
-            name: "machine2_camp_photo",
+            name: "meeting_photo_2",
             maxCount: 1,
         },
     ]),
-    updateDistrictReport
+    updateVibhagReport
 );
 
 // =====================================================
-// DELETE
+// DELETE VIBHAG REPORT
+// DELETE /api/vibhag-reports/:id
 // =====================================================
 
 router.delete(
     "/:id",
-    deleteDistrictReport
+    deleteVibhagReport
 );
+
+// =====================================================
+// EXPORT
+// =====================================================
 
 module.exports = router;

@@ -12,7 +12,7 @@ const {
   createDistrict,
   updateDistrict,
   deleteDistrict,
-} = require("../controllers/district.controller");
+} = require("../controllers/districtController");
 
 // ========================================
 // GET ALL

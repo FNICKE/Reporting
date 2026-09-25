@@ -12,15 +12,15 @@ const {
     createVibhag,
     updateVibhag,
     deleteVibhag,
-} = require("../controllers/vibhag.controller");
+} = require("../controllers/vibhagController");
 
 // ========================================
 // MIDDLEWARE
 // ========================================
 
-const allowRoles = require("../middleware/role.middleware");
+const allowRoles = require("../middleware/roleMiddleware");
 
-const validate = require("../middleware/validation.middleware");
+const validate = require("../middleware/validationMiddleware");
 
 // ========================================
 // VALIDATOR
@@ -28,7 +28,7 @@ const validate = require("../middleware/validation.middleware");
 
 const {
     vibhagValidator,
-} = require("../validators/vibhag.validator");
+} = require("../validators/vibhagValidator");
 
 // ========================================
 // GET ALL VIBHAGS

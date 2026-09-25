@@ -9,7 +9,7 @@ const {
     createTaluka,
     updateTaluka,
     deleteTaluka,
-} = require("../controllers/taluka.controller");
+} = require("../controllers/talukaController");
 
 
 router.get(

@@ -13,7 +13,7 @@ const {
     createTalukaReport,
     updateTalukaReport,
     deleteTalukaReport,
-} = require("../controllers/talukaReport.controller");
+} = require("../controllers/talukaReportController");
 
 
 // =====================================================

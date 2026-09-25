@@ -4,89 +4,98 @@ const router = express.Router();
 
 
 // =====================================================
-// TRAINER REPORT CONTROLLER
+// CONTROLLER
 // =====================================================
 
 const {
-    getTrainerReports,
-    getTrainerReportById,
-    createTrainerReport,
-    updateTrainerReport,
-    deleteTrainerReport,
-} = require("../controllers/trainerReport.controller");
+    getTrainers,
+    getTrainerById,
+    getTrainersByDistrict,
+    getTrainersByTaluka,
+    getTrainersByVibhag,
+    createTrainer,
+    updateTrainer,
+    deleteTrainer
+} = require("../controllers/trainerController");
 
 
 // =====================================================
-// TRAINER UPLOAD
-// =====================================================
-
-const {
-    trainerUpload,
-} = require("../middleware/upload");
-
-
-// =====================================================
-// GET ALL TRAINER REPORTS
-// GET /api/trainer-reports
+// GET ALL TRAINERS
 // =====================================================
 
 router.get(
     "/",
-    getTrainerReports
+    getTrainers
 );
 
 
 // =====================================================
-// GET SINGLE TRAINER REPORT
-// GET /api/trainer-reports/:id
+// GET TRAINERS BY DISTRICT
+// =====================================================
+
+router.get(
+    "/district/:districtId",
+    getTrainersByDistrict
+);
+
+
+// =====================================================
+// GET TRAINERS BY TALUKA
+// =====================================================
+
+router.get(
+    "/taluka/:talukaId",
+    getTrainersByTaluka
+);
+
+
+// =====================================================
+// GET TRAINERS BY VIBHAG
+// =====================================================
+
+router.get(
+    "/vibhag/:vibhagId",
+    getTrainersByVibhag
+);
+
+
+// =====================================================
+// GET SINGLE TRAINER
 // =====================================================
 
 router.get(
     "/:id",
-    getTrainerReportById
+    getTrainerById
 );
 
 
 // =====================================================
-// CREATE TRAINER REPORT
-// POST /api/trainer-reports
+// CREATE TRAINER
 // =====================================================
 
 router.post(
     "/",
-    trainerUpload.fields([
-        { name: "shop_photo", maxCount: 1 },
-        { name: "shopkeeper_registration_photo", maxCount: 1 },
-        { name: "work_photo_video", maxCount: 1 },
-    ]),
-    createTrainerReport
+    createTrainer
 );
 
 
 // =====================================================
-// UPDATE TRAINER REPORT
-// PUT /api/trainer-reports/:id
+// UPDATE TRAINER
 // =====================================================
 
 router.put(
     "/:id",
-    trainerUpload.fields([
-        { name: "shop_photo", maxCount: 1 },
-        { name: "shopkeeper_registration_photo", maxCount: 1 },
-        { name: "work_photo_video", maxCount: 1 },
-    ]),
-    updateTrainerReport
+    updateTrainer
 );
 
 
 // =====================================================
-// DELETE TRAINER REPORT
-// DELETE /api/trainer-reports/:id
+// DELETE TRAINER
 // =====================================================
 
 router.delete(
     "/:id",
-    deleteTrainerReport
+    deleteTrainer
 );
 
 
